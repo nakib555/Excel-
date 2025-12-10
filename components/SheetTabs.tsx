@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Plus, LayoutGrid, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Sheet } from '../types';
 import { motion } from 'framer-motion';
@@ -21,6 +21,23 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [hasMoved, setHasMoved] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+    };
+  }, []);
 
   // Mouse Drag to Scroll Logic
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -50,13 +67,6 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
     }
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (!scrollRef.current) return;
-    if (e.deltaY !== 0) {
-      scrollRef.current.scrollLeft += e.deltaY;
-    }
-  };
-
   const handleTabClick = (sheetId: string) => {
       if (!hasMoved) {
           onSwitch(sheetId);
@@ -80,14 +90,13 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
       <div 
         ref={scrollRef}
         className={`
-            flex-1 flex overflow-x-auto gap-1 items-end h-full pt-1
+            flex-1 flex overflow-x-auto overflow-y-hidden gap-1 items-end h-full pt-1
             no-scrollbar cursor-grab active:cursor-grabbing
         `}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
-        onWheel={handleWheel}
       >
         {sheets.map((sheet) => {
           const isActive = sheet.id === activeSheetId;

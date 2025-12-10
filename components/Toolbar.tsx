@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   // Common & Home
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, 
@@ -69,6 +69,23 @@ const DraggableScrollContainer = ({ children, className = "" }: { children?: Rea
   const [scrollLeft, setScrollLeft] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+
+    el.addEventListener('wheel', onWheel, { passive: false });
+
+    return () => {
+      el.removeEventListener('wheel', onWheel);
+    };
+  }, []);
+
   const onMouseDown = (e: React.MouseEvent) => {
     if (!ref.current) return;
     setIsDown(true);
@@ -98,14 +115,6 @@ const DraggableScrollContainer = ({ children, className = "" }: { children?: Rea
     ref.current.scrollLeft = scrollLeft - walk;
   };
 
-  const onWheel = (e: React.WheelEvent) => {
-    if (ref.current && e.deltaY !== 0) {
-      // Horizontal scroll with wheel
-      // e.preventDefault(); // Can't prevent default on passive listener, usually fine in React
-      ref.current.scrollLeft += e.deltaY;
-    }
-  };
-
   const onClickCapture = (e: React.MouseEvent) => {
       if (isDragging) {
           e.preventDefault();
@@ -116,12 +125,11 @@ const DraggableScrollContainer = ({ children, className = "" }: { children?: Rea
   return (
     <div
       ref={ref}
-      className={`overflow-x-auto no-scrollbar cursor-grab active:cursor-grabbing ${className}`}
+      className={`overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing ${className}`}
       onMouseDown={onMouseDown}
       onMouseLeave={onMouseLeave}
       onMouseUp={onMouseUp}
       onMouseMove={onMouseMove}
-      onWheel={onWheel}
       onClickCapture={onClickCapture}
     >
       {children}
