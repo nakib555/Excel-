@@ -320,7 +320,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ currentStyle, onToggleStyle, onExport
 
       {/* 3. The Ribbon */}
       <div className="bg-slate-50/80 border-b border-slate-200">
-      <DraggableScrollContainer className="h-[140px] flex items-start px-2 md:px-4 py-2 w-full">
+      <DraggableScrollContainer className="h-[130px] flex items-start px-2 md:px-4 py-2 w-full">
           <AnimatePresence mode='wait'>
             
             {/* --- HOME TAB --- */}
