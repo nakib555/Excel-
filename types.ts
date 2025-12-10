@@ -1,3 +1,4 @@
+
 export type CellId = string; // e.g., "A1", "B2"
 
 export interface CellStyle {
@@ -15,6 +16,7 @@ export interface CellData {
   raw: string;      // The user input (e.g., "=SUM(A1:A5)" or "100")
   value: string;    // The computed display value (e.g., "500")
   style: CellStyle;
+  image?: string;   // Base64 data URI for cell image
 }
 
 export interface SheetState {

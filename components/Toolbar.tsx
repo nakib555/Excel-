@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { 
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, 
@@ -15,7 +16,11 @@ import {
   MousePointer2,
   ListFilter,
   Layout,
-  Printer
+  Printer,
+  Sparkles,
+  Image as ImageIcon,
+  ImagePlus,
+  Loader2
 } from 'lucide-react';
 import { CellStyle } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,6 +31,7 @@ interface ToolbarProps {
   onExport: () => void;
   onClear: () => void;
   onResetLayout: () => void;
+  onGenerateImage: (prompt: string) => Promise<void>;
 }
 
 // --- Components ---
@@ -201,12 +207,22 @@ const Separator = () => <div className="h-full w-px bg-slate-200 mx-0.5 md:mx-1 
 
 const TABS = ['Home', 'Insert', 'Draw', 'Page Layout', 'Formulas', 'Data', 'Review', 'View'];
 
-const Toolbar: React.FC<ToolbarProps> = ({ currentStyle, onToggleStyle, onExport, onClear }) => {
+const Toolbar: React.FC<ToolbarProps> = ({ currentStyle, onToggleStyle, onExport, onClear, onGenerateImage }) => {
   const [activeTab, setActiveTab] = useState('Home');
+  const [imagePrompt, setImagePrompt] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Font sizes for the dropdown
   const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48, 72];
   const currentFontSize = currentStyle.fontSize || 13;
+
+  const handleGenImage = async () => {
+    if (!imagePrompt.trim()) return;
+    setIsGenerating(true);
+    await onGenerateImage(imagePrompt);
+    setIsGenerating(false);
+    setImagePrompt('');
+  };
 
   return (
     <div className="flex flex-col bg-white border-b border-slate-300 shadow-sm z-40 select-none">
@@ -454,8 +470,84 @@ const Toolbar: React.FC<ToolbarProps> = ({ currentStyle, onToggleStyle, onExport
                 </motion.div>
             )}
 
+            {/* --- INSERT TAB --- */}
+            {activeTab === 'Insert' && (
+              <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex h-full min-w-max"
+              >
+                  {/* --- Illustrations Group --- */}
+                  <RibbonGroup label="Illustrations">
+                      <RibbonButton 
+                          variant="large" 
+                          icon={<ImageIcon size={22} className="text-slate-500" />} 
+                          label="Pictures" 
+                          onClick={() => {}}
+                          title="Insert Picture from File"
+                          hasDropdown
+                      />
+                      <RibbonButton 
+                          variant="large" 
+                          icon={<Grid3X3 size={22} className="text-slate-500" />} 
+                          label="Shapes" 
+                          onClick={() => {}}
+                          title="Insert Shapes"
+                          hasDropdown
+                      />
+                  </RibbonGroup>
+
+                  {/* --- AI Generation Group --- */}
+                  <RibbonGroup label="Generative AI" className="px-3 min-w-[300px]">
+                      <div className="flex items-center gap-3 h-full w-full">
+                         <div className="flex flex-col gap-1 w-full max-w-[240px]">
+                            <label className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider flex items-center gap-1">
+                              <Sparkles size={10} className="text-purple-500" />
+                              Generate Image
+                            </label>
+                            <div className="flex items-center gap-1">
+                                <input 
+                                  type="text" 
+                                  className="h-8 w-full text-xs border border-slate-300 rounded px-2 focus:ring-2 focus:ring-purple-100 focus:border-purple-400 outline-none"
+                                  placeholder="Describe image to generate..."
+                                  value={imagePrompt}
+                                  onChange={(e) => setImagePrompt(e.target.value)}
+                                  onKeyDown={(e) => e.key === 'Enter' && handleGenImage()}
+                                />
+                            </div>
+                         </div>
+                         <div className="h-full flex items-center pt-4">
+                             <button
+                                onClick={handleGenImage}
+                                disabled={isGenerating || !imagePrompt}
+                                className={`
+                                  h-8 px-4 flex items-center gap-2 rounded bg-gradient-to-br from-purple-600 to-indigo-600 text-white text-xs font-semibold shadow-sm hover:shadow-md transition-all active:scale-95
+                                  ${(isGenerating || !imagePrompt) ? 'opacity-50 cursor-not-allowed' : 'hover:from-purple-500 hover:to-indigo-500'}
+                                `}
+                             >
+                                {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+                                <span>Generate</span>
+                             </button>
+                         </div>
+                      </div>
+                  </RibbonGroup>
+
+                  {/* --- Placeholder for Tables in Insert --- */}
+                  <RibbonGroup label="Tables">
+                       <RibbonButton 
+                          variant="large" 
+                          icon={<Table size={22} className="text-emerald-600" />} 
+                          label="Table" 
+                          onClick={() => {}}
+                          title="Create Table"
+                      />
+                  </RibbonGroup>
+              </motion.div>
+            )}
+
             {/* Placeholder for other tabs */}
-            {activeTab !== 'Home' && (
+            {activeTab !== 'Home' && activeTab !== 'Insert' && (
                  <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
