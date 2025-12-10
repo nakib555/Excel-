@@ -7,15 +7,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DraggableScrollContainer, TabProps } from './toolbar/shared';
 
 // Lazy loaded tabs
-const HomeTab = React.lazy(() => import('./toolbar/HomeTab'));
-const InsertTab = React.lazy(() => import('./toolbar/InsertTab'));
-const DrawTab = React.lazy(() => import('./toolbar/DrawTab'));
-const PageLayoutTab = React.lazy(() => import('./toolbar/PageLayoutTab'));
-const FormulasTab = React.lazy(() => import('./toolbar/FormulasTab'));
-const DataTab = React.lazy(() => import('./toolbar/DataTab'));
-const ReviewTab = React.lazy(() => import('./toolbar/ReviewTab'));
-const ViewTab = React.lazy(() => import('./toolbar/ViewTab'));
-const AutomateTab = React.lazy(() => import('./toolbar/AutomateTab'));
+const HomeTab = React.lazy(() => import('./toolbar/HomeTab/index'));
+const InsertTab = React.lazy(() => import('./toolbar/InsertTab/index'));
+const DrawTab = React.lazy(() => import('./toolbar/DrawTab/index'));
+const PageLayoutTab = React.lazy(() => import('./toolbar/PageLayoutTab/index'));
+const FormulasTab = React.lazy(() => import('./toolbar/FormulasTab/index'));
+const DataTab = React.lazy(() => import('./toolbar/DataTab/index'));
+const ReviewTab = React.lazy(() => import('./toolbar/ReviewTab/index'));
+const ViewTab = React.lazy(() => import('./toolbar/ViewTab/index'));
+const AutomateTab = React.lazy(() => import('./toolbar/AutomateTab/index'));
 
 const TABS = ['File', 'Home', 'Insert', 'Draw', 'Page Layout', 'Formulas', 'Data', 'Review', 'View', 'Automate'];
 
