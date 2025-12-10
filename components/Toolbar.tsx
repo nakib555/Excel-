@@ -320,7 +320,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ currentStyle, onToggleStyle, onExport
 
       {/* 3. The Ribbon */}
       <div className="bg-slate-50/80 border-b border-slate-200">
-      <DraggableScrollContainer className="h-[100px] md:h-28 flex items-start px-2 md:px-4 py-2 w-full">
+      <DraggableScrollContainer className="h-[140px] flex items-start px-2 md:px-4 py-2 w-full">
           <AnimatePresence mode='wait'>
             
             {/* --- HOME TAB --- */}
@@ -964,7 +964,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ currentStyle, onToggleStyle, onExport
                     </RibbonGroup>
                     
                     <RibbonGroup label="Office Scripts Gallery">
-                        <DraggableScrollContainer className="w-80 md:w-96 flex flex-col flex-wrap h-full content-start gap-1 p-1 overflow-x-auto">
+                        <DraggableScrollContainer className="flex flex-row h-full items-center gap-2 p-1 overflow-x-auto min-w-[200px]">
                              <button className="flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] w-48 hover:bg-slate-50 flex-shrink-0">
                                  <FileCode size={14} className="text-orange-500" /> Unhide All Rows and Columns
                              </button>
