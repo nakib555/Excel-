@@ -69,6 +69,12 @@ const DraggableScrollContainer = ({ children, className = "" }: { children?: Rea
     ref.current.scrollLeft = scrollLeft - walk;
   };
 
+  const onWheel = (e: React.WheelEvent) => {
+    if (ref.current && e.deltaY !== 0) {
+      ref.current.scrollLeft += e.deltaY;
+    }
+  };
+
   const onClickCapture = (e: React.MouseEvent) => {
       // Prevent click events (e.g. changing tabs) if we are dragging
       if (isDragging) {
@@ -85,6 +91,7 @@ const DraggableScrollContainer = ({ children, className = "" }: { children?: Rea
       onMouseLeave={onMouseLeave}
       onMouseUp={onMouseUp}
       onMouseMove={onMouseMove}
+      onWheel={onWheel}
       onClickCapture={onClickCapture}
     >
       {children}

@@ -50,6 +50,13 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
     }
   };
 
+  const handleWheel = (e: React.WheelEvent) => {
+    if (!scrollRef.current) return;
+    if (e.deltaY !== 0) {
+      scrollRef.current.scrollLeft += e.deltaY;
+    }
+  };
+
   const handleTabClick = (sheetId: string) => {
       if (!hasMoved) {
           onSwitch(sheetId);
@@ -75,6 +82,7 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
         onMouseLeave={handleMouseLeave}
         onMouseUp={handleMouseUp}
         onMouseMove={handleMouseMove}
+        onWheel={handleWheel}
       >
         {sheets.map((sheet) => {
           const isActive = sheet.id === activeSheetId;
