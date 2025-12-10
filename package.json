@@ -1,10 +1,11 @@
 {
   "name": "react-excel-sheets",
   "version": "1.0.0",
+  "type": "module",
   "description": "A high-performance, feature-rich spreadsheet application inspired by Excel.",
   "scripts": {
     "start": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "deploy": "npm run build && wrangler deploy"
   },
@@ -23,6 +24,6 @@
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
-    "wrangler": "^3.0.0"
+    "wrangler": "^3.80.0"
   }
 }
