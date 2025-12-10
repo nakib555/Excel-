@@ -16,8 +16,9 @@ interface GridProps {
 }
 
 const DEFAULT_COL_WIDTH = 100;
-const DEFAULT_ROW_HEIGHT = 32; // Increased for better touch targets
-const HEADER_COL_WIDTH = 48;
+const DEFAULT_ROW_HEIGHT = 30; // Slightly tighter for desktop feel, standard for spreadsheet
+const HEADER_COL_WIDTH = 46;
+const HEADER_ROW_HEIGHT = 30;
 
 const Grid: React.FC<GridProps> = ({
   size,
@@ -36,34 +37,42 @@ const Grid: React.FC<GridProps> = ({
   const isCellInRange = (id: string) => selectionRange ? selectionRange.includes(id) : false;
 
   return (
-    <div className="flex-1 overflow-auto bg-slate-50 relative w-full h-full scrollbar-thin touch-auto">
-      <div className="inline-block bg-white shadow-soft min-w-full pb-8 pr-8">
+    <div className="flex-1 overflow-auto bg-white relative w-full h-full scrollbar-thin touch-auto" style={{ contain: 'strict' }}>
+      <div className="inline-block bg-white min-w-full pb-20 pr-20">
         
         {/* Column Headers */}
-        <div className="flex sticky top-0 z-30 bg-slate-50 border-b border-slate-200 shadow-sm">
+        <div className="flex sticky top-0 z-20 bg-slate-50 shadow-sm border-b border-slate-300">
           {/* Corner */}
           <div 
-            className="flex-shrink-0 border-r border-slate-200 bg-slate-100/50 sticky left-0 z-40" 
-            style={{ width: HEADER_COL_WIDTH, height: DEFAULT_ROW_HEIGHT }} 
-          />
+            className="flex-shrink-0 bg-slate-100 border-r border-slate-300 border-b border-slate-300 sticky left-0 z-30" 
+            style={{ width: HEADER_COL_WIDTH, height: HEADER_ROW_HEIGHT }} 
+          >
+              <div className="w-full h-full relative">
+                  <div className="absolute bottom-0 right-0 w-0 h-0 border-l-[10px] border-l-transparent border-b-[10px] border-b-slate-400/50"></div>
+              </div>
+          </div>
           
           {cols.map((col) => {
             const width = columnWidths[numToChar(col)] || DEFAULT_COL_WIDTH;
             const colLetter = numToChar(col);
-            const isActiveCol = activeCell && activeCell.startsWith(colLetter); // Simple check
+            const isActiveCol = activeCell && activeCell.startsWith(colLetter); 
 
             return (
               <div
                 key={`header-${col}`}
                 className={`
-                  flex items-center justify-center text-[11px] font-bold border-r border-slate-200 select-none transition-colors relative flex-shrink-0
-                  ${isActiveCol ? 'bg-primary-50 text-primary-700' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}
+                  flex items-center justify-center text-[12px] font-semibold border-r border-slate-300 select-none transition-colors relative flex-shrink-0 group
+                  ${isActiveCol 
+                    ? 'bg-emerald-50 text-emerald-700 border-b-emerald-400' 
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  }
                 `}
-                style={{ width, height: DEFAULT_ROW_HEIGHT }}
+                style={{ width, height: HEADER_ROW_HEIGHT }}
               >
                 {colLetter}
-                {/* Resize handle visual */}
-                <div className="absolute right-0 top-0 bottom-0 w-[2px] cursor-col-resize hover:bg-primary-300 hidden md:block" />
+                <div className={`absolute bottom-0 left-0 right-0 h-[2px] ${isActiveCol ? 'bg-emerald-500' : 'bg-transparent'}`} />
+                {/* Resize handle */}
+                <div className="absolute right-0 top-0 bottom-0 w-[4px] cursor-col-resize hover:bg-primary-400 opacity-0 group-hover:opacity-100 transition-opacity z-10" />
               </div>
             );
           })}
@@ -72,12 +81,15 @@ const Grid: React.FC<GridProps> = ({
         {/* Rows */}
         <div>
           {rows.map((row) => (
-            <div key={`row-${row}`} className="flex">
+            <div key={`row-${row}`} className="flex h-max">
               {/* Row Header */}
               <div
                 className={`
-                   sticky left-0 z-20 flex items-center justify-center text-[11px] font-bold border-r border-b border-slate-200 select-none transition-colors flex-shrink-0
-                   ${activeCell && parseInt(activeCell.replace(/[A-Z]+/, '')) === row + 1 ? 'bg-primary-50 text-primary-700' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}
+                   sticky left-0 z-10 flex items-center justify-center text-[12px] font-semibold border-r border-b border-slate-300 select-none transition-colors flex-shrink-0
+                   ${activeCell && parseInt(activeCell.replace(/[A-Z]+/, '')) === row + 1 
+                        ? 'bg-emerald-50 text-emerald-700 border-r-emerald-400' 
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                   }
                 `}
                 style={{ 
                   width: HEADER_COL_WIDTH, 
@@ -85,6 +97,7 @@ const Grid: React.FC<GridProps> = ({
                 }}
               >
                 {row + 1}
+                <div className={`absolute top-0 right-0 bottom-0 w-[2px] ${activeCell && parseInt(activeCell.replace(/[A-Z]+/, '')) === row + 1 ? 'bg-emerald-500' : 'bg-transparent'}`} />
               </div>
 
               {/* Cells */}

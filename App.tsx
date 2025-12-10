@@ -6,6 +6,7 @@ import SheetTabs from './components/SheetTabs';
 import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
 import { evaluateFormula } from './utils/evaluator';
 import { getRange } from './utils/helpers';
+import { Layout, Monitor } from 'lucide-react';
 
 // Initial Configuration
 const INITIAL_ROWS = 50;
@@ -190,7 +191,7 @@ const App: React.FC = () => {
         onSubmit={() => {}}
       />
       
-      <div className="flex-1 overflow-hidden relative flex flex-col shadow-inner">
+      <div className="flex-1 overflow-hidden relative flex flex-col z-0">
         <Grid 
           size={gridSize}
           cells={cells}
@@ -211,18 +212,26 @@ const App: React.FC = () => {
         onAdd={handleAddSheet}
       />
       
-      {/* Footer Status */}
-      <div className="h-6 bg-white border-t border-slate-200 flex items-center justify-between px-2 md:px-4 text-[10px] text-slate-400 select-none">
+      {/* Footer Status Bar - Modernized */}
+      <div className="h-7 bg-emerald-700 text-white flex items-center justify-between px-3 text-[11px] select-none shadow-[0_-1px_2px_rgba(0,0,0,0.1)] z-50">
         <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5">
-                <div className={`w-1.5 h-1.5 rounded-full ${selectionRange ? 'bg-primary-500' : 'bg-slate-300'}`}></div>
-                {selectionRange && selectionRange.length > 1 
-                 ? `${selectionRange.length} cells` 
-                 : 'Ready'}
-            </span>
+            <span className="font-semibold opacity-90">Ready</span>
+            {selectionRange && selectionRange.length > 1 && (
+                <span className="opacity-80 border-l border-white/20 pl-4">
+                    {selectionRange.length} cells selected
+                </span>
+            )}
         </div>
-        <div>
-            {selectionRange?.length ? 'Average: —' : ''}
+        <div className="flex items-center gap-4 opacity-90">
+             <div className="flex items-center gap-1 cursor-pointer hover:bg-white/10 px-1 rounded">
+                <Layout size={12} />
+                <span className="hidden sm:inline">Normal View</span>
+             </div>
+             <div className="w-[1px] h-3 bg-white/20"></div>
+             <span>100%</span>
+             <div className="w-20 h-1 bg-white/20 rounded-full relative ml-1">
+                 <div className="absolute left-1/2 -top-1 w-3 h-3 bg-white rounded-full shadow-sm -ml-1.5 cursor-pointer hover:scale-110 transition-transform"></div>
+             </div>
         </div>
       </div>
     </div>

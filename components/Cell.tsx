@@ -66,11 +66,11 @@ const Cell = memo(({
   };
 
   const style: React.CSSProperties = {
-    fontWeight: data.style.bold ? 'bold' : 'normal',
+    fontWeight: data.style.bold ? '600' : '400',
     fontStyle: data.style.italic ? 'italic' : 'normal',
     textDecoration: data.style.underline ? 'underline' : 'none',
     textAlign: data.style.align || 'left',
-    color: data.style.color || '#1e293b',
+    color: data.style.color || '#0f172a',
     backgroundColor: data.style.bg || (isInRange ? 'rgba(16, 185, 129, 0.1)' : '#fff'),
     width: width,
     height: height,
@@ -83,8 +83,8 @@ const Cell = memo(({
     <div
       className={`
         relative box-border flex items-center px-1.5 overflow-hidden select-none outline-none flex-shrink-0
-        border-r border-b border-slate-200 transition-colors
-        ${!isSelected && !isInRange ? 'hover:bg-slate-50' : ''}
+        border-r border-b border-slate-200
+        ${!isSelected && !isInRange ? '' : ''}
       `}
       style={style}
       onClick={(e) => onClick(id, e.shiftKey)}
@@ -94,11 +94,12 @@ const Cell = memo(({
         <input
           ref={inputRef}
           type="text"
-          className="absolute inset-0 w-full h-full px-1.5 border-2 border-primary-500 outline-none z-30 bg-white text-slate-900 shadow-md text-base md:text-sm"
+          className="absolute inset-0 w-full h-full px-1.5 outline-none z-50 bg-white text-slate-900 shadow-elevation"
           style={{ 
             fontFamily: 'inherit',
-            fontWeight: data.style.bold ? 'bold' : 'normal',
+            fontWeight: data.style.bold ? '600' : '400',
             fontStyle: data.style.italic ? 'italic' : 'normal',
+            fontSize: 'max(16px, 13px)', // Mobile zoom prevention
           }}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
@@ -106,16 +107,16 @@ const Cell = memo(({
           onKeyDown={handleKeyDown}
         />
       ) : (
-        <span className="w-full truncate pointer-events-none">
+        <span className="w-full truncate pointer-events-none leading-none">
             {data.value}
         </span>
       )}
 
       {/* Selection Highlight Overlay */}
       {isSelected && (
-        <div className="absolute inset-0 z-20 pointer-events-none border-2 border-primary-500 shadow-sm">
-             {/* Fill Handle - Hidden on touch for simplicity */}
-             <div className="absolute -bottom-[4px] -right-[4px] w-2.5 h-2.5 bg-primary-500 border border-white cursor-crosshair z-30 hidden md:block" />
+        <div className="absolute inset-0 z-40 pointer-events-none border-[2px] border-primary-500 shadow-glow">
+             {/* Fill Handle */}
+             <div className="absolute -bottom-[5px] -right-[5px] w-2.5 h-2.5 bg-primary-500 border border-white cursor-crosshair rounded-[1px] shadow-sm z-50" />
         </div>
       )}
     </div>

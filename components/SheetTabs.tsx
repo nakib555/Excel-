@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Sheet } from '../types';
 import { motion } from 'framer-motion';
 
@@ -64,18 +64,23 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
   };
   
   return (
-    <div className="flex items-center h-12 md:h-11 bg-white border-t border-slate-200 select-none px-2 shadow-sm z-30">
+    <div className="flex items-center h-10 bg-slate-100 border-t border-slate-300 select-none px-1 md:px-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.03)] z-40">
       
-      {/* Menu / All Sheets Icon */}
-      <button className="p-2 md:p-2 mr-1 md:mr-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors flex-shrink-0">
-        <LayoutGrid size={18} />
-      </button>
+      {/* Scroll Controls (Left/Right) - Desktop only visual, functional on all */}
+      <div className="flex items-center gap-0.5 mr-2">
+           <button className="p-1 text-slate-500 hover:bg-slate-200 rounded disabled:opacity-30">
+               <ChevronLeft size={14} />
+           </button>
+           <button className="p-1 text-slate-500 hover:bg-slate-200 rounded disabled:opacity-30">
+               <ChevronRight size={14} />
+           </button>
+      </div>
 
       {/* Tabs Container */}
       <div 
         ref={scrollRef}
         className={`
-            flex-1 flex overflow-x-auto gap-1.5 md:gap-1 items-center
+            flex-1 flex overflow-x-auto gap-1 items-end h-full pt-1
             no-scrollbar cursor-grab active:cursor-grabbing
         `}
         onMouseDown={handleMouseDown}
@@ -90,36 +95,33 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
             <motion.div
               key={sheet.id}
               onClick={() => handleTabClick(sheet.id)}
-              whileHover={{ y: -1 }}
-              whileTap={{ scale: 0.95 }}
               className={`
-                group flex items-center px-4 py-2 md:py-1.5 text-xs font-medium rounded-full transition-all border flex-shrink-0
-                min-w-[80px] justify-center relative
+                group flex items-center px-4 py-1.5 text-xs font-medium transition-all flex-shrink-0
+                min-w-[100px] justify-center relative cursor-pointer
+                rounded-t-md
                 ${isActive 
-                  ? 'bg-primary-50 text-primary-700 border-primary-200 shadow-sm' 
-                  : 'bg-white text-slate-600 border-transparent hover:bg-slate-50 hover:border-slate-200'
+                  ? 'bg-white text-emerald-700 shadow-soft border-t-2 border-t-emerald-500' 
+                  : 'bg-transparent text-slate-600 hover:bg-slate-200 hover:text-slate-800'
                 }
               `}
             >
-              <span className="truncate max-w-[100px] md:max-w-[120px] pointer-events-none">{sheet.name}</span>
+              <span className="truncate max-w-[120px] pointer-events-none">{sheet.name}</span>
             </motion.div>
           );
         })}
-        {/* Spacer to ensure last item isn't flush against the add button if scrolled to end */}
-        <div className="w-1 flex-shrink-0"></div>
+        {/* Spacer */}
+        <div className="w-2 flex-shrink-0"></div>
       </div>
 
       {/* Add Button */}
-      <div className="flex items-center pl-2 flex-shrink-0 border-l border-slate-100 ml-1">
-        <motion.button 
-          whileHover={{ scale: 1.1, rotate: 90 }}
-          whileTap={{ scale: 0.9 }}
+      <div className="flex items-center pl-2 flex-shrink-0 border-l border-slate-300 ml-1 h-3/5">
+        <button 
           onClick={onAdd}
-          className="p-2 md:p-1.5 bg-primary-600 hover:bg-primary-700 text-white rounded-full shadow-md transition-colors"
+          className="p-1.5 ml-2 bg-transparent hover:bg-slate-200 text-slate-600 hover:text-emerald-600 rounded-full transition-all"
           title="New Sheet"
         >
-          <Plus size={16} />
-        </motion.button>
+          <Plus size={18} />
+        </button>
       </div>
     </div>
   );

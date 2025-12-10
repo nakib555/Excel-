@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>React Sheets</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -41,8 +41,9 @@
               }
             },
             boxShadow: {
-              'soft': '0 2px 10px rgba(0, 0, 0, 0.03)',
-              'medium': '0 4px 20px rgba(0, 0, 0, 0.06)',
+              'soft': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+              'elevation': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+              'glow': '0 0 0 2px rgba(16, 185, 129, 0.2)',
             }
           }
         }
@@ -53,32 +54,46 @@
         overscroll-behavior: none;
         background-color: #f8fafc;
         color: #0f172a;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
       }
+      
+      /* Selection Color */
+      ::selection {
+        background-color: #a7f3d0; /* primary-200 */
+        color: #064e3b; /* primary-900 */
+      }
+
       /* Modern Scrollbar */
       ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
+        width: 10px;
+        height: 10px;
       }
       ::-webkit-scrollbar-track {
-        background: transparent;
+        background: #f1f5f9;
       }
       ::-webkit-scrollbar-thumb {
         background: #cbd5e1;
-        border-radius: 4px;
-        border: 2px solid transparent;
-        background-clip: content-box;
+        border: 2px solid #f1f5f9;
+        border-radius: 6px;
       }
       ::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
-        border: 2px solid transparent;
-        background-clip: content-box;
       }
+      
+      /* Utilities */
       .no-scrollbar::-webkit-scrollbar {
         display: none;
       }
       .no-scrollbar {
         -ms-overflow-style: none;
         scrollbar-width: none;
+      }
+      
+      /* Prevent elastic scrolling on Mac */
+      html, body, #root {
+        height: 100%;
+        overflow: hidden;
       }
     </style>
   <script type="importmap">
