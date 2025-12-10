@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, memo } from 'react';
 import Cell, { NavigationDirection } from './Cell';
 import { CellId, CellData, GridSize } from '../types';
-import { numToChar, getCellId } from '../utils';
+import { numToChar, getCellId, cn } from '../utils';
 
 interface GridProps {
   size: GridSize;
@@ -164,17 +164,16 @@ const Grid: React.FC<GridProps> = ({
             return (
               <div
                 key={`header-${col}`}
-                className={`
-                  flex items-center justify-center font-semibold border-r border-slate-300 select-none transition-colors relative flex-shrink-0 group
-                  ${isActiveCol 
-                    ? 'bg-emerald-50 text-emerald-700 border-b-emerald-400' 
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                  }
-                `}
+                className={cn(
+                  "flex items-center justify-center font-semibold border-r border-slate-300 select-none transition-colors relative flex-shrink-0 group",
+                  isActiveCol 
+                    ? "bg-emerald-50 text-emerald-700 border-b-emerald-400" 
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                )}
                 style={{ width, height: sHeaderRowHeight, fontSize: `${12 * scale}px` }}
               >
                 {colLetter}
-                <div className={`absolute bottom-0 left-0 right-0 h-[2px] ${isActiveCol ? 'bg-emerald-500' : 'bg-transparent'}`} />
+                <div className={cn("absolute bottom-0 left-0 right-0 h-[2px]", isActiveCol ? "bg-emerald-500" : "bg-transparent")} />
                 
                 {/* Resize handle */}
                 <div 
@@ -196,13 +195,12 @@ const Grid: React.FC<GridProps> = ({
               <div key={`row-${row}`} className="flex h-max">
                 {/* Row Header */}
                 <div
-                  className={`
-                     sticky left-0 z-10 flex items-center justify-center font-semibold border-r border-b border-slate-300 select-none transition-colors flex-shrink-0 relative group
-                     ${isActiveRow 
-                          ? 'bg-emerald-50 text-emerald-700 border-r-emerald-400' 
-                          : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                     }
-                  `}
+                  className={cn(
+                     "sticky left-0 z-10 flex items-center justify-center font-semibold border-r border-b border-slate-300 select-none transition-colors flex-shrink-0 relative group",
+                     isActiveRow 
+                          ? "bg-emerald-50 text-emerald-700 border-r-emerald-400" 
+                          : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                  )}
                   style={{ 
                     width: sHeaderColWidth, 
                     height: height,
@@ -210,7 +208,7 @@ const Grid: React.FC<GridProps> = ({
                   }}
                 >
                   {row + 1}
-                  <div className={`absolute top-0 right-0 bottom-0 w-[2px] ${isActiveRow ? 'bg-emerald-500' : 'bg-transparent'}`} />
+                  <div className={cn("absolute top-0 right-0 bottom-0 w-[2px]", isActiveRow ? "bg-emerald-500" : "bg-transparent")} />
                   
                   {/* Resize Handle */}
                   <div 

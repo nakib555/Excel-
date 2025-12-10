@@ -1,5 +1,6 @@
 import { CellData, CellId } from '../types';
 import { parseCellId, getRange } from './helpers';
+import { evaluate } from 'mathjs';
 
 // Helper to check if a string is numeric
 const isNumeric = (str: string) => {
@@ -7,25 +8,21 @@ const isNumeric = (str: string) => {
   return !isNaN(parseFloat(str)) && isFinite(Number(str));
 };
 
-// Safe evaluation context
+// Safe evaluation context using mathjs
 const evaluateExpression = (expr: string): string => {
   try {
-    // Basic sanitization: only allow math chars, numbers, and basic functions
-    // Note: In a real prod app, use a dedicated parser library like 'hot-formula-parser' or 'mathjs'.
-    // For this demo, we use Function() with strict regex validation for safety.
+    if (!expr.trim()) return '';
     
-    // Allow: numbers, operators, parens, and Math functions
-    const allowed = /^[0-9+\-*/().\sMath\s]+$/;
+    // Evaluate using mathjs which is safer and more powerful than Function()
+    const result = evaluate(expr);
     
-    // We already replaced functions like SUM(...) with computed numbers before calling this,
-    // so we should be left with pure math (e.g., "10 + 50 / 2")
+    if (typeof result === 'number') {
+        if (isNaN(result) || !isFinite(result)) return '#ERR';
+        // Format to avoid long decimals, similar to Excel general format
+        return String(Math.round(result * 100000000) / 100000000); 
+    }
     
-    // eslint-disable-next-line no-new-func
-    const func = new Function(`return ${expr}`);
-    const result = func();
-    
-    if (isNaN(result) || !isFinite(result)) return '#ERR';
-    return String(Number(result.toFixed(4))); // Limit precision
+    return String(result);
   } catch (e) {
     return '#ERR';
   }
@@ -35,7 +32,7 @@ const getCellValue = (cells: Record<CellId, CellData>, id: CellId): number => {
   const cell = cells[id];
   if (!cell) return 0;
   if (isNumeric(cell.value)) return parseFloat(cell.value);
-  return 0; // Treat text as 0
+  return 0; // Treat text as 0 for math operations
 };
 
 // Main Evaluation Function
@@ -68,16 +65,12 @@ export const evaluateFormula = (
   });
 
   // 2. Handle Individual Cell References: A1 -> 100
-  // Sort keys by length desc to avoid replacing A10 with (Value of A1)0
-  // Actually, regex word boundary \b is safer.
-  
-  // We need to iterate all possible cells referenced or use a regex callback
   const cellRegex = /\b([A-Z]+[0-9]+)\b/g;
   
   processed = processed.replace(cellRegex, (match) => {
-    // If it looks like a cell ID, try to get its value
     if (parseCellId(match)) {
-      return getCellValue(cells, match).toString();
+      const val = getCellValue(cells, match);
+      return val.toString();
     }
     return match;
   });

@@ -1,5 +1,6 @@
 import React, { memo, useState, useRef, useEffect } from 'react';
 import { CellData } from '../types';
+import { cn } from '../utils';
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right' | 'none';
 
@@ -96,11 +97,10 @@ const Cell = memo(({
 
   return (
     <div
-      className={`
-        relative box-border flex items-center px-[4px] overflow-hidden select-none outline-none flex-shrink-0
-        border-r border-b border-slate-200
-        ${!isSelected && !isInRange ? '' : ''}
-      `}
+      className={cn(
+        "relative box-border flex items-center px-[4px] overflow-hidden select-none outline-none flex-shrink-0 border-r border-b border-slate-200",
+        // Additional dynamic classes can be added here cleanly
+      )}
       style={style}
       onClick={(e) => onClick(id, e.shiftKey)}
       onDoubleClick={handleDoubleClick}

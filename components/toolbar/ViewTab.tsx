@@ -29,16 +29,16 @@ const ViewTab: React.FC<TabProps> = () => {
 
         <RibbonGroup label="Workbook Views">
             <div className="flex items-center gap-1 h-full">
-                 <RibbonButton variant="large" icon={<Grid size={24} />} label="Normal" onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<Layout size={24} />} label="Page Break" subLabel="Preview" onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<FileSpreadsheet size={24} />} label="Page Layout" onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<Settings size={24} />} label="Custom" subLabel="Views" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<Grid size={20} />} label="Normal" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<Layout size={20} />} label="Page Break" subLabel="Preview" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<FileSpreadsheet size={20} />} label="Page Layout" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<Settings size={20} />} label="Custom" subLabel="Views" onClick={() => {}} />
             </div>
         </RibbonGroup>
 
         <RibbonGroup label="Show">
              <div className="flex gap-4 px-2 h-full items-center">
-                <RibbonButton variant="large" icon={<PanelLeftClose size={24} />} label="Navigation" onClick={() => {}} />
+                <RibbonButton variant="large" icon={<PanelLeftClose size={20} />} label="Navigation" onClick={() => {}} />
                 <div className="flex flex-col gap-1">
                     <label className="flex items-center gap-1 text-[10px]"><input type="checkbox" disabled /> Ruler</label>
                     <label className="flex items-center gap-1 text-[10px]"><input type="checkbox" checked /> Gridlines</label>
@@ -54,17 +54,17 @@ const ViewTab: React.FC<TabProps> = () => {
 
         <RibbonGroup label="Zoom">
              <div className="flex items-center gap-1 h-full">
-                 <RibbonButton variant="large" icon={<Search size={24} />} label="Zoom" onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<FileText size={24} />} label="100%" onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<ZoomIn size={24} />} label="Zoom to" subLabel="Selection" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<Search size={20} />} label="Zoom" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<FileText size={20} />} label="100%" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<ZoomIn size={20} />} label="Zoom to" subLabel="Selection" onClick={() => {}} />
              </div>
         </RibbonGroup>
 
         <RibbonGroup label="Window">
              <div className="flex items-center gap-1 h-full">
-                 <RibbonButton variant="large" icon={<AppWindow size={24} />} label="New Window" onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<LayoutList size={24} />} label="Arrange All" onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<Columns2 size={24} />} label="Freeze" subLabel="Panes" hasDropdown onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<AppWindow size={20} />} label="New Window" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<LayoutList size={20} />} label="Arrange All" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<Columns2 size={20} />} label="Freeze" subLabel="Panes" hasDropdown onClick={() => {}} />
                   <div className="flex flex-col gap-0 justify-center">
                      <div className="flex gap-0.5">
                         <RibbonButton variant="small" icon={<Split size={14} />} label="Split" onClick={() => {}} />

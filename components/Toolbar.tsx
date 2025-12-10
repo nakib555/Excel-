@@ -96,7 +96,7 @@ const Toolbar: React.FC<TabProps> = (props) => {
 
       {/* 3. The Ribbon */}
       <div className="bg-slate-50/80 border-b border-slate-200">
-      <DraggableScrollContainer className="h-[130px] flex items-start px-2 md:px-4 py-2 w-full">
+      <DraggableScrollContainer className="h-[100px] flex items-start px-2 md:px-4 py-1 w-full">
           <AnimatePresence mode='wait'>
             <Suspense fallback={<TabLoading />}>
                 {activeTab === 'Home' && <HomeTab {...props} key="home" />}

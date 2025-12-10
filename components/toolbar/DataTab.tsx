@@ -17,16 +17,16 @@ const DataTab: React.FC<TabProps> = () => {
     >
         <RibbonGroup label="Get & Transform Data">
             <div className="flex items-center gap-1 h-full">
-                <RibbonButton variant="large" icon={<Database size={24} />} label="Get" subLabel="Data" hasDropdown onClick={() => {}} />
-                <RibbonButton variant="large" icon={<FileText size={22} />} label="From Text/" subLabel="CSV" onClick={() => {}} />
-                <RibbonButton variant="large" icon={<Globe size={22} />} label="From" subLabel="Web" onClick={() => {}} />
-                <RibbonButton variant="large" icon={<Table size={22} />} label="From Table/" subLabel="Range" onClick={() => {}} />
+                <RibbonButton variant="large" icon={<Database size={20} />} label="Get" subLabel="Data" hasDropdown onClick={() => {}} />
+                <RibbonButton variant="large" icon={<FileText size={20} />} label="From Text/" subLabel="CSV" onClick={() => {}} />
+                <RibbonButton variant="large" icon={<Globe size={20} />} label="From" subLabel="Web" onClick={() => {}} />
+                <RibbonButton variant="large" icon={<Table size={20} />} label="From Table/" subLabel="Range" onClick={() => {}} />
             </div>
         </RibbonGroup>
 
         <RibbonGroup label="Queries & Connections">
              <div className="flex items-center gap-1 h-full">
-                 <RibbonButton variant="large" icon={<RefreshCw size={22} className="text-green-600" />} label="Refresh" subLabel="All" hasDropdown onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<RefreshCw size={20} className="text-green-600" />} label="Refresh" subLabel="All" hasDropdown onClick={() => {}} />
                  <div className="flex flex-col gap-0 justify-center">
                      <RibbonButton variant="small" icon={<List size={14} />} label="Queries & Connections" onClick={() => {}} />
                      <RibbonButton variant="small" icon={<Settings size={14} />} label="Properties" disabled onClick={() => {}} />
@@ -37,8 +37,8 @@ const DataTab: React.FC<TabProps> = () => {
 
         <RibbonGroup label="Data Types">
              <div className="flex items-center gap-1 h-full">
-                 <RibbonButton variant="large" icon={<Landmark size={22} />} label="Stocks" onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<Coins size={22} />} label="Currencies" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<Landmark size={20} />} label="Stocks" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<Coins size={20} />} label="Currencies" onClick={() => {}} />
              </div>
         </RibbonGroup>
 
@@ -48,8 +48,8 @@ const DataTab: React.FC<TabProps> = () => {
                      <RibbonButton variant="small" icon={<div className="flex flex-col text-[8px] font-bold leading-none"><span>A</span><span>Z</span><ArrowDown size={8}/></div>} label="" onClick={() => {}} title="Sort A to Z" />
                      <RibbonButton variant="small" icon={<div className="flex flex-col text-[8px] font-bold leading-none"><span>Z</span><span>A</span><ArrowDown size={8}/></div>} label="" onClick={() => {}} title="Sort Z to A" />
                  </div>
-                 <RibbonButton variant="large" icon={<ArrowDownUp size={24} />} label="Sort" onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<Filter size={24} />} label="Filter" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<ArrowDownUp size={20} />} label="Sort" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<Filter size={20} />} label="Filter" onClick={() => {}} />
                  <div className="flex flex-col gap-0 justify-center">
                      <RibbonButton variant="small" icon={<Eraser size={14} />} label="Clear" disabled onClick={() => {}} />
                      <RibbonButton variant="small" icon={<RefreshCw size={14} />} label="Reapply" disabled onClick={() => {}} />
@@ -60,7 +60,7 @@ const DataTab: React.FC<TabProps> = () => {
 
          <RibbonGroup label="Data Tools">
              <div className="flex items-center gap-1 h-full">
-                 <RibbonButton variant="large" icon={<Columns size={22} />} label="Text to" subLabel="Columns" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<Columns size={20} />} label="Text to" subLabel="Columns" onClick={() => {}} />
                  <div className="flex flex-col gap-0 justify-center">
                      <RibbonButton variant="small" icon={<CheckSquare size={14} />} label="Flash Fill" onClick={() => {}} />
                      <RibbonButton variant="small" icon={<X size={14} className="text-red-500" />} label="Remove Duplicates" onClick={() => {}} />
