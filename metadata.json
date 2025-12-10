@@ -1,0 +1,5 @@
+{
+  "name": "react Excel",
+  "description": "A high-performance, feature-rich spreadsheet application inspired by Excel. Features formula support (SUM, AVG, etc.), cell formatting, range selection, and CSV export.",
+  "requestFramePermissions": []
+}
