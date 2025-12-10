@@ -18,7 +18,9 @@ import {
   Table2, TableProperties, FormInput, Image as ImageIcon, CheckSquare, 
   BarChart, BarChart3, LineChart, PieChart, ScatterChart, 
   Map, BarChart4, Activity, BarChart2, Filter, History, 
-  Link2, MessageSquare, BoxSelect, TrendingUp
+  Link2, MessageSquare, BoxSelect, TrendingUp,
+  // Icons for File/Automate placeholders
+  FileText, Bot
 } from 'lucide-react';
 import { CellStyle } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -203,7 +205,7 @@ const ColorPicker: React.FC<{
 
 const Separator = () => <div className="h-full w-px bg-slate-200 mx-0.5 md:mx-1 flex-shrink-0" />;
 
-const TABS = ['Home', 'Insert', 'Draw', 'Page Layout', 'Formulas', 'Data', 'Review', 'View'];
+const TABS = ['File', 'Home', 'Insert', 'Draw', 'Page Layout', 'Formulas', 'Data', 'Review', 'View', 'Automate'];
 
 const Toolbar: React.FC<ToolbarProps> = ({ currentStyle, onToggleStyle, onExport, onClear }) => {
   const [activeTab, setActiveTab] = useState('Home');
@@ -544,7 +546,9 @@ const Toolbar: React.FC<ToolbarProps> = ({ currentStyle, onToggleStyle, onExport
                     className="flex items-center justify-center w-full h-full text-slate-400 gap-3"
                 >
                     <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-                        <Printer size={24} className="opacity-50" />
+                        {activeTab === 'File' ? <FileText size={24} className="opacity-50" /> : 
+                         activeTab === 'Automate' ? <Bot size={24} className="opacity-50" /> :
+                         <Printer size={24} className="opacity-50" />}
                     </div>
                     <div className="text-sm">
                         <span className="font-semibold text-slate-600">{activeTab}</span> capabilities coming soon.
