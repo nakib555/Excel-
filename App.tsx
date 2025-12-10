@@ -65,7 +65,8 @@ const LoadingFallback = () => (
 );
 
 const App: React.FC = () => {
-  const [sheets, setSheets] = useState<Sheet[]>([
+  // Use lazy initialization for sheets to avoid re-generating data on every render
+  const [sheets, setSheets] = useState<Sheet[]>(() => [
     {
       id: 'sheet1',
       name: 'Budget 2024',
