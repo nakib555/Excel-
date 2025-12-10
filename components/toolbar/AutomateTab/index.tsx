@@ -21,25 +21,27 @@ const AutomateTab: React.FC<TabProps> = () => {
         </RibbonGroup>
         
         <RibbonGroup label="Office Scripts Gallery">
-            <DraggableScrollContainer className="flex flex-row h-full items-center gap-2 p-1 overflow-x-auto min-w-[200px]">
-                 <button className="flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] w-48 hover:bg-slate-50 flex-shrink-0">
-                     <FileCode size={14} className="text-orange-500" /> Unhide All Rows and Columns
-                 </button>
-                 <button className="flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] w-48 hover:bg-slate-50 flex-shrink-0">
-                     <FileCode size={14} className="text-orange-500" /> Remove Hyperlinks from Sheet
-                 </button>
-                 <button className="flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] w-48 hover:bg-slate-50 flex-shrink-0">
-                     <FileCode size={14} className="text-orange-500" /> Freeze Selection
-                 </button>
-                 <button className="flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] w-48 hover:bg-slate-50 flex-shrink-0">
-                     <FileCode size={14} className="text-orange-500" /> Count Empty Rows
-                 </button>
-                 <button className="flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] w-48 hover:bg-slate-50 flex-shrink-0">
-                     <FileCode size={14} className="text-orange-500" /> Make a Subtable from Selection
-                 </button>
-                  <button className="flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded-sm text-[10px] w-48 hover:bg-slate-50 flex-shrink-0">
-                     <FileCode size={14} className="text-orange-500" /> Return Table Data as JSON
-                 </button>
+            <DraggableScrollContainer className="h-full">
+                 <div className="grid grid-rows-3 grid-flow-col gap-x-2 gap-y-0.5 p-1 h-full content-center">
+                     <button className="flex items-center gap-2 px-2 py-0.5 bg-transparent hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-sm text-[11px] w-56 text-left transition-colors whitespace-nowrap text-slate-700">
+                         <FileCode size={14} className="text-emerald-600 flex-shrink-0" /> <span className="truncate">Unhide All Rows and Columns</span>
+                     </button>
+                     <button className="flex items-center gap-2 px-2 py-0.5 bg-transparent hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-sm text-[11px] w-56 text-left transition-colors whitespace-nowrap text-slate-700">
+                         <FileCode size={14} className="text-emerald-600 flex-shrink-0" /> <span className="truncate">Remove Hyperlinks from Sheet</span>
+                     </button>
+                     <button className="flex items-center gap-2 px-2 py-0.5 bg-transparent hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-sm text-[11px] w-56 text-left transition-colors whitespace-nowrap text-slate-700">
+                         <FileCode size={14} className="text-emerald-600 flex-shrink-0" /> <span className="truncate">Freeze Selection</span>
+                     </button>
+                     <button className="flex items-center gap-2 px-2 py-0.5 bg-transparent hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-sm text-[11px] w-56 text-left transition-colors whitespace-nowrap text-slate-700">
+                         <FileCode size={14} className="text-emerald-600 flex-shrink-0" /> <span className="truncate">Count Empty Rows</span>
+                     </button>
+                     <button className="flex items-center gap-2 px-2 py-0.5 bg-transparent hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-sm text-[11px] w-56 text-left transition-colors whitespace-nowrap text-slate-700">
+                         <FileCode size={14} className="text-emerald-600 flex-shrink-0" /> <span className="truncate">Make a Subtable from Selection</span>
+                     </button>
+                      <button className="flex items-center gap-2 px-2 py-0.5 bg-transparent hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-sm text-[11px] w-56 text-left transition-colors whitespace-nowrap text-slate-700">
+                         <FileCode size={14} className="text-emerald-600 flex-shrink-0" /> <span className="truncate">Return Table Data as JSON</span>
+                     </button>
+                 </div>
             </DraggableScrollContainer>
         </RibbonGroup>
 
