@@ -1,10 +1,11 @@
 import React, { useState, memo, Suspense } from 'react';
 import { 
-  FileSpreadsheet, Undo, Redo, Download, Search, Loader2, Sparkles 
+  FileSpreadsheet, Undo, Redo, Download, Search, Loader2, Sparkles, Grid3X3 
 } from 'lucide-react';
 import { CellStyle } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DraggableScrollContainer, TabProps } from './toolbar/shared';
+import { cn } from '../utils';
 
 // Lazy loaded tabs
 const HomeTab = React.lazy(() => import('./toolbar/HomeTab/index'));
@@ -32,42 +33,49 @@ const Toolbar: React.FC<TabProps> = (props) => {
     <div className="flex flex-col bg-[#0f172a] z-40 select-none shadow-soft transition-all">
       
       {/* 1. Window / Quick Access Bar */}
-      <div className="flex items-center justify-between px-3 md:px-4 h-9 bg-[#0f172a] text-white z-10 pt-1">
+      <div className="flex items-center justify-between px-4 h-11 bg-[#0f172a] text-white z-10">
          <div className="flex items-center gap-4">
-             <div className="flex items-center gap-2.5">
-               <div className="p-1 bg-white/10 rounded-md">
-                 <FileSpreadsheet size={16} className="text-white" />
+            <div className="flex items-center gap-3">
+               <div className="grid place-items-center w-9 h-9 rounded hover:bg-white/10 transition-colors cursor-pointer">
+                 <Grid3X3 size={20} className="text-white" />
                </div>
-               <span className="text-xs font-medium tracking-wide hidden sm:block text-slate-200">Book1 - Excel</span>
+               <span className="text-sm font-semibold tracking-wide text-white">Excel</span>
             </div>
-            <div className="flex items-center gap-1 ml-2">
-                <button title="Undo" className="p-1.5 hover:bg-slate-700 rounded text-slate-300 transition-colors"><Undo size={14} /></button>
-                <button title="Redo" className="p-1.5 hover:bg-slate-700 rounded text-slate-300 transition-colors"><Redo size={14} /></button>
-                <div className="w-[1px] h-3 bg-slate-600 mx-1"></div>
-                <button onClick={props.onExport} title="Save/Export" className="p-1.5 hover:bg-slate-700 rounded text-slate-300 flex items-center gap-1.5 transition-colors">
-                     <Download size={14} />
-                     <span className="text-[11px] font-medium hidden md:block">Save</span>
+            
+             <div className="flex items-center gap-2 ml-4">
+                <button title="Undo" className="p-1.5 hover:bg-white/10 rounded-full text-slate-300 hover:text-white transition-colors"><Undo size={16} /></button>
+                <button title="Redo" className="p-1.5 hover:bg-white/10 rounded-full text-slate-300 hover:text-white transition-colors"><Redo size={16} /></button>
+                <div className="w-[1px] h-4 bg-slate-700 mx-1"></div>
+                <button onClick={props.onExport} title="Save/Export" className="p-1.5 px-3 hover:bg-white/10 rounded-full text-slate-300 hover:text-white flex items-center gap-2 transition-colors">
+                     <Download size={16} />
+                     <span className="text-xs font-medium hidden md:block">Save</span>
                 </button>
+                
+                <div className="hidden md:flex items-center bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-md transition-colors cursor-pointer border border-white/5 ml-2">
+                    <span className="text-xs font-medium text-slate-200">Book1</span>
+                    <span className="mx-2 text-slate-500 text-[10px]">•</span>
+                    <span className="text-[10px] text-slate-400">Saved</span>
+                </div>
             </div>
          </div>
          
-         <div className="flex items-center gap-2">
-            <div className="relative group hidden md:block">
-                <Search size={13} className="absolute left-2.5 top-1.5 text-slate-400 group-focus-within:text-slate-200 transition-colors" />
+         <div className="flex items-center gap-3">
+            <div className="relative group hidden lg:block">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-slate-200 transition-colors" />
                 <input 
                     type="text" 
                     placeholder="Search" 
-                    className="h-7 w-56 bg-slate-800/80 border border-slate-700 rounded-md text-[11px] text-white placeholder-slate-400 pl-8 pr-3 focus:outline-none focus:bg-slate-800 focus:border-slate-500 transition-all"
+                    className="h-8 w-64 bg-slate-800/50 border border-slate-700/50 rounded-md text-xs text-white placeholder-slate-400 pl-9 pr-4 focus:outline-none focus:bg-slate-800 focus:border-slate-600 transition-all"
                 />
             </div>
-             <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white shadow-sm ml-2 cursor-pointer hover:bg-indigo-500 border border-indigo-400">
+             <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white shadow-md ring-2 ring-[#0f172a] ml-2 cursor-pointer hover:bg-indigo-500 transition-colors">
                 JD
              </div>
          </div>
       </div>
 
       {/* 2. Tab Navigation */}
-      <div className="bg-[#0f172a] pt-1 px-2 md:px-4">
+      <div className="bg-[#0f172a] px-2 md:px-4 flex items-end justify-between pt-1">
         <DraggableScrollContainer className="flex items-end gap-1">
             {TABS.map(tab => {
                 const isActive = activeTab === tab;
@@ -75,31 +83,35 @@ const Toolbar: React.FC<TabProps> = (props) => {
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
-                        className={`
-                            relative px-3.5 py-1.5 text-[13px] font-medium transition-all whitespace-nowrap flex-shrink-0 select-none rounded-t-md
-                            ${isActive 
-                                ? 'bg-slate-50 text-indigo-700 shadow-[0_-1px_2px_rgba(0,0,0,0.1)] z-10' 
-                                : 'text-slate-300 hover:bg-slate-800 hover:text-white mb-0.5'
-                            }
-                        `}
+                        className={cn(
+                            "relative px-4 py-2 text-[13px] font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 select-none rounded-t-lg",
+                            isActive 
+                                ? "bg-[#f8fafc] text-[#4f46e5] shadow-[0_-2px_10px_rgba(0,0,0,0.1)] z-10 pb-2.5 -mb-0.5" 
+                                : "text-slate-300 hover:bg-slate-800 hover:text-white mb-1"
+                        )}
                     >
                         {tab}
-                        {isActive && <div className="absolute bottom-[-1px] left-0 right-0 h-2 bg-slate-50 z-20" />}
+                        {isActive && (
+                             <motion.div 
+                                layoutId="activeTabIndicator"
+                                className="absolute top-0 left-0 right-0 h-0.5 bg-[#4f46e5] rounded-t-lg opacity-0" 
+                             />
+                        )}
                     </button>
                 );
             })}
-             {/* AI Assistant Tab - Visual only for demo */}
-             <button
-                className="ml-auto relative px-3 py-1.5 text-[12px] font-medium text-indigo-300 hover:text-white transition-colors whitespace-nowrap flex-shrink-0 select-none flex items-center gap-1.5"
-            >
-                <Sparkles size={12} />
-                <span>AI Assistant</span>
-            </button>
         </DraggableScrollContainer>
+
+        <button
+            className="hidden md:flex relative px-4 py-2 mb-1 text-[12px] font-medium text-indigo-300 hover:text-white hover:bg-white/5 rounded-md transition-all whitespace-nowrap flex-shrink-0 select-none items-center gap-1.5"
+        >
+            <Sparkles size={14} />
+            <span>AI Assistant</span>
+        </button>
       </div>
 
       {/* 3. The Ribbon */}
-      <div className="bg-slate-50 border-b border-slate-200 shadow-sm z-0 relative">
+      <div className="bg-[#f8fafc] border-b border-slate-200 shadow-sm z-0 relative">
       <DraggableScrollContainer className="h-[100px] flex items-stretch px-2 md:px-4 w-full">
           <AnimatePresence mode='wait'>
             <Suspense fallback={<TabLoading />}>
