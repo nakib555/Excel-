@@ -14,7 +14,7 @@ export default defineConfig({
       clsx: "https://esm.sh/clsx@2.1.0",
       "tailwind-merge": "https://esm.sh/tailwind-merge@2.2.2",
       "framer-motion": "https://esm.sh/framer-motion@11.0.8",
-      "@google/genai": "https://esm.sh/@google/genai@0.2.1"
+      "@google/genai": "https://esm.sh/@google/genai"
     },
   },
   optimizeDeps: {
