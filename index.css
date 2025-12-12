@@ -49,6 +49,13 @@ body {
   scrollbar-width: none;
 }
 
+/* GPU Acceleration */
+.transform-gpu {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
 /* Prevent elastic scrolling on Mac */
 html, body, #root {
   height: 100%;

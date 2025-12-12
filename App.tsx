@@ -21,12 +21,12 @@ const SheetTabs = lazy(() => import('./components/SheetTabs'));
 const StatusBar = lazy(() => import('./components/StatusBar'));
 
 // Configuration
-const INITIAL_ROWS = 200; // Start smaller for faster initial load
+const INITIAL_ROWS = 200; 
 const INITIAL_COLS = 50; 
-const MAX_ROWS = 1048576; // Excel standard
-const MAX_COLS = 16384;   // Excel standard
-const EXPANSION_BATCH_ROWS = 200; // Smaller batches for smoother updates
-const EXPANSION_BATCH_COLS = 50;
+const MAX_ROWS = 1048576; 
+const MAX_COLS = 16384;   
+const EXPANSION_BATCH_ROWS = 100; // Smaller batches for smoother updates
+const EXPANSION_BATCH_COLS = 20;
 
 // Initial sample data generation helper
 const generateInitialData = (): Record<CellId, CellData> => {
@@ -192,10 +192,8 @@ const App: React.FC = () => {
 
   const handleNavigate = useCallback((direction: NavigationDirection, isShift: boolean) => {
     if (!activeCell) return;
-    
     let dRow = 0;
     let dCol = 0;
-    
     switch (direction) {
         case 'up': dRow = -1; break;
         case 'down': dRow = 1; break;
@@ -203,7 +201,6 @@ const App: React.FC = () => {
         case 'right': dCol = 1; break;
         default: return;
     }
-
     const nextId = getNextCellId(activeCell, dRow, dCol, gridSize.rows, gridSize.cols);
     if (nextId && nextId !== activeCell) {
         handleCellClick(nextId, isShift);
@@ -305,7 +302,16 @@ const App: React.FC = () => {
   }, [activeCell, handleCellChange]);
 
   const handleZoomWheel = useCallback((delta: number) => {
-    setZoom(prev => Math.min(4, Math.max(0.25, Number((prev + delta).toFixed(2)))));
+    // Throttled update handled in Grid component mostly, 
+    // but here we ensure state limits
+    setZoom(prev => {
+        const next = prev + delta;
+        return Math.min(4, Math.max(0.1, Number(next.toFixed(2))));
+    });
+  }, []);
+
+  const handleSetZoom = useCallback((val: number) => {
+      setZoom(val);
   }, []);
 
   return (
@@ -366,7 +372,7 @@ const App: React.FC = () => {
               selectionCount={selectionRange?.length || 0}
               stats={selectionStats}
               zoom={zoom}
-              onZoomChange={setZoom}
+              onZoomChange={handleSetZoom}
             />
         </Suspense>
     </div>
