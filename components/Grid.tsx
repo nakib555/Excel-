@@ -72,16 +72,18 @@ const GridRow = memo(({
     bgPatternStyle
 }: any) => {
     const isActiveRow = activeCell && parseInt(activeCell.replace(/[A-Z]+/, '')) === rowIdx + 1;
+    // Calculate dynamic font size based on zoom, capped for readability
+    const headerFontSize = Math.max(7, 12 * scale);
     
     return (
         <div className="flex" style={{ width: 'max-content', height }}>
             {/* Row Header */}
             <div 
                 className={cn(
-                    "sticky left-0 z-10 flex items-center justify-center border-r border-b border-slate-300 bg-[#f8f9fa] font-semibold text-slate-700 select-none flex-shrink-0 hover:bg-slate-200 text-xs transition-colors", 
+                    "sticky left-0 z-10 flex items-center justify-center border-r border-b border-slate-300 bg-[#f8f9fa] font-semibold text-slate-700 select-none flex-shrink-0 hover:bg-slate-200 transition-colors overflow-hidden", 
                     isActiveRow && "bg-emerald-100 text-emerald-800"
                 )}
-                style={{ width: headerColW, height }}
+                style={{ width: headerColW, height, fontSize: `${headerFontSize}px` }}
                 onClick={() => onCellClick(getCellId(0, rowIdx), false)}
             >
                 {rowIdx + 1}
@@ -462,6 +464,9 @@ const Grid: React.FC<GridProps> = ({
   const getRowH = useCallback((i: number) => (rowHeights[i] || DEFAULT_ROW_HEIGHT) * scale, [rowHeights, scale]);
   const headerColW = HEADER_COL_WIDTH * scale;
   const headerRowH = HEADER_ROW_HEIGHT * scale;
+  const headerFontSize = Math.max(7, 12 * scale);
+  const arrowSize = Math.max(4, 8 * scale);
+  const arrowOffset = Math.max(2, 4 * scale);
 
   return (
     <div 
@@ -483,10 +488,22 @@ const Grid: React.FC<GridProps> = ({
         <div className="sticky top-0 z-20 bg-[#f8f9fa] shadow-sm flex" style={{ width: 'max-content' }}>
             {/* Corner */}
             <div 
-                className="flex-shrink-0 bg-[#f8f9fa] border-r border-b border-slate-300 sticky left-0 z-30 select-none"
+                className="flex-shrink-0 bg-[#f8f9fa] border-r border-b border-slate-300 sticky left-0 z-30 select-none relative"
                 style={{ width: headerColW, height: headerRowH }}
             >
-                <div className="absolute bottom-1 right-1 w-0 h-0 border-l-[8px] border-l-transparent border-b-[8px] border-b-slate-400" />
+                <div 
+                    className="absolute border-l-transparent border-b-slate-400" 
+                    style={{
+                        right: `${arrowOffset}px`,
+                        bottom: `${arrowOffset}px`,
+                        borderLeftWidth: `${arrowSize}px`,
+                        borderBottomWidth: `${arrowSize}px`,
+                        borderLeftStyle: 'solid',
+                        borderBottomStyle: 'solid',
+                        width: 0,
+                        height: 0
+                    }}
+                 />
             </div>
 
             {/* Column Headers */}
@@ -497,8 +514,8 @@ const Grid: React.FC<GridProps> = ({
                     const colChar = numToChar(col);
                     const isActive = activeCell?.startsWith(colChar);
                     return (
-                        <div key={col} className={cn("relative flex items-center justify-center border-r border-slate-300 select-none flex-shrink-0 text-slate-700 font-semibold bg-[#f8f9fa] hover:bg-slate-200 text-xs", isActive && "bg-emerald-100 text-emerald-800")}
-                             style={{ width, height: headerRowH }}
+                        <div key={col} className={cn("relative flex items-center justify-center border-r border-slate-300 select-none flex-shrink-0 text-slate-700 font-semibold bg-[#f8f9fa] hover:bg-slate-200 transition-colors overflow-hidden", isActive && "bg-emerald-100 text-emerald-800")}
+                             style={{ width, height: headerRowH, fontSize: `${headerFontSize}px` }}
                              onClick={() => onCellClick(getCellId(col, 0), false)}>
                             {colChar}
                             <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-emerald-500 z-10"
