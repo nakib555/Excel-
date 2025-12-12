@@ -1,30 +1,23 @@
-import React, { useState, memo, Suspense } from 'react';
+import React, { useState, memo } from 'react';
 import { 
-  FileSpreadsheet, Undo, Redo, Download, Search, Loader2, Sparkles, Grid3X3 
+  FileSpreadsheet, Undo, Redo, Download, Search, Sparkles, Grid3X3 
 } from 'lucide-react';
-import { CellStyle } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DraggableScrollContainer, TabProps } from './toolbar/shared';
 import { cn } from '../utils';
 
-// Lazy loaded tabs
-const HomeTab = React.lazy(() => import('./toolbar/HomeTab/index'));
-const InsertTab = React.lazy(() => import('./toolbar/InsertTab/index'));
-const DrawTab = React.lazy(() => import('./toolbar/DrawTab/index'));
-const PageLayoutTab = React.lazy(() => import('./toolbar/PageLayoutTab/index'));
-const FormulasTab = React.lazy(() => import('./toolbar/FormulasTab/index'));
-const DataTab = React.lazy(() => import('./toolbar/DataTab/index'));
-const ReviewTab = React.lazy(() => import('./toolbar/ReviewTab/index'));
-const ViewTab = React.lazy(() => import('./toolbar/ViewTab/index'));
-const AutomateTab = React.lazy(() => import('./toolbar/AutomateTab/index'));
+// Static imports
+import HomeTab from './toolbar/HomeTab/index';
+import InsertTab from './toolbar/InsertTab/index';
+import DrawTab from './toolbar/DrawTab/index';
+import PageLayoutTab from './toolbar/PageLayoutTab/index';
+import FormulasTab from './toolbar/FormulasTab/index';
+import DataTab from './toolbar/DataTab/index';
+import ReviewTab from './toolbar/ReviewTab/index';
+import ViewTab from './toolbar/ViewTab/index';
+import AutomateTab from './toolbar/AutomateTab/index';
 
 const TABS = ['File', 'Home', 'Insert', 'Draw', 'Page Layout', 'Formulas', 'Data', 'Review', 'View', 'Automate'];
-
-const TabLoading = () => (
-    <div className="flex h-full w-full items-center justify-center p-4">
-        <Loader2 className="animate-spin text-slate-300" size={24} />
-    </div>
-);
 
 const Toolbar: React.FC<TabProps> = (props) => {
   const [activeTab, setActiveTab] = useState('Home');
@@ -108,7 +101,6 @@ const Toolbar: React.FC<TabProps> = (props) => {
       <div className="bg-[#f8fafc] border-b border-slate-200 shadow-sm z-0 relative">
       <DraggableScrollContainer className="h-[100px] flex items-stretch px-2 md:px-4 w-full">
           <AnimatePresence mode='wait'>
-            <Suspense fallback={<TabLoading />}>
                 {activeTab === 'Home' && <HomeTab {...props} key="home" />}
                 {activeTab === 'Insert' && <InsertTab {...props} key="insert" />}
                 {activeTab === 'Draw' && <DrawTab {...props} key="draw" />}
@@ -134,7 +126,6 @@ const Toolbar: React.FC<TabProps> = (props) => {
                         </div>
                     </motion.div>
                 )}
-            </Suspense>
           </AnimatePresence>
       </DraggableScrollContainer>
       </div>

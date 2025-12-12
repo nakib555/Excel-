@@ -1,15 +1,14 @@
-import React, { useState, useCallback, useMemo, Suspense } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
 import { evaluateFormula, getRange, getNextCellId } from './utils';
 import { NavigationDirection } from './components';
-import { Loader2 } from 'lucide-react';
 
-// Lazy Load Components
-const Toolbar = React.lazy(() => import('./components/Toolbar'));
-const FormulaBar = React.lazy(() => import('./components/FormulaBar'));
-const Grid = React.lazy(() => import('./components/Grid'));
-const SheetTabs = React.lazy(() => import('./components/SheetTabs'));
-const StatusBar = React.lazy(() => import('./components/StatusBar'));
+// Static Imports
+import Toolbar from './components/Toolbar';
+import FormulaBar from './components/FormulaBar';
+import Grid from './components/Grid';
+import SheetTabs from './components/SheetTabs';
+import StatusBar from './components/StatusBar';
 
 // Initial Configuration
 const INITIAL_ROWS = 50;
@@ -47,21 +46,6 @@ const generateInitialData = (): Record<CellId, CellData> => {
     
     return evaluated;
 };
-
-const LoadingFallback = () => (
-  <div className="h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
-    <div className="relative">
-      <div className="w-16 h-16 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin"></div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <Loader2 size={24} className="text-emerald-600 animate-pulse" />
-      </div>
-    </div>
-    <div className="flex flex-col items-center gap-1">
-      <h2 className="text-lg font-semibold text-slate-700">Loading Spreadsheet</h2>
-      <p className="text-sm text-slate-400">Preparing your cells...</p>
-    </div>
-  </div>
-);
 
 const App: React.FC = () => {
   // Use lazy initialization for sheets to avoid re-generating data on every render
@@ -259,7 +243,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-50 font-sans text-slate-900 overflow-hidden">
-      <Suspense fallback={<LoadingFallback />}>
         <Toolbar 
           currentStyle={activeStyle}
           onToggleStyle={handleStyleChange}
@@ -305,7 +288,6 @@ const App: React.FC = () => {
           zoom={zoom}
           onZoomChange={setZoom}
         />
-      </Suspense>
     </div>
   );
 };
