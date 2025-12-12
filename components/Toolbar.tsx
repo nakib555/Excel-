@@ -8,6 +8,7 @@ import { DraggableScrollContainer, TabProps } from './toolbar/shared';
 import { cn } from '../utils';
 
 // Lazy loaded tabs
+const FileTab = React.lazy(() => import('./toolbar/FileTab/index'));
 const HomeTab = React.lazy(() => import('./toolbar/HomeTab/index'));
 const InsertTab = React.lazy(() => import('./toolbar/InsertTab/index'));
 const DrawTab = React.lazy(() => import('./toolbar/DrawTab/index'));
@@ -79,6 +80,7 @@ const Toolbar: React.FC<TabProps> = (props) => {
         <DraggableScrollContainer className="flex items-end gap-1">
             {TABS.map(tab => {
                 const isActive = activeTab === tab;
+                const isFile = tab === 'File';
                 return (
                     <button
                         key={tab}
@@ -87,7 +89,9 @@ const Toolbar: React.FC<TabProps> = (props) => {
                             "relative px-4 py-2 text-[13px] transition-all duration-150 whitespace-nowrap flex-shrink-0 select-none rounded-t-md outline-none",
                             isActive 
                                 ? "bg-[#f8fafc] text-[#4f46e5] font-bold shadow-none z-10 pb-2.5 -mb-0.5" 
-                                : "text-slate-200 hover:bg-white/10 hover:text-white mb-1 font-medium"
+                                : isFile 
+                                    ? "bg-emerald-600 text-white hover:bg-emerald-500 mb-1 font-bold shadow-sm" 
+                                    : "text-slate-200 hover:bg-white/10 hover:text-white mb-1 font-medium"
                         )}
                     >
                         {tab}
@@ -109,6 +113,7 @@ const Toolbar: React.FC<TabProps> = (props) => {
       <DraggableScrollContainer className="h-[100px] flex items-stretch px-2 md:px-4 w-full">
           <AnimatePresence mode='wait'>
             <Suspense fallback={<TabLoading />}>
+                {activeTab === 'File' && <FileTab {...props} key="file" />}
                 {activeTab === 'Home' && <HomeTab {...props} key="home" />}
                 {activeTab === 'Insert' && <InsertTab {...props} key="insert" />}
                 {activeTab === 'Draw' && <DrawTab {...props} key="draw" />}
@@ -118,22 +123,6 @@ const Toolbar: React.FC<TabProps> = (props) => {
                 {activeTab === 'Review' && <ReviewTab {...props} key="review" />}
                 {activeTab === 'View' && <ViewTab {...props} key="view" />}
                 {activeTab === 'Automate' && <AutomateTab {...props} key="automate" />}
-                
-                {activeTab === 'File' && (
-                     <motion.div 
-                        key="file"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center justify-center w-full h-full text-slate-400 gap-3"
-                    >
-                        <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-                            <FileSpreadsheet size={24} className="opacity-50 text-green-600" />
-                        </div>
-                        <div className="text-sm">
-                            <span className="font-semibold text-slate-600">Backstage View</span> is not implemented in this demo.
-                        </div>
-                    </motion.div>
-                )}
             </Suspense>
           </AnimatePresence>
       </DraggableScrollContainer>
