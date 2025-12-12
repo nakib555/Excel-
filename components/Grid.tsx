@@ -154,7 +154,7 @@ const Grid: React.FC<GridProps> = ({
   onColumnResize,
   onRowResize,
   onExpandGrid,
-  onTrimGrid,
+  // onTrimGrid prop is no longer used for auto-trimming
   onZoom
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -171,7 +171,6 @@ const Grid: React.FC<GridProps> = ({
   const pinchScaleRef = useRef(1); 
   const touchStartDist = useRef<number>(0);
   const scrollTimeoutRef = useRef<any>(null);
-  const trimTimeoutRef = useRef<any>(null);
   
   // Virtualization State
   const [scrollState, setScrollState] = useState({ 
@@ -391,11 +390,10 @@ const Grid: React.FC<GridProps> = ({
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     scrollTimeoutRef.current = setTimeout(() => setIsScrollingFast(false), 150);
 
-    // Idle Trim Detection
-    if (trimTimeoutRef.current) clearTimeout(trimTimeoutRef.current);
-    trimTimeoutRef.current = setTimeout(() => {
-        if (onTrimGrid) onTrimGrid();
-    }, 1200);
+    // Automatic Trimming Removed: 
+    // Previously, the grid would auto-shrink if the user was idle, which caused the view to "jump" 
+    // if the user had scrolled to an empty area. We now allow the grid to stay expanded (Infinite Scroll behavior)
+    // to preserve the user's scroll position and experience.
 
     checkExpansion();
 
@@ -407,7 +405,7 @@ const Grid: React.FC<GridProps> = ({
             clientWidth: element.clientWidth 
         });
     });
-  }, [checkExpansion, onTrimGrid]);
+  }, [checkExpansion]);
 
   // Helpers
   const handleMouseDown = useCallback((id: string, isShift: boolean) => {

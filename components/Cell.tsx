@@ -86,14 +86,15 @@ const Cell = memo(({
   };
   
   // Ghost Mode: Render minimal DOM for performance during fast interactions
+  // Updated with brighter shimmer effect
   if (isGhost) {
       return (
         <div
-          className="relative box-border border-r border-b border-slate-100 bg-slate-50/50"
+          className="relative box-border border-r border-b border-slate-200 bg-white"
           style={style}
         >
             {!isMicroView && (
-                <div className="w-2/3 h-1/2 bg-slate-100/50 rounded mt-1 ml-1 animate-pulse" />
+                <div className="absolute inset-1.5 rounded-sm skeleton-shine opacity-60" />
             )}
         </div>
       );

@@ -249,38 +249,6 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const handleTrimGrid = useCallback(() => {
-    // Calculates the furthest used row and column to shrink the grid if needed
-    let maxRow = 0;
-    let maxCol = 0;
-    
-    // Efficiently find max extent
-    Object.keys(cells).forEach(key => {
-        const coords = parseCellId(key);
-        if (coords) {
-            if (coords.row > maxRow) maxRow = coords.row;
-            if (coords.col > maxCol) maxCol = coords.col;
-        }
-    });
-
-    const ROW_BUFFER = 50;
-    const COL_BUFFER = 15;
-    
-    // Ensure we don't shrink below initial size
-    const targetRows = Math.max(INITIAL_ROWS, maxRow + ROW_BUFFER);
-    const targetCols = Math.max(INITIAL_COLS, maxCol + COL_BUFFER);
-
-    setGridSize(prev => {
-        // Only update if there is a significant reduction to avoid unnecessary renders
-        // Threshold: 20 rows or 5 cols difference
-        if (prev.rows > targetRows + 20 || prev.cols > targetCols + 5) {
-            console.log("Trimming grid to:", targetRows, targetCols);
-            return { rows: targetRows, cols: targetCols };
-        }
-        return prev;
-    });
-  }, [cells]);
-
   const handleExport = useCallback(() => {
     const rows = [];
     for(let r=0; r<Math.min(gridSize.rows, 50); r++) { 
@@ -395,7 +363,6 @@ const App: React.FC = () => {
                 onColumnResize={handleColumnResize}
                 onRowResize={handleRowResize}
                 onExpandGrid={handleExpandGrid}
-                onTrimGrid={handleTrimGrid}
                 onZoom={handleZoomWheel}
               />
           </Suspense>
