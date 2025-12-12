@@ -22,6 +22,9 @@ const StatusBar = lazy(() => import('./components/StatusBar'));
 // Initial Configuration
 const INITIAL_ROWS = 50;
 const INITIAL_COLS = 26; // A-Z
+const MAX_ROWS = 1000000;
+const MAX_COLS = 1000000;
+const EXPANSION_BATCH = 10;
 
 // Initial sample data generation helper
 const generateInitialData = (): Record<CellId, CellData> => {
@@ -70,7 +73,7 @@ const App: React.FC = () => {
     }
   ]);
   const [activeSheetId, setActiveSheetId] = useState<string>('sheet1');
-  const [gridSize] = useState<GridSize>({ rows: INITIAL_ROWS, cols: INITIAL_COLS });
+  const [gridSize, setGridSize] = useState<GridSize>({ rows: INITIAL_ROWS, cols: INITIAL_COLS });
   const [zoom, setZoom] = useState<number>(1);
   
   const activeSheet = useMemo(() => 
@@ -218,6 +221,18 @@ const App: React.FC = () => {
     }));
   }, [activeSheetId]);
 
+  const handleExpandGrid = useCallback((direction: 'row' | 'col') => {
+    setGridSize(prev => {
+        if (direction === 'row') {
+            if (prev.rows >= MAX_ROWS) return prev;
+            return { ...prev, rows: Math.min(prev.rows + EXPANSION_BATCH, MAX_ROWS) };
+        } else {
+            if (prev.cols >= MAX_COLS) return prev;
+            return { ...prev, cols: Math.min(prev.cols + EXPANSION_BATCH, MAX_COLS) };
+        }
+    });
+  }, []);
+
   const handleExport = useCallback(() => {
     const rows = [];
     for(let r=0; r<Math.min(gridSize.rows, 50); r++) { 
@@ -317,6 +332,7 @@ const App: React.FC = () => {
                 onNavigate={handleNavigate}
                 onColumnResize={handleColumnResize}
                 onRowResize={handleRowResize}
+                onExpandGrid={handleExpandGrid}
               />
           </Suspense>
         </div>

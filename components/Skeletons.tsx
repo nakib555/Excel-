@@ -8,9 +8,9 @@ export const CellSkeleton = ({ width, height }: { width: number; height: number 
       minWidth: width, 
       minHeight: height 
     }} 
-    className="border-r border-b border-slate-200 bg-white p-[1px] box-border overflow-hidden select-none"
+    className="border-r border-b border-slate-100 bg-white box-border overflow-hidden select-none relative"
   >
-    <div className="w-full h-full bg-slate-50 animate-pulse rounded-[1px]" />
+    <div className="absolute inset-0 shimmer" />
   </div>
 );
 
