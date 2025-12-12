@@ -1,11 +1,11 @@
 import React, { useState, memo, Suspense } from 'react';
 import { 
-  FileSpreadsheet, Undo, Redo, Download, Search, Sparkles, Grid3X3 
+  FileSpreadsheet, Undo, Redo, Download, Search, Loader2, Sparkles, Grid3X3 
 } from 'lucide-react';
+import { CellStyle } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DraggableScrollContainer, TabProps } from './toolbar/shared';
 import { cn } from '../utils';
-import { RibbonSkeleton } from './Skeletons';
 
 // Lazy loaded tabs
 const HomeTab = React.lazy(() => import('./toolbar/HomeTab/index'));
@@ -20,6 +20,12 @@ const AutomateTab = React.lazy(() => import('./toolbar/AutomateTab/index'));
 
 const TABS = ['File', 'Home', 'Insert', 'Draw', 'Page Layout', 'Formulas', 'Data', 'Review', 'View', 'Automate'];
 
+const TabLoading = () => (
+    <div className="flex h-full w-full items-center justify-center p-4">
+        <Loader2 className="animate-spin text-slate-300" size={24} />
+    </div>
+);
+
 const Toolbar: React.FC<TabProps> = (props) => {
   const [activeTab, setActiveTab] = useState('Home');
 
@@ -27,7 +33,7 @@ const Toolbar: React.FC<TabProps> = (props) => {
     <div className="flex flex-col bg-[#0f172a] z-40 select-none shadow-soft transition-all">
       
       {/* 1. Window / Quick Access Bar */}
-      <div className="flex items-center justify-between px-4 h-11 bg-[#0f172a] text-white z-10 border-b border-white/5">
+      <div className="flex items-center justify-between px-4 h-11 bg-[#0f172a] text-white z-10">
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
                <div className="grid place-items-center w-9 h-9 rounded hover:bg-white/10 transition-colors cursor-pointer">
@@ -102,7 +108,7 @@ const Toolbar: React.FC<TabProps> = (props) => {
       <div className="bg-[#f8fafc] border-b border-slate-200 shadow-sm z-0 relative">
       <DraggableScrollContainer className="h-[100px] flex items-stretch px-2 md:px-4 w-full">
           <AnimatePresence mode='wait'>
-            <Suspense fallback={<RibbonSkeleton />}>
+            <Suspense fallback={<TabLoading />}>
                 {activeTab === 'Home' && <HomeTab {...props} key="home" />}
                 {activeTab === 'Insert' && <InsertTab {...props} key="insert" />}
                 {activeTab === 'Draw' && <DrawTab {...props} key="draw" />}
