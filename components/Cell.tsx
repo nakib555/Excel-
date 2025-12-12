@@ -1,7 +1,7 @@
 
 import React, { memo, useState, useRef, useEffect } from 'react';
 import { CellData } from '../types';
-import { cn } from '../utils';
+import { cn, formatCellValue } from '../utils';
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right' | 'none';
 
@@ -104,6 +104,9 @@ const Cell = memo(({
   const color = data.style.color || '#0f172a';
   const backgroundColor = data.style.bg || (isInRange ? 'rgba(16, 185, 129, 0.1)' : '#fff');
   const whiteSpace = data.style.wrapText ? 'normal' : 'nowrap';
+  
+  // Display Value Formatting
+  const displayValue = formatCellValue(data.value, data.style);
 
   return (
     <div
@@ -144,9 +147,9 @@ const Cell = memo(({
           onKeyDown={handleKeyDown}
         />
       ) : (
-        !isMicroView && data.value && (
+        !isMicroView && displayValue && (
             <span className={cn("w-full pointer-events-none block", !data.style.wrapText && "truncate")}>
-                {data.value}
+                {displayValue}
             </span>
         )
       )}

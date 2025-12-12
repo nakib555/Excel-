@@ -1,4 +1,6 @@
-import { CellId } from '../types';
+
+
+import { CellId, CellStyle } from '../types';
 
 /**
  * Converts a 0-based column index to Excel letter format (0 -> A, 25 -> Z, 26 -> AA)
@@ -81,4 +83,40 @@ export const getNextCellId = (currentId: string, dRow: number, dCol: number, max
   const newCol = Math.max(0, Math.min(maxCols - 1, coords.col + dCol));
   
   return getCellId(newCol, newRow);
+};
+
+/**
+ * Formats a cell value based on its style configuration
+ */
+export const formatCellValue = (value: string, style: CellStyle): string => {
+  if (!value || value === '#ERR') return value;
+  const num = parseFloat(value);
+  if (isNaN(num)) return value;
+
+  const decimals = style.decimalPlaces ?? 2;
+
+  switch (style.format) {
+    case 'currency':
+      return new Intl.NumberFormat('en-US', { 
+          style: 'currency', 
+          currency: 'USD', 
+          minimumFractionDigits: decimals, 
+          maximumFractionDigits: decimals 
+      }).format(num);
+    case 'percent':
+      // Excel typically treats 1 as 100%. If value is > 1 it might format large.
+      // We assume raw value 0.5 = 50%
+      return new Intl.NumberFormat('en-US', { 
+          style: 'percent', 
+          minimumFractionDigits: decimals, 
+          maximumFractionDigits: decimals 
+      }).format(num);
+    case 'comma':
+       return new Intl.NumberFormat('en-US', { 
+           minimumFractionDigits: decimals, 
+           maximumFractionDigits: decimals 
+       }).format(num);
+    default:
+      return value;
+  }
 };

@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { CellStyle } from '../../types';
@@ -14,6 +15,7 @@ export interface TabProps {
   onAutoSum?: () => void;
   onInsertRow?: () => void;
   onDeleteRow?: () => void;
+  onSort?: (direction: 'asc' | 'desc') => void;
 }
 
 export const DraggableScrollContainer = ({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {

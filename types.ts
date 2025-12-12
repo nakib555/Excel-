@@ -1,4 +1,5 @@
 
+
 export type CellId = string; // e.g., "A1", "B2"
 
 export interface CellStyle {
@@ -10,6 +11,8 @@ export interface CellStyle {
   bg?: string;
   fontSize?: number;
   wrapText?: boolean;
+  format?: 'general' | 'currency' | 'percent' | 'comma' | 'number';
+  decimalPlaces?: number;
 }
 
 export interface CellData {

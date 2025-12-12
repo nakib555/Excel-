@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
 import { evaluateFormula, getRange, getNextCellId, parseCellId, getCellId } from './utils';
@@ -34,14 +35,14 @@ const generateInitialData = (): Record<CellId, CellData> => {
     const initData: Record<CellId, CellData> = {};
     const sample = [
       { id: "A1", val: "Item", style: { bold: true, bg: '#f1f5f9', color: '#475569' } },
-      { id: "B1", val: "Cost", style: { bold: true, bg: '#f1f5f9', color: '#475569' } },
+      { id: "B1", val: "Cost", style: { bold: true, bg: '#f1f5f9', color: '#475569', format: 'currency' as const } },
       { id: "C1", val: "Qty", style: { bold: true, bg: '#f1f5f9', color: '#475569' } },
-      { id: "D1", val: "Total", style: { bold: true, bg: '#f1f5f9', color: '#475569' } },
-      { id: "A2", val: "MacBook Pro" }, { id: "B2", val: "2400" }, { id: "C2", val: "2" }, { id: "D2", val: "=B2*C2" },
-      { id: "A3", val: "Monitor" }, { id: "B3", val: "500" }, { id: "C3", val: "4" }, { id: "D3", val: "=B3*C3" },
-      { id: "A4", val: "Keyboard" }, { id: "B4", val: "150" }, { id: "C4", val: "5" }, { id: "D4", val: "=B4*C4" },
-      { id: "C5", val: "Grand Total", style: { bold: true, align: 'right' } }, 
-      { id: "D5", val: "=SUM(D2:D4)", style: { bold: true, color: '#059669', bg: '#ecfdf5' } },
+      { id: "D1", val: "Total", style: { bold: true, bg: '#f1f5f9', color: '#475569', format: 'currency' as const } },
+      { id: "A2", val: "MacBook Pro" }, { id: "B2", val: "2400", style: { format: 'currency' as const } }, { id: "C2", val: "2" }, { id: "D2", val: "=B2*C2", style: { format: 'currency' as const } },
+      { id: "A3", val: "Monitor" }, { id: "B3", val: "500", style: { format: 'currency' as const } }, { id: "C3", val: "4" }, { id: "D3", val: "=B3*C3", style: { format: 'currency' as const } },
+      { id: "A4", val: "Keyboard" }, { id: "B4", val: "150", style: { format: 'currency' as const } }, { id: "C4", val: "5" }, { id: "D4", val: "=B4*C4", style: { format: 'currency' as const } },
+      { id: "C5", val: "Grand Total", style: { bold: true, align: 'right' as const } }, 
+      { id: "D5", val: "=SUM(D2:D4)", style: { bold: true, color: '#059669', bg: '#ecfdf5', format: 'currency' as const } },
     ];
 
     sample.forEach(s => {
@@ -253,7 +254,6 @@ const App: React.FC = () => {
 
   // User Requirement: "trim cell beyond data side"
   const handleTrimGrid = useCallback(() => {
-    // Find max extent of data
     let maxRow = 0;
     let maxCol = 0;
     
@@ -269,20 +269,17 @@ const App: React.FC = () => {
          if (col > maxCol) maxCol = col;
     }
     
-    // Check active cell too to avoid cutting off user focus
     if (activeCell) {
          const { row, col } = parseCellId(activeCell) || { row: 0, col: 0 };
          if (row > maxRow) maxRow = row;
          if (col > maxCol) maxCol = col;
     }
 
-    // Add buffer of 20 as requested for outside view
     const BUFFER = 20; 
     const newRows = Math.max(INITIAL_ROWS, maxRow + 1 + BUFFER);
     const newCols = Math.max(INITIAL_COLS, maxCol + 1 + BUFFER);
 
     setGridSize(prev => {
-        // Only trim if significantly larger to avoid layout thrashing during active use
         if (prev.rows > newRows + 10 || prev.cols > newCols + 10) {
              return { rows: newRows, cols: newCols };
         }
@@ -362,8 +359,6 @@ const App: React.FC = () => {
   const handleSetZoom = useCallback((val: number) => {
       setZoom(val);
   }, []);
-
-  // --- TOOLS IMPLEMENTATION ---
 
   const handleCopy = useCallback(() => {
     if (!selectionRange) return;
@@ -464,10 +459,85 @@ const App: React.FC = () => {
       }));
   }, [activeCell, activeSheetId]);
 
+  const handleSort = useCallback((direction: 'asc' | 'desc') => {
+    if (!activeCell) return;
+    const { col: sortColIdx } = parseCellId(activeCell)!;
+
+    setSheets(prev => prev.map(sheet => {
+        if (sheet.id !== activeSheetId) return sheet;
+
+        let startRow = 1; // Default skip header
+        let endRow = gridSize.rows - 1;
+
+        if (sheet.selectionRange && sheet.selectionRange.length > 1) {
+            const coords = sheet.selectionRange.map(id => parseCellId(id)!);
+            startRow = Math.min(...coords.map(c => c.row));
+            endRow = Math.max(...coords.map(c => c.row));
+            if (startRow === endRow) {
+                 startRow = 1; 
+                 const allRows = Object.keys(sheet.cells).map(k => parseCellId(k)?.row || 0);
+                 endRow = Math.max(0, ...allRows);
+            }
+        } else {
+             const allRows = Object.keys(sheet.cells).map(k => parseCellId(k)?.row || 0);
+             endRow = Math.max(0, ...allRows);
+        }
+        
+        const rowsData: { rowIdx: number, cells: Record<number, CellData> }[] = [];
+        for (let r = startRow; r <= endRow; r++) {
+            rowsData.push({ rowIdx: r, cells: {} });
+        }
+        
+        Object.values(sheet.cells).forEach(cell => {
+             const { col, row } = parseCellId(cell.id)!;
+             if (row >= startRow && row <= endRow) {
+                 const rowIndexInArray = row - startRow;
+                 if (rowsData[rowIndexInArray]) {
+                     rowsData[rowIndexInArray].cells[col] = cell;
+                 }
+             }
+        });
+
+        rowsData.sort((a, b) => {
+             const cellA = a.cells[sortColIdx];
+             const cellB = b.cells[sortColIdx];
+             
+             const valA = cellA ? (parseFloat(cellA.value) || cellA.value) : '';
+             const valB = cellB ? (parseFloat(cellB.value) || cellB.value) : '';
+
+             if (valA === valB) return 0;
+             if (valA === '') return 1; 
+             if (valB === '') return -1;
+
+             if (direction === 'asc') return valA < valB ? -1 : 1;
+             return valA > valB ? -1 : 1;
+        });
+
+        const newCells = { ...sheet.cells };
+        
+        Object.keys(sheet.cells).forEach(key => {
+            const { row } = parseCellId(key)!;
+            if (row >= startRow && row <= endRow) {
+                delete newCells[key];
+            }
+        });
+
+        rowsData.forEach((rowData, i) => {
+            const targetRow = startRow + i;
+            Object.values(rowData.cells).forEach(cell => {
+                 const { col } = parseCellId(cell.id)!;
+                 const newId = getCellId(col, targetRow);
+                 newCells[newId] = { ...cell, id: newId };
+            });
+        });
+
+        return { ...sheet, cells: newCells };
+    }));
+  }, [activeCell, activeSheetId, gridSize]);
+
   const handleAutoSum = useCallback(() => {
       if (!activeCell) return;
       const { col, row } = parseCellId(activeCell)!;
-      // Look up
       let startRow = row - 1;
       while (startRow >= 0) {
           const id = getCellId(col, startRow);
@@ -500,6 +570,7 @@ const App: React.FC = () => {
               onAutoSum={handleAutoSum}
               onInsertRow={handleInsertRow}
               onDeleteRow={handleDeleteRow}
+              onSort={handleSort}
             />
         </Suspense>
         
