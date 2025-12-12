@@ -1,14 +1,16 @@
-import React, { memo } from 'react';
+import React, { memo, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Table2, TableProperties, Table, FormInput, Image as ImageIcon, CheckSquare, 
-  BarChart, BarChart3, LineChart, PieChart, ScatterChart, Map, BarChart4, 
-  Activity, BarChart2, TrendingUp, Filter, History, Link2, MessageSquare, 
-  BoxSelect, Sigma 
-} from 'lucide-react';
-import { RibbonGroup, RibbonButton, TabProps } from '../shared';
+import { TabProps, GroupSkeleton } from '../../shared';
 
-const InsertTab: React.FC<TabProps> = () => {
+const TablesGroup = React.lazy(() => import('./groups/TablesGroup'));
+const IllustrationsGroup = React.lazy(() => import('./groups/IllustrationsGroup'));
+const ChartsGroup = React.lazy(() => import('./groups/ChartsGroup'));
+const SparklinesGroup = React.lazy(() => import('./groups/SparklinesGroup'));
+const FiltersGroup = React.lazy(() => import('./groups/FiltersGroup'));
+const LinksCommentsGroup = React.lazy(() => import('./groups/LinksCommentsGroup'));
+const TextSymbolsGroup = React.lazy(() => import('./groups/TextSymbolsGroup'));
+
+const InsertTab: React.FC<TabProps> = (props) => {
   return (
     <motion.div 
         initial={{ opacity: 0 }}
@@ -16,67 +18,13 @@ const InsertTab: React.FC<TabProps> = () => {
         exit={{ opacity: 0 }}
         className="flex h-full min-w-max gap-1"
     >
-        <RibbonGroup label="Tables">
-            <RibbonButton variant="large" icon={<Table2 size={20} className="text-emerald-600" />} label="PivotTable" hasDropdown onClick={() => {}} />
-            <RibbonButton variant="large" icon={<TableProperties size={20} className="text-blue-600" />} label="Recommended" subLabel="Pivots" onClick={() => {}} />
-            <RibbonButton variant="large" icon={<Table size={20} className="text-sky-600" />} label="Table" onClick={() => {}} />
-            <RibbonButton variant="large" icon={<FormInput size={20} className="text-teal-600" />} label="Forms" hasDropdown onClick={() => {}} />
-        </RibbonGroup>
-
-        <RibbonGroup label="Illustrations">
-             <div className="flex gap-1 h-full items-center">
-                 <RibbonButton variant="large" icon={<ImageIcon size={20} className="text-purple-600" />} label="Illustrations" hasDropdown onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<CheckSquare size={20} className="text-slate-600" />} label="Checkbox" onClick={() => {}} />
-             </div>
-        </RibbonGroup>
-
-        <RibbonGroup label="Charts">
-            <div className="flex gap-2 h-full items-center">
-                 <RibbonButton variant="large" icon={<BarChart size={20} className="text-blue-600" />} label="Recommended" subLabel="Charts" onClick={() => {}} />
-                 
-                 <div className="flex flex-col gap-0 h-full justify-center">
-                     <div className="flex gap-0.5">
-                         <RibbonButton variant="icon-only" icon={<BarChart3 size={14} className="text-blue-500" />} hasDropdown onClick={() => {}} title="Column" />
-                         <RibbonButton variant="icon-only" icon={<LineChart size={14} className="text-red-500" />} hasDropdown onClick={() => {}} title="Line" />
-                         <RibbonButton variant="icon-only" icon={<PieChart size={14} className="text-orange-500" />} hasDropdown onClick={() => {}} title="Pie" />
-                     </div>
-                     <div className="flex gap-0.5">
-                         <RibbonButton variant="icon-only" icon={<ScatterChart size={14} className="text-indigo-500" />} hasDropdown onClick={() => {}} title="Scatter" />
-                         <RibbonButton variant="icon-only" icon={<Map size={14} className="text-green-500" />} hasDropdown onClick={() => {}} title="Maps" />
-                         <RibbonButton variant="icon-only" icon={<BarChart4 size={14} className="text-emerald-500" />} hasDropdown onClick={() => {}} title="PivotChart" />
-                     </div>
-                 </div>
-            </div>
-        </RibbonGroup>
-
-        <RibbonGroup label="Sparklines">
-             <div className="flex flex-col gap-0 h-full justify-center">
-                 <RibbonButton variant="small" icon={<Activity size={14} className="text-blue-500" />} label="Line" onClick={() => {}} />
-                 <RibbonButton variant="small" icon={<BarChart2 size={14} className="text-emerald-500" />} label="Column" onClick={() => {}} />
-                 <RibbonButton variant="small" icon={<TrendingUp size={14} className="text-orange-500" />} label="Win/Loss" onClick={() => {}} />
-             </div>
-        </RibbonGroup>
-        
-        <RibbonGroup label="Filters">
-             <div className="flex flex-col gap-0 h-full justify-center">
-                 <RibbonButton variant="small" icon={<Filter size={14} className="text-blue-600" />} label="Slicer" onClick={() => {}} />
-                 <RibbonButton variant="small" icon={<History size={14} className="text-purple-600" />} label="Timeline" onClick={() => {}} />
-             </div>
-        </RibbonGroup>
-
-        <RibbonGroup label="Links & Comments">
-            <div className="flex gap-1 h-full items-center">
-               <RibbonButton variant="large" icon={<Link2 size={20} className="text-blue-600" />} label="Link" hasDropdown onClick={() => {}} />
-               <RibbonButton variant="large" icon={<MessageSquare size={20} className="text-yellow-500" />} label="Comment" onClick={() => {}} />
-            </div>
-        </RibbonGroup>
-
-        <RibbonGroup label="Text & Symbols" className="border-r-0">
-            <div className="flex gap-1 h-full items-center">
-               <RibbonButton variant="large" icon={<BoxSelect size={20} className="text-slate-600" />} label="Text" hasDropdown onClick={() => {}} />
-               <RibbonButton variant="large" icon={<Sigma size={20} className="text-slate-700" />} label="Symbols" hasDropdown onClick={() => {}} />
-            </div>
-        </RibbonGroup>
+        <Suspense fallback={<GroupSkeleton />}><TablesGroup {...props} /></Suspense>
+        <Suspense fallback={<GroupSkeleton />}><IllustrationsGroup {...props} /></Suspense>
+        <Suspense fallback={<GroupSkeleton />}><ChartsGroup {...props} /></Suspense>
+        <Suspense fallback={<GroupSkeleton />}><SparklinesGroup {...props} /></Suspense>
+        <Suspense fallback={<GroupSkeleton />}><FiltersGroup {...props} /></Suspense>
+        <Suspense fallback={<GroupSkeleton />}><LinksCommentsGroup {...props} /></Suspense>
+        <Suspense fallback={<GroupSkeleton />}><TextSymbolsGroup {...props} /></Suspense>
     </motion.div>
   );
 };

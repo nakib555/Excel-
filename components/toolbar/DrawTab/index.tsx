@@ -1,12 +1,13 @@
-import React, { memo } from 'react';
+import React, { memo, Suspense } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Undo, RotateCcw, MousePointer2, BoxSelect, Eraser, PenTool, Highlighter, 
-  PlusCircle, Shapes, Pi, PlayCircle 
-} from 'lucide-react';
-import { RibbonGroup, RibbonButton, Separator, TabProps } from '../shared';
+import { TabProps, GroupSkeleton } from '../../shared';
 
-const DrawTab: React.FC<TabProps> = () => {
+const UndoGroup = React.lazy(() => import('./groups/UndoGroup'));
+const DrawingToolsGroup = React.lazy(() => import('./groups/DrawingToolsGroup'));
+const ConvertGroup = React.lazy(() => import('./groups/ConvertGroup'));
+const ReplayGroup = React.lazy(() => import('./groups/ReplayGroup'));
+
+const DrawTab: React.FC<TabProps> = (props) => {
   return (
     <motion.div 
         initial={{ opacity: 0 }}
@@ -14,40 +15,10 @@ const DrawTab: React.FC<TabProps> = () => {
         exit={{ opacity: 0 }}
         className="flex h-full min-w-max gap-1"
     >
-         <RibbonGroup label="Undo">
-            <div className="flex flex-col gap-0 h-full justify-center">
-                <RibbonButton variant="icon-only" icon={<Undo size={14} className="text-blue-600" />} onClick={() => {}} />
-                <RibbonButton variant="icon-only" icon={<RotateCcw size={14} className="rotate-180 scale-x-[-1] text-blue-600" />} onClick={() => {}} />
-            </div>
-        </RibbonGroup>
-
-        <RibbonGroup label="Drawing Tools">
-            <div className="flex items-center gap-1 h-full">
-                <RibbonButton variant="large" icon={<MousePointer2 size={20} className="text-slate-700" />} label="Select" onClick={() => {}} />
-                <RibbonButton variant="large" icon={<BoxSelect size={20} className="stroke-dashed text-slate-700" />} label="Lasso" onClick={() => {}} />
-                <Separator />
-                <RibbonButton variant="large" icon={<Eraser size={20} className="text-pink-500" />} label="Eraser" hasDropdown onClick={() => {}} />
-                <div className="flex gap-1 items-center px-1">
-                    <RibbonButton variant="large" icon={<PenTool size={20} color="#000" fill="#000" />} label="Black" hasDropdown onClick={() => {}} />
-                    <RibbonButton variant="large" icon={<PenTool size={20} color="#ef4444" fill="#ef4444" />} label="Red" hasDropdown onClick={() => {}} />
-                    <RibbonButton variant="large" icon={<PenTool size={20} className="text-purple-500" />} label="Galaxy" hasDropdown onClick={() => {}} />
-                    <RibbonButton variant="large" icon={<Highlighter size={20} className="text-yellow-400" />} label="Highlight" hasDropdown onClick={() => {}} />
-                    <RibbonButton variant="large" icon={<PenTool size={20} color="#059669" fill="#059669" />} label="Green" hasDropdown onClick={() => {}} />
-                </div>
-                <RibbonButton variant="large" icon={<PlusCircle size={20} className="text-green-600" />} label="Add" hasDropdown onClick={() => {}} />
-            </div>
-        </RibbonGroup>
-
-        <RibbonGroup label="Convert">
-            <div className="flex items-center gap-1 h-full">
-                <RibbonButton variant="large" icon={<Shapes size={20} className="text-indigo-500" />} label="Ink to" subLabel="Shape" onClick={() => {}} />
-                <RibbonButton variant="large" icon={<Pi size={20} className="text-orange-500" />} label="Ink to" subLabel="Math" onClick={() => {}} />
-            </div>
-        </RibbonGroup>
-
-        <RibbonGroup label="Replay">
-            <RibbonButton variant="large" icon={<PlayCircle size={20} className="text-emerald-600" />} label="Ink" subLabel="Replay" onClick={() => {}} />
-        </RibbonGroup>
+         <Suspense fallback={<GroupSkeleton />}><UndoGroup {...props} /></Suspense>
+         <Suspense fallback={<GroupSkeleton />}><DrawingToolsGroup {...props} /></Suspense>
+         <Suspense fallback={<GroupSkeleton />}><ConvertGroup {...props} /></Suspense>
+         <Suspense fallback={<GroupSkeleton />}><ReplayGroup {...props} /></Suspense>
     </motion.div>
   );
 };
