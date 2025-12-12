@@ -34,7 +34,7 @@ const AlignmentGroup: React.FC<TabProps> = ({ currentStyle, onToggleStyle }) => 
                     </div>
                 </div>
                 <div className="flex flex-col gap-0.5 justify-center min-w-[100px]">
-                    <WrapText />
+                    <WrapText currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                     <MergeCenter />
                 </div>
         </div>

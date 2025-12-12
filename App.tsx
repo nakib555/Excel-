@@ -1,8 +1,7 @@
 
-
-import React, { useState, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
-import { evaluateFormula, getRange, getNextCellId, parseCellId } from './utils';
+import { evaluateFormula, getRange, getNextCellId, parseCellId, getCellId } from './utils';
 import { NavigationDirection } from './components';
 
 // Import Skeletons
@@ -79,6 +78,7 @@ const App: React.FC = () => {
   const [activeSheetId, setActiveSheetId] = useState<string>('sheet1');
   const [gridSize, setGridSize] = useState<GridSize>({ rows: INITIAL_ROWS, cols: INITIAL_COLS });
   const [zoom, setZoom] = useState<number>(1);
+  const clipboardRef = useRef<{ cells: Record<CellId, CellData>; baseRow: number; baseCol: number } | null>(null);
   
   const activeSheet = useMemo(() => 
     sheets.find(s => s.id === activeSheetId) || sheets[0], 
@@ -363,6 +363,128 @@ const App: React.FC = () => {
       setZoom(val);
   }, []);
 
+  // --- TOOLS IMPLEMENTATION ---
+
+  const handleCopy = useCallback(() => {
+    if (!selectionRange) return;
+    const copiedCells: Record<CellId, CellData> = {};
+    const coords = selectionRange.map(id => parseCellId(id)!);
+    const minRow = Math.min(...coords.map(c => c.row));
+    const minCol = Math.min(...coords.map(c => c.col));
+
+    selectionRange.forEach(id => {
+       if (cells[id]) {
+           copiedCells[id] = JSON.parse(JSON.stringify(cells[id]));
+       }
+    });
+
+    clipboardRef.current = {
+        cells: copiedCells,
+        baseRow: minRow,
+        baseCol: minCol
+    };
+  }, [selectionRange, cells]);
+
+  const handleCut = useCallback(() => {
+    handleCopy();
+    setSheets(prev => prev.map(s => {
+        if (s.id !== activeSheetId) return s;
+        const newCells = { ...s.cells };
+        selectionRange?.forEach(id => {
+            delete newCells[id];
+        });
+        return { ...s, cells: newCells };
+    }));
+  }, [handleCopy, activeSheetId, selectionRange]);
+
+  const handlePaste = useCallback(() => {
+    if (!clipboardRef.current || !activeCell) return;
+    const { cells: copiedCells, baseRow, baseCol } = clipboardRef.current;
+    const targetStart = parseCellId(activeCell);
+    if (!targetStart) return;
+    
+    setSheets(prev => prev.map(s => {
+        if (s.id !== activeSheetId) return s;
+        const newCells = { ...s.cells };
+        
+        Object.values(copiedCells).forEach(cell => {
+             const orig = parseCellId(cell.id)!;
+             const rOffset = orig.row - baseRow;
+             const cOffset = orig.col - baseCol;
+             
+             const targetRow = targetStart.row + rOffset;
+             const targetCol = targetStart.col + cOffset;
+             const targetId = getCellId(targetCol, targetRow);
+             
+             newCells[targetId] = {
+                 ...cell,
+                 id: targetId,
+             };
+        });
+        return { ...s, cells: newCells };
+    }));
+  }, [activeCell, activeSheetId]);
+
+  const handleInsertRow = useCallback(() => {
+      if (!activeCell) return;
+      const { row: startRow } = parseCellId(activeCell)!;
+      setSheets(prev => prev.map(sheet => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const newCells: Record<string, CellData> = {};
+          Object.values(sheet.cells).forEach(cell => {
+              const { col, row } = parseCellId(cell.id)!;
+              if (row >= startRow) {
+                  const newId = getCellId(col, row + 1);
+                  newCells[newId] = { ...cell, id: newId };
+              } else {
+                  newCells[cell.id] = cell;
+              }
+          });
+          return { ...sheet, cells: newCells };
+      }));
+  }, [activeCell, activeSheetId]);
+
+  const handleDeleteRow = useCallback(() => {
+      if (!activeCell) return;
+      const { row: startRow } = parseCellId(activeCell)!;
+      setSheets(prev => prev.map(sheet => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const newCells: Record<string, CellData> = {};
+          Object.values(sheet.cells).forEach(cell => {
+              const { col, row } = parseCellId(cell.id)!;
+              if (row === startRow) return; // Drop
+              if (row > startRow) {
+                  const newId = getCellId(col, row - 1);
+                  newCells[newId] = { ...cell, id: newId };
+              } else {
+                  newCells[cell.id] = cell;
+              }
+          });
+          return { ...sheet, cells: newCells };
+      }));
+  }, [activeCell, activeSheetId]);
+
+  const handleAutoSum = useCallback(() => {
+      if (!activeCell) return;
+      const { col, row } = parseCellId(activeCell)!;
+      // Look up
+      let startRow = row - 1;
+      while (startRow >= 0) {
+          const id = getCellId(col, startRow);
+          const cell = cells[id];
+          if (!cell || (!parseFloat(cell.value) && cell.value !== '0')) break;
+          startRow--;
+      }
+      startRow++; 
+      
+      if (startRow < row) {
+          const startId = getCellId(col, startRow);
+          const endId = getCellId(col, row - 1);
+          const formula = `=SUM(${startId}:${endId})`;
+          handleCellChange(activeCell, formula);
+      }
+  }, [activeCell, cells, handleCellChange]);
+
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-50 font-sans text-slate-900 overflow-hidden">
         <Suspense fallback={<ToolbarSkeleton />}>
@@ -372,6 +494,12 @@ const App: React.FC = () => {
               onExport={handleExport}
               onClear={handleClear}
               onResetLayout={handleResetLayout}
+              onCopy={handleCopy}
+              onCut={handleCut}
+              onPaste={handlePaste}
+              onAutoSum={handleAutoSum}
+              onInsertRow={handleInsertRow}
+              onDeleteRow={handleDeleteRow}
             />
         </Suspense>
         

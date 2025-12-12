@@ -8,6 +8,12 @@ export interface TabProps {
   onExport: () => void;
   onClear: () => void;
   onResetLayout: () => void;
+  onCopy?: () => void;
+  onCut?: () => void;
+  onPaste?: () => void;
+  onAutoSum?: () => void;
+  onInsertRow?: () => void;
+  onDeleteRow?: () => void;
 }
 
 export const DraggableScrollContainer = ({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {

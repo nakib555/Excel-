@@ -9,6 +9,7 @@ export interface CellStyle {
   color?: string;
   bg?: string;
   fontSize?: number;
+  wrapText?: boolean;
 }
 
 export interface CellData {

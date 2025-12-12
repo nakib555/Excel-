@@ -2,8 +2,12 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { RibbonButton } from '../../shared';
 
-const Delete = () => (
-    <RibbonButton variant="small" icon={<X size={14} className="text-rose-600" />} label="Delete" onClick={() => {}} hasDropdown />
+interface DeleteProps {
+  onDeleteRow?: () => void;
+}
+
+const Delete: React.FC<DeleteProps> = ({ onDeleteRow }) => (
+    <RibbonButton variant="small" icon={<X size={14} className="text-rose-600" />} label="Delete Row" onClick={onDeleteRow || (() => {})} />
 );
 
 export default Delete;

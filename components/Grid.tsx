@@ -1,5 +1,4 @@
 
-
 import React, { useEffect, useRef, memo, useCallback, useState, useMemo, useLayoutEffect, Suspense, lazy } from 'react';
 import { CellId, CellData, GridSize } from '../types';
 import { numToChar, getCellId, cn } from '../utils';
@@ -187,6 +186,7 @@ const Grid: React.FC<GridProps> = ({
   const [isScrollingFast, setIsScrollingFast] = useState(false);
   const pinchScaleRef = useRef(1); 
   const touchStartDist = useRef<number>(0);
+  const rafRef = useRef<number | null>(null);
   const scrollTimeoutRef = useRef<any>(null);
   const trimTimeoutRef = useRef<any>(null);
   
@@ -203,6 +203,8 @@ const Grid: React.FC<GridProps> = ({
 
   // Scroll Anchor Persistence
   const prevScaleRef = useRef(scale);
+  const currentScaleRef = useRef(scale);
+  useEffect(() => { currentScaleRef.current = scale; }, [scale]);
 
   // --- 1. LOAD & OFFLOAD LOGIC (Virtualization) ---
   const { 
@@ -319,6 +321,8 @@ const Grid: React.FC<GridProps> = ({
   }, [scale]);
 
   // --- 3. PINCH ZOOM LOGIC (Mobile & Trackpad) ---
+  const isPinchingRef = useRef(false);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -326,16 +330,30 @@ const Grid: React.FC<GridProps> = ({
     const handleTouchStart = (e: TouchEvent) => {
         if (e.touches.length === 2) {
             e.preventDefault();
+            isPinchingRef.current = true;
             setIsPinching(true);
+            
             const dx = e.touches[0].pageX - e.touches[1].pageX;
             const dy = e.touches[0].pageY - e.touches[1].pageY;
             touchStartDist.current = Math.sqrt(dx * dx + dy * dy);
-            pinchScaleRef.current = scale;
+            
+            // Set refined transform origin based on finger center relative to content
+            if (gridLayerRef.current) {
+                 const rect = el.getBoundingClientRect();
+                 const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                 const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                 
+                 // Calculate origin relative to the scrolled content
+                 const originX = el.scrollLeft + (cx - rect.left);
+                 const originY = el.scrollTop + (cy - rect.top);
+                 
+                 gridLayerRef.current.style.transformOrigin = `${originX}px ${originY}px`;
+            }
         }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-        if (e.touches.length === 2 && isPinching) {
+        if (e.touches.length === 2 && isPinchingRef.current) {
             e.preventDefault();
             const dx = e.touches[0].pageX - e.touches[1].pageX;
             const dy = e.touches[0].pageY - e.touches[1].pageY;
@@ -344,27 +362,33 @@ const Grid: React.FC<GridProps> = ({
             if (touchStartDist.current > 0) {
                 const ratio = dist / touchStartDist.current;
                 
-                // Visual feedback using transform (GPU)
-                if (gridLayerRef.current) {
-                    gridLayerRef.current.style.transform = `scale(${ratio})`;
-                    gridLayerRef.current.style.transformOrigin = `${scrollState.scrollLeft + scrollState.clientWidth/2}px ${scrollState.scrollTop + scrollState.clientHeight/2}px`;
-                }
+                // Use rAF for silky smooth 60/120fps updates without React overhead
+                if (rafRef.current) cancelAnimationFrame(rafRef.current);
+                rafRef.current = requestAnimationFrame(() => {
+                    if (gridLayerRef.current) {
+                        gridLayerRef.current.style.transform = `scale(${ratio})`;
+                    }
+                });
             }
         }
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-        if (isPinching && e.touches.length < 2) {
+        if (isPinchingRef.current && e.touches.length < 2) {
+            isPinchingRef.current = false;
             setIsPinching(false);
+            
             if (gridLayerRef.current) {
                 const currentTransform = gridLayerRef.current.style.transform;
                 const match = currentTransform.match(/scale\(([^)]+)\)/);
                 const ratio = match ? parseFloat(match[1]) : 1;
                 
+                // Commit zoom
                 gridLayerRef.current.style.transform = '';
-                const newScale = Math.max(0.25, Math.min(4, scale * ratio));
-                onZoom(newScale - scale);
+                const newScale = Math.max(0.25, Math.min(4, currentScaleRef.current * ratio));
+                onZoom(newScale - currentScaleRef.current);
             }
+            if (rafRef.current) cancelAnimationFrame(rafRef.current);
         }
     };
 
@@ -376,8 +400,9 @@ const Grid: React.FC<GridProps> = ({
         el.removeEventListener('touchstart', handleTouchStart);
         el.removeEventListener('touchmove', handleTouchMove);
         el.removeEventListener('touchend', handleTouchEnd);
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [scale, onZoom, isPinching, scrollState]);
+  }, [onZoom]);
 
   // --- 4. EXPANSION & SCROLL HANDLER ---
   const checkExpansion = useCallback(() => {
@@ -501,7 +526,9 @@ const Grid: React.FC<GridProps> = ({
       <div 
         ref={gridLayerRef}
         className={cn(
-            "inline-block bg-white min-w-full relative transition-transform duration-75 ease-out origin-top-left",
+            "inline-block bg-white min-w-full relative origin-top-left",
+            // Remove transition completely during pinch for instant 1:1 tracking
+            !isPinching && "transition-transform duration-100 ease-out", 
             isPinching && "will-change-transform"
         )}
       >

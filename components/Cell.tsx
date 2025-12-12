@@ -103,6 +103,7 @@ const Cell = memo(({
   const textDecoration = data.style.underline ? 'underline' : 'none';
   const color = data.style.color || '#0f172a';
   const backgroundColor = data.style.bg || (isInRange ? 'rgba(16, 185, 129, 0.1)' : '#fff');
+  const whiteSpace = data.style.wrapText ? 'normal' : 'nowrap';
 
   return (
     <div
@@ -122,6 +123,7 @@ const Cell = memo(({
           backgroundColor,
           fontSize: isMicroView ? 0 : `${fontSize}px`,
           lineHeight: 1, // Ensure text is centered vertically without gap
+          whiteSpace
       }}
       onMouseDown={(e) => onMouseDown(id, e.shiftKey)}
       onMouseEnter={() => onMouseEnter(id)}
@@ -143,7 +145,7 @@ const Cell = memo(({
         />
       ) : (
         !isMicroView && data.value && (
-            <span className="w-full truncate pointer-events-none block">
+            <span className={cn("w-full pointer-events-none block", !data.style.wrapText && "truncate")}>
                 {data.value}
             </span>
         )
