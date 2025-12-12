@@ -1,7 +1,11 @@
-import React, { useEffect, useRef, memo } from 'react';
-import Cell, { NavigationDirection } from './Cell';
+import React, { useEffect, useRef, memo, lazy, Suspense } from 'react';
 import { CellId, CellData, GridSize } from '../types';
 import { numToChar, getCellId, cn } from '../utils';
+import { NavigationDirection } from './Cell';
+import { CellSkeleton } from './Skeletons';
+
+// Lazy load Cell component for granular loading as requested
+const Cell = lazy(() => import('./Cell'));
 
 interface GridProps {
   size: GridSize;
@@ -221,23 +225,25 @@ const Grid: React.FC<GridProps> = ({
                 {cols.map((col) => {
                   const id = getCellId(col, row);
                   const cellData = cells[id] || { id, raw: '', value: '', style: {} };
+                  const width = getColWidth(col);
 
                   return (
-                    <Cell
-                      key={id}
-                      id={id}
-                      data={cellData}
-                      isSelected={activeCell === id}
-                      isActive={activeCell === id}
-                      isInRange={isCellInRange(id)}
-                      width={getColWidth(col)}
-                      height={height}
-                      scale={scale}
-                      onClick={onCellClick}
-                      onDoubleClick={onCellDoubleClick}
-                      onChange={onCellChange}
-                      onNavigate={onNavigate}
-                    />
+                    <Suspense key={id} fallback={<CellSkeleton width={width} height={height} />}>
+                        <Cell
+                          id={id}
+                          data={cellData}
+                          isSelected={activeCell === id}
+                          isActive={activeCell === id}
+                          isInRange={isCellInRange(id)}
+                          width={width}
+                          height={height}
+                          scale={scale}
+                          onClick={onCellClick}
+                          onDoubleClick={onCellDoubleClick}
+                          onChange={onCellChange}
+                          onNavigate={onNavigate}
+                        />
+                    </Suspense>
                   );
                 })}
               </div>

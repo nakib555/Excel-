@@ -1,4 +1,4 @@
-import React, { ErrorInfo, ReactNode, Suspense, lazy } from 'react';
+import React, { Component, ErrorInfo, ReactNode, Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import { AppSkeleton } from './components/Skeletons';
@@ -15,7 +15,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   // Initialize state as a class property to satisfy TypeScript strict property initialization
   public state: ErrorBoundaryState = {
     hasError: false,

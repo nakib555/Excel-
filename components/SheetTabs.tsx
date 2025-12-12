@@ -1,7 +1,10 @@
-import React, { useRef, useState, useEffect, memo } from 'react';
-import { Plus, LayoutGrid, ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useRef, useState, useEffect, memo, lazy, Suspense } from 'react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Sheet } from '../types';
-import { motion } from 'framer-motion';
+import { TabItemSkeleton } from './Skeletons';
+
+// Lazy load individual tab items
+const SheetTabItem = lazy(() => import('./SheetTabItem'));
 
 interface SheetTabsProps {
   sheets: Sheet[];
@@ -101,21 +104,14 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
         {sheets.map((sheet) => {
           const isActive = sheet.id === activeSheetId;
           return (
-            <motion.div
-              key={sheet.id}
-              onClick={() => handleTabClick(sheet.id)}
-              className={`
-                group flex items-center px-4 py-1.5 text-xs font-medium transition-all flex-shrink-0
-                min-w-[100px] justify-center relative cursor-pointer
-                rounded-t-md border-t-2
-                ${isActive 
-                  ? 'bg-white text-emerald-700 shadow-soft border-t-emerald-500' 
-                  : 'bg-transparent text-slate-600 hover:bg-slate-200 hover:text-slate-800 border-t-transparent'
-                }
-              `}
-            >
-              <span className="truncate max-w-[120px] pointer-events-none">{sheet.name}</span>
-            </motion.div>
+            <Suspense key={sheet.id} fallback={<TabItemSkeleton />}>
+                <SheetTabItem 
+                    id={sheet.id}
+                    name={sheet.name}
+                    isActive={isActive}
+                    onClick={handleTabClick}
+                />
+            </Suspense>
           );
         })}
         {/* Spacer */}

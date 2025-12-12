@@ -1,5 +1,25 @@
 import React from 'react';
 
+export const CellSkeleton = ({ width, height }: { width: number; height: number }) => (
+  <div 
+    style={{ 
+      width, 
+      height, 
+      minWidth: width, 
+      minHeight: height 
+    }} 
+    className="border-r border-b border-slate-200 bg-white p-[1px] box-border overflow-hidden select-none"
+  >
+    <div className="w-full h-full bg-slate-50 animate-pulse rounded-[1px]" />
+  </div>
+);
+
+export const TabItemSkeleton = () => (
+    <div className="flex items-center px-4 py-1.5 min-w-[100px] h-full justify-center bg-transparent border-t-2 border-transparent">
+        <div className="w-16 h-4 bg-slate-200 rounded animate-pulse" />
+    </div>
+);
+
 export const ToolbarSkeleton = () => (
   <div className="flex flex-col w-full bg-[#f8fafc] border-b border-slate-200 shadow-sm z-40 select-none">
     {/* Title Bar */}
@@ -129,7 +149,6 @@ export const GridSkeleton = () => (
               ))}
           </div>
           <div className="flex-1 relative bg-white">
-              {/* CSS Grid Pattern for performance */}
               <div 
                   className="absolute inset-0 opacity-50" 
                   style={{
@@ -137,7 +156,6 @@ export const GridSkeleton = () => (
                       backgroundSize: '100px 28px'
                   }}
               />
-              {/* Random shimmering cells to mimic loading data */}
               <div className="absolute inset-0 p-2 grid grid-cols-6 gap-8 opacity-30">
                   <div className="w-32 h-4 bg-slate-200 rounded animate-pulse col-start-2 row-start-2" />
                   <div className="w-24 h-4 bg-slate-200 rounded animate-pulse col-start-3 row-start-4" />
