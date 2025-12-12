@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useMemo, Suspense, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, Suspense } from 'react';
 import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
-import { evaluateFormula, getRange, getNextCellId, parseCellId, getCellId, numToChar, charToNum } from './utils';
+import { evaluateFormula, getRange, getNextCellId } from './utils';
 import { NavigationDirection } from './components';
 import { Loader2 } from 'lucide-react';
 
@@ -10,7 +10,6 @@ const FormulaBar = React.lazy(() => import('./components/FormulaBar'));
 const Grid = React.lazy(() => import('./components/Grid'));
 const SheetTabs = React.lazy(() => import('./components/SheetTabs'));
 const StatusBar = React.lazy(() => import('./components/StatusBar'));
-const ContextMenu = React.lazy(() => import('./components/ContextMenu')); // New Lazy Feature
 
 // Initial Configuration
 const INITIAL_ROWS = 50;
@@ -34,8 +33,8 @@ const generateInitialData = (): Record<CellId, CellData> => {
     sample.forEach(s => {
       initData[s.id] = {
         id: s.id,
-        raw: s.val || '',
-        value: s.val || '', // Will be re-evaluated
+        raw: s.val,
+        value: s.val, // Will be re-evaluated
         style: (s.style as CellStyle) || {}
       };
     });
@@ -65,6 +64,7 @@ const LoadingFallback = () => (
 );
 
 const App: React.FC = () => {
+  // Use lazy initialization for sheets to avoid re-generating data on every render
   const [sheets, setSheets] = useState<Sheet[]>(() => [
     {
       id: 'sheet1',
@@ -79,9 +79,6 @@ const App: React.FC = () => {
   const [activeSheetId, setActiveSheetId] = useState<string>('sheet1');
   const [gridSize] = useState<GridSize>({ rows: INITIAL_ROWS, cols: INITIAL_COLS });
   const [zoom, setZoom] = useState<number>(1);
-
-  // Context Menu State
-  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, targetId: string } | null>(null);
   
   const activeSheet = useMemo(() => 
     sheets.find(s => s.id === activeSheetId) || sheets[0], 
@@ -123,9 +120,6 @@ const App: React.FC = () => {
   }, [activeSheetId]);
 
   const handleCellClick = useCallback((id: CellId, isShift: boolean) => {
-    // Close context menu on click
-    setContextMenu(null);
-
     setSheets(prevSheets => prevSheets.map(sheet => {
       if (sheet.id !== activeSheetId) return sheet;
 
@@ -139,16 +133,7 @@ const App: React.FC = () => {
     }));
   }, [activeSheetId]);
 
-  // Handler for dragging selection
-  const handleSelectionDrag = useCallback((startId: CellId, currentId: CellId) => {
-    setSheets(prevSheets => prevSheets.map(sheet => {
-        if (sheet.id !== activeSheetId) return sheet;
-        // Keep activeCell as startId, but update range
-        const newSelection = getRange(startId, currentId);
-        return { ...sheet, selectionRange: newSelection };
-    }));
-  }, [activeSheetId]);
-
+  // Stable wrapper for double click to prevent implicit function creation in render
   const handleCellDoubleClick = useCallback((id: CellId) => {
     handleCellClick(id, false);
   }, [handleCellClick]);
@@ -272,131 +257,6 @@ const App: React.FC = () => {
     if (activeCell) handleCellChange(activeCell, val);
   }, [activeCell, handleCellChange]);
 
-  // --- Context Menu Handlers ---
-
-  const handleContextMenu = useCallback((e: React.MouseEvent, id: CellId) => {
-      e.preventDefault();
-      // If right click is outside selection, select that cell first
-      if (!selectionRange?.includes(id)) {
-          handleCellClick(id, false);
-      }
-      setContextMenu({ x: e.clientX, y: e.clientY, targetId: id });
-  }, [selectionRange, handleCellClick]);
-
-  const handleContextMenuAction = useCallback((action: string) => {
-    if (!contextMenu) return;
-    const targetId = contextMenu.targetId;
-    const { col, row } = parseCellId(targetId) || { col: 0, row: 0 };
-
-    if (action === 'copy') {
-        const val = cells[targetId]?.value || '';
-        navigator.clipboard.writeText(val);
-    } 
-    else if (action === 'cut') {
-         const val = cells[targetId]?.value || '';
-         navigator.clipboard.writeText(val);
-         handleCellChange(targetId, '');
-    }
-    else if (action === 'paste') {
-         navigator.clipboard.readText().then(text => {
-             handleCellChange(targetId, text);
-         });
-    }
-    else if (action === 'clear') {
-         if (selectionRange) {
-             setSheets(prev => prev.map(s => {
-                 if (s.id !== activeSheetId) return s;
-                 const nextCells = { ...s.cells };
-                 selectionRange.forEach(id => {
-                     if (nextCells[id]) {
-                         nextCells[id] = { ...nextCells[id], raw: '', value: '' };
-                     }
-                 });
-                 return { ...s, cells: nextCells };
-             }));
-         } else {
-             handleCellChange(targetId, '');
-         }
-    }
-    else if (action === 'delete_row') {
-         setSheets(prev => prev.map(s => {
-             if (s.id !== activeSheetId) return s;
-             const nextCells: Record<CellId, CellData> = {};
-             
-             // Shift cells up
-             Object.values(s.cells).forEach(cell => {
-                 const coords = parseCellId(cell.id);
-                 if (!coords) return;
-                 if (coords.row < row) {
-                     nextCells[cell.id] = cell;
-                 } else if (coords.row > row) {
-                     const newId = getCellId(coords.col, coords.row - 1);
-                     nextCells[newId] = { ...cell, id: newId };
-                 }
-                 // Row to delete is skipped
-             });
-             return { ...s, cells: nextCells };
-         }));
-    }
-    else if (action === 'insert_row') {
-        setSheets(prev => prev.map(s => {
-             if (s.id !== activeSheetId) return s;
-             const nextCells: Record<CellId, CellData> = {};
-             
-             // Shift cells down
-             Object.values(s.cells).forEach(cell => {
-                 const coords = parseCellId(cell.id);
-                 if (!coords) return;
-                 if (coords.row < row) {
-                     nextCells[cell.id] = cell;
-                 } else {
-                     const newId = getCellId(coords.col, coords.row + 1);
-                     nextCells[newId] = { ...cell, id: newId };
-                 }
-             });
-             return { ...s, cells: nextCells };
-         }));
-    }
-    else if (action === 'delete_col') {
-         setSheets(prev => prev.map(s => {
-             if (s.id !== activeSheetId) return s;
-             const nextCells: Record<CellId, CellData> = {};
-             
-             Object.values(s.cells).forEach(cell => {
-                 const coords = parseCellId(cell.id);
-                 if (!coords) return;
-                 if (coords.col < col) {
-                     nextCells[cell.id] = cell;
-                 } else if (coords.col > col) {
-                     const newId = getCellId(coords.col - 1, coords.row);
-                     nextCells[newId] = { ...cell, id: newId };
-                 }
-             });
-             return { ...s, cells: nextCells };
-         }));
-    }
-     else if (action === 'insert_col') {
-         setSheets(prev => prev.map(s => {
-             if (s.id !== activeSheetId) return s;
-             const nextCells: Record<CellId, CellData> = {};
-             
-             Object.values(s.cells).forEach(cell => {
-                 const coords = parseCellId(cell.id);
-                 if (!coords) return;
-                 if (coords.col < col) {
-                     nextCells[cell.id] = cell;
-                 } else {
-                     const newId = getCellId(coords.col + 1, coords.row);
-                     nextCells[newId] = { ...cell, id: newId };
-                 }
-             });
-             return { ...s, cells: nextCells };
-         }));
-    }
-
-    setContextMenu(null);
-  }, [activeSheetId, cells, contextMenu, handleCellChange, selectionRange]);
-
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-50 font-sans text-slate-900 overflow-hidden">
       <Suspense fallback={<LoadingFallback />}>
@@ -430,8 +290,6 @@ const App: React.FC = () => {
             onNavigate={handleNavigate}
             onColumnResize={handleColumnResize}
             onRowResize={handleRowResize}
-            onSelectionDrag={handleSelectionDrag}
-            onContextMenu={handleContextMenu}
           />
         </div>
 
@@ -447,16 +305,6 @@ const App: React.FC = () => {
           zoom={zoom}
           onZoomChange={setZoom}
         />
-
-        {contextMenu && (
-            <ContextMenu 
-                x={contextMenu.x}
-                y={contextMenu.y}
-                onClose={() => setContextMenu(null)}
-                onAction={handleContextMenuAction}
-                targetInfo={`Cell ${contextMenu.targetId}`}
-            />
-        )}
       </Suspense>
     </div>
   );
