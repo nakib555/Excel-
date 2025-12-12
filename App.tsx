@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, Suspense } from 'react';
 import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
 import { evaluateFormula, getRange, getNextCellId } from './utils';
 import { NavigationDirection } from './components';
-import { AppSkeleton } from './components/skeletons/AppSkeleton';
+import { AppSkeleton } from './components/Skeletons';
 
 // Lazy Load Components
 const Toolbar = React.lazy(() => import('./components/Toolbar'));

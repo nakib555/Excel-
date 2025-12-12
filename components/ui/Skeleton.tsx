@@ -1,20 +1,15 @@
 import React from 'react';
 import { cn } from '../../utils';
 
-interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
-  shimmer?: boolean;
+export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-export function Skeleton({ className, shimmer = true, ...props }: SkeletonProps) {
+export const Skeleton = ({ className, ...props }: SkeletonProps) => {
   return (
     <div
-      className={cn(
-        "rounded-md bg-slate-200/80",
-        shimmer ? "shimmer" : "animate-pulse",
-        className
-      )}
+      className={cn("animate-pulse rounded bg-slate-200/80", className)}
       {...props}
     />
   );
-}
+};

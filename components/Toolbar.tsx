@@ -5,7 +5,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { DraggableScrollContainer, TabProps } from './toolbar/shared';
 import { cn } from '../utils';
-import { RibbonSkeleton } from './skeletons/RibbonSkeleton';
+import { RibbonSkeleton } from './Skeletons';
 
 // Lazy loaded tabs
 const HomeTab = React.lazy(() => import('./toolbar/HomeTab/index'));
@@ -27,7 +27,7 @@ const Toolbar: React.FC<TabProps> = (props) => {
     <div className="flex flex-col bg-[#0f172a] z-40 select-none shadow-soft transition-all">
       
       {/* 1. Window / Quick Access Bar */}
-      <div className="flex items-center justify-between px-4 h-11 bg-[#0f172a] text-white z-10">
+      <div className="flex items-center justify-between px-4 h-11 bg-[#0f172a] text-white z-10 border-b border-white/5">
          <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
                <div className="grid place-items-center w-9 h-9 rounded hover:bg-white/10 transition-colors cursor-pointer">
