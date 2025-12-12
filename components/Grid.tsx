@@ -4,6 +4,7 @@ import { numToChar, getCellId, cn } from '../utils';
 import { NavigationDirection } from './Cell';
 import { CellSkeleton } from './Skeletons';
 import Cell from './Cell'; // Direct import for performance
+import { Loader2 } from 'lucide-react';
 
 interface GridProps {
   size: GridSize;
@@ -30,8 +31,8 @@ const HEADER_ROW_HEIGHT = 28;
 const MIN_COL_WIDTH = 30;
 const MIN_ROW_HEIGHT = 20;
 
-// The requested buffer size (10 rows/cols) for offloading
-const BUFFER = 10; 
+// Increased buffer to ensure smoother scrolling (render more rows ahead of view)
+const BUFFER = 20; 
 
 const Grid: React.FC<GridProps> = ({
   size,
@@ -60,6 +61,7 @@ const Grid: React.FC<GridProps> = ({
     clientWidth: 1200 
   });
   
+  const [isExpanding, setIsExpanding] = useState(false);
   const loadingRef = useRef(false);
   const resizingRef = useRef<{
     type: 'col' | 'row';
@@ -103,8 +105,7 @@ const Grid: React.FC<GridProps> = ({
     const colStartIndex = Math.floor(scrollLeft / defaultColW);
     const colEndIndex = Math.min(size.cols - 1, Math.floor((scrollLeft + clientWidth) / defaultColW));
 
-    // Apply Buffer of 10 rows/cols as requested
-    // This effectively "offloads" anything outside (Visible + 10)
+    // Apply Buffer
     const visibleRowStart = Math.max(0, rowStartIndex - BUFFER);
     const visibleRowEnd = Math.min(size.rows - 1, rowEndIndex + BUFFER);
     
@@ -212,33 +213,40 @@ const Grid: React.FC<GridProps> = ({
     document.body.style.userSelect = 'none';
   };
 
-  // Scroll Handler with Infinite Scroll Logic
+  // Scroll Handler with Optimized Infinite Scroll Logic
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
     
-    const { scrollTop, scrollHeight, clientHeight, scrollLeft, scrollWidth, clientWidth } = containerRef.current;
+    const element = containerRef.current;
+    const { scrollTop, scrollHeight, clientHeight, scrollLeft, scrollWidth, clientWidth } = element;
     
-    // Update state for virtualization
+    // Update state for virtualization synchronously to keep UI in sync
     setScrollState({ scrollTop, scrollLeft, clientHeight, clientWidth });
 
     if (loadingRef.current) return;
 
-    // Threshold to trigger new row generation (400px)
-    const threshold = 400;
-    const isBottom = scrollTop + clientHeight >= scrollHeight - threshold;
-    const isRight = scrollLeft + clientWidth >= scrollWidth - threshold;
+    // Use requestAnimationFrame for the expansion check to avoid blocking
+    requestAnimationFrame(() => {
+        // Increase threshold to load earlier (1.5 screens or 800px)
+        const threshold = Math.max(800, clientHeight * 1.5);
+        
+        const isBottom = scrollTop + clientHeight >= scrollHeight - threshold;
+        const isRight = scrollLeft + clientWidth >= scrollWidth - threshold;
 
-    if (isBottom) {
-        loadingRef.current = true;
-        onExpandGrid('row'); // Will generate 10 new rows
-        setTimeout(() => { loadingRef.current = false; }, 100);
-    }
+        if (isBottom || isRight) {
+            loadingRef.current = true;
+            setIsExpanding(true);
+            
+            if (isBottom) onExpandGrid('row');
+            if (isRight) onExpandGrid('col');
 
-    if (isRight) {
-        loadingRef.current = true;
-        onExpandGrid('col'); // Will generate 10 new cols
-        setTimeout(() => { loadingRef.current = false; }, 100);
-    }
+            // Debounce the loading state
+            setTimeout(() => { 
+                loadingRef.current = false;
+                setIsExpanding(false);
+            }, 300);
+        }
+    });
   }, [onExpandGrid]);
 
   // Initial measurement
@@ -259,7 +267,7 @@ const Grid: React.FC<GridProps> = ({
         onScroll={handleScroll}
         onWheel={handleWheel}
     >
-      <div className="inline-block bg-white min-w-full pb-20 pr-20">
+      <div className="inline-block bg-white min-w-full pb-20 pr-20 relative">
         
         {/* Sticky Headers Container */}
         <div className="sticky top-0 z-20 bg-slate-50 shadow-sm border-b border-slate-300 flex">
@@ -379,6 +387,14 @@ const Grid: React.FC<GridProps> = ({
           {/* Bottom Spacer - offloaded rows */}
           <div style={{ height: spacerBottom, width: '100%' }} />
         </div>
+
+        {/* Loading Indicator at Bottom/Right */}
+        {isExpanding && (
+           <div className="absolute bottom-4 right-4 z-50 bg-white/90 backdrop-blur border border-slate-200 shadow-elevation px-3 py-2 rounded-full flex items-center gap-2 animate-in fade-in duration-200 slide-in-from-bottom-2">
+               <Loader2 className="animate-spin text-emerald-600" size={16} />
+               <span className="text-xs font-medium text-slate-600">Expanding grid...</span>
+           </div>
+        )}
       </div>
     </div>
   );
