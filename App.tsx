@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
-import { evaluateFormula, getRange, getNextCellId } from './utils';
+import { evaluateFormula, getRange, getNextCellId, parseCellId } from './utils';
 import { NavigationDirection } from './components';
 
 // Import Skeletons
@@ -126,19 +126,29 @@ const App: React.FC = () => {
       if (sheet.id !== activeSheetId) return sheet;
 
       const nextCells = { ...sheet.cells };
-      nextCells[id] = {
-        ...nextCells[id] || { id, style: {} },
-        raw: rawValue,
-        value: rawValue
-      };
+      
+      // Optimization: If value is empty and no style, remove the key (sparse population)
+      if (!rawValue && (!nextCells[id]?.style || Object.keys(nextCells[id].style).length === 0)) {
+         delete nextCells[id];
+      } else {
+         nextCells[id] = {
+           ...nextCells[id] || { id, style: {} },
+           raw: rawValue,
+           value: rawValue
+         };
+      }
 
       const keys = Object.keys(nextCells);
       keys.forEach(key => {
-         nextCells[key].value = evaluateFormula(nextCells[key].raw, nextCells);
+         if (nextCells[key].raw.startsWith('=') || key === id) {
+            nextCells[key].value = evaluateFormula(nextCells[key].raw, nextCells);
+         }
       });
-      // Double pass for dependencies (simple version)
+      // Second pass
       keys.forEach(key => {
-         nextCells[key].value = evaluateFormula(nextCells[key].raw, nextCells);
+         if (nextCells[key].raw.startsWith('=')) {
+            nextCells[key].value = evaluateFormula(nextCells[key].raw, nextCells);
+         }
       });
 
       return { ...sheet, cells: nextCells };
@@ -238,6 +248,38 @@ const App: React.FC = () => {
         }
     });
   }, []);
+
+  const handleTrimGrid = useCallback(() => {
+    // Calculates the furthest used row and column to shrink the grid if needed
+    let maxRow = 0;
+    let maxCol = 0;
+    
+    // Efficiently find max extent
+    Object.keys(cells).forEach(key => {
+        const coords = parseCellId(key);
+        if (coords) {
+            if (coords.row > maxRow) maxRow = coords.row;
+            if (coords.col > maxCol) maxCol = coords.col;
+        }
+    });
+
+    const ROW_BUFFER = 50;
+    const COL_BUFFER = 15;
+    
+    // Ensure we don't shrink below initial size
+    const targetRows = Math.max(INITIAL_ROWS, maxRow + ROW_BUFFER);
+    const targetCols = Math.max(INITIAL_COLS, maxCol + COL_BUFFER);
+
+    setGridSize(prev => {
+        // Only update if there is a significant reduction to avoid unnecessary renders
+        // Threshold: 20 rows or 5 cols difference
+        if (prev.rows > targetRows + 20 || prev.cols > targetCols + 5) {
+            console.log("Trimming grid to:", targetRows, targetCols);
+            return { rows: targetRows, cols: targetCols };
+        }
+        return prev;
+    });
+  }, [cells]);
 
   const handleExport = useCallback(() => {
     const rows = [];
@@ -353,6 +395,7 @@ const App: React.FC = () => {
                 onColumnResize={handleColumnResize}
                 onRowResize={handleRowResize}
                 onExpandGrid={handleExpandGrid}
+                onTrimGrid={handleTrimGrid}
                 onZoom={handleZoomWheel}
               />
           </Suspense>

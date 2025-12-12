@@ -43,6 +43,7 @@ interface GridProps {
   onColumnResize: (id: string, width: number) => void;
   onRowResize: (rowIdx: number, height: number) => void;
   onExpandGrid: (direction: 'row' | 'col') => void;
+  onTrimGrid?: () => void;
   onZoom: (delta: number) => void;
 }
 
@@ -153,6 +154,7 @@ const Grid: React.FC<GridProps> = ({
   onColumnResize,
   onRowResize,
   onExpandGrid,
+  onTrimGrid,
   onZoom
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -169,6 +171,7 @@ const Grid: React.FC<GridProps> = ({
   const pinchScaleRef = useRef(1); 
   const touchStartDist = useRef<number>(0);
   const scrollTimeoutRef = useRef<any>(null);
+  const trimTimeoutRef = useRef<any>(null);
   
   // Virtualization State
   const [scrollState, setScrollState] = useState({ 
@@ -388,6 +391,12 @@ const Grid: React.FC<GridProps> = ({
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     scrollTimeoutRef.current = setTimeout(() => setIsScrollingFast(false), 150);
 
+    // Idle Trim Detection
+    if (trimTimeoutRef.current) clearTimeout(trimTimeoutRef.current);
+    trimTimeoutRef.current = setTimeout(() => {
+        if (onTrimGrid) onTrimGrid();
+    }, 1200);
+
     checkExpansion();
 
     requestAnimationFrame(() => {
@@ -398,7 +407,7 @@ const Grid: React.FC<GridProps> = ({
             clientWidth: element.clientWidth 
         });
     });
-  }, [checkExpansion]);
+  }, [checkExpansion, onTrimGrid]);
 
   // Helpers
   const handleMouseDown = useCallback((id: string, isShift: boolean) => {
