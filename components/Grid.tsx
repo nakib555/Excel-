@@ -31,9 +31,6 @@ const HEADER_ROW_HEIGHT = 28;
 const MIN_COL_WIDTH = 30;
 const MIN_ROW_HEIGHT = 20;
 
-// Buffer to ensure smoother scrolling
-const BUFFER = 30; 
-
 const Grid: React.FC<GridProps> = ({
   size,
   cells,
@@ -98,6 +95,11 @@ const Grid: React.FC<GridProps> = ({
     const defaultRowH = DEFAULT_ROW_HEIGHT * scale;
     const defaultColW = DEFAULT_COL_WIDTH * scale;
 
+    // Calculate dynamic buffer based on scale to keep screen filled
+    // We limit buffer to avoid rendering too many nodes at 25% zoom
+    const rowBuffer = Math.min(50, Math.ceil(800 / Math.max(1, defaultRowH)));
+    const colBuffer = Math.min(20, Math.ceil(800 / Math.max(1, defaultColW)));
+
     // Calculate approx indices based on scroll
     const rowStartIndex = Math.floor(scrollTop / defaultRowH);
     const rowEndIndex = Math.min(size.rows - 1, Math.floor((scrollTop + clientHeight) / defaultRowH));
@@ -106,11 +108,11 @@ const Grid: React.FC<GridProps> = ({
     const colEndIndex = Math.min(size.cols - 1, Math.floor((scrollLeft + clientWidth) / defaultColW));
 
     // Apply Buffer
-    const visibleRowStart = Math.max(0, rowStartIndex - BUFFER);
-    const visibleRowEnd = Math.min(size.rows - 1, rowEndIndex + BUFFER);
+    const visibleRowStart = Math.max(0, rowStartIndex - rowBuffer);
+    const visibleRowEnd = Math.min(size.rows - 1, rowEndIndex + rowBuffer);
     
-    const visibleColStart = Math.max(0, colStartIndex - BUFFER);
-    const visibleColEnd = Math.min(size.cols - 1, colEndIndex + BUFFER);
+    const visibleColStart = Math.max(0, colStartIndex - colBuffer);
+    const visibleColEnd = Math.min(size.cols - 1, colEndIndex + colBuffer);
 
     // Calculate Spacers to fake the scrollbar size for the offloaded items
     const spacerTop = visibleRowStart * defaultRowH;
@@ -145,10 +147,16 @@ const Grid: React.FC<GridProps> = ({
      if (!containerRef.current) return;
      const { scrollHeight, scrollWidth, clientHeight, clientWidth } = containerRef.current;
      
-     // Check if we need to expand grid to fill viewport
-     const THRESHOLD = 1000;
-     const needsRows = scrollHeight <= clientHeight + THRESHOLD;
-     const needsCols = scrollWidth <= clientWidth + THRESHOLD;
+     // Calculate total expected dimensions with current scale
+     const virtualHeight = size.rows * DEFAULT_ROW_HEIGHT * scale;
+     const virtualWidth = size.cols * DEFAULT_COL_WIDTH * scale;
+
+     // Ensure we have at least 1.5 screens worth of grid generated
+     const minHeight = clientHeight * 1.5;
+     const minWidth = clientWidth * 1.5;
+     
+     const needsRows = scrollHeight <= minHeight || virtualHeight <= minHeight;
+     const needsCols = scrollWidth <= minWidth || virtualWidth <= minWidth;
      
      if (needsRows && !loadingRef.current) {
         onExpandGrid('row');
@@ -157,7 +165,7 @@ const Grid: React.FC<GridProps> = ({
      if (needsCols && !loadingRef.current) {
         onExpandGrid('col');
      }
-  }, [scale, size, onExpandGrid]);
+  }, [scale, size, onExpandGrid, scrollState.clientHeight]); // Check when scrollState updates too
 
   // --- EVENT HANDLERS ---
 
@@ -188,7 +196,6 @@ const Grid: React.FC<GridProps> = ({
   const handleWheel = (e: React.WheelEvent) => {
     if (e.ctrlKey) {
         e.preventDefault();
-        // Determine direction. deltaY > 0 is scrolling down (zoom out), deltaY < 0 is scrolling up (zoom in)
         const delta = e.deltaY > 0 ? -0.1 : 0.1;
         onZoom(delta);
     }
@@ -238,15 +245,14 @@ const Grid: React.FC<GridProps> = ({
     const element = containerRef.current;
     const { scrollTop, scrollHeight, clientHeight, scrollLeft, scrollWidth, clientWidth } = element;
     
-    // Update state for virtualization synchronously to keep UI in sync
+    // Update state for virtualization synchronously
     setScrollState({ scrollTop, scrollLeft, clientHeight, clientWidth });
 
     if (loadingRef.current) return;
 
-    // Use requestAnimationFrame for the expansion check to avoid blocking
     requestAnimationFrame(() => {
-        // Increase threshold to load earlier (1.5 screens or 800px)
-        const threshold = Math.max(800, clientHeight * 1.5);
+        // Increase threshold to load earlier (1.5 screens or 1500px)
+        const threshold = Math.max(1500, clientHeight * 1.5);
         
         const isBottom = scrollTop + clientHeight >= scrollHeight - threshold;
         const isRight = scrollLeft + clientWidth >= scrollWidth - threshold;
@@ -258,7 +264,6 @@ const Grid: React.FC<GridProps> = ({
             if (isBottom) onExpandGrid('row');
             if (isRight) onExpandGrid('col');
 
-            // Debounce the loading state
             setTimeout(() => { 
                 loadingRef.current = false;
                 setIsExpanding(false);
@@ -307,7 +312,6 @@ const Grid: React.FC<GridProps> = ({
           
           {/* Virtualized Column Headers */}
           <div className="flex border-b border-slate-300">
-            {/* Left Spacer - offloaded headers */}
             <div style={{ width: spacerLeft, height: 1, flexShrink: 0 }} />
             
             {visibleCols.map((col) => {
@@ -331,7 +335,7 @@ const Grid: React.FC<GridProps> = ({
                       transition: 'width 0.1s ease-out, height 0.1s ease-out, font-size 0.1s ease-out'
                     }}
                     onClick={(e) => {
-                        if(!e.shiftKey) onCellClick(getCellId(col, 0), false); // Needs improved col selection logic
+                        if(!e.shiftKey) onCellClick(getCellId(col, 0), false);
                     }}
                 >
                     {colLetter}
@@ -343,14 +347,12 @@ const Grid: React.FC<GridProps> = ({
                 );
             })}
             
-            {/* Right Spacer - offloaded headers */}
             <div style={{ width: spacerRight, height: 1, flexShrink: 0 }} />
           </div>
         </div>
 
         {/* Rows Container */}
         <div>
-          {/* Top Spacer - offloaded rows */}
           <div style={{ height: spacerTop, width: '100%' }} />
 
           {visibleRows.map((row) => {
@@ -374,7 +376,7 @@ const Grid: React.FC<GridProps> = ({
                     transition: 'width 0.1s ease-out, height 0.1s ease-out, font-size 0.1s ease-out'
                   }}
                   onClick={(e) => {
-                       if(!e.shiftKey) onCellClick(getCellId(0, row), false); // Needs improved row selection logic
+                       if(!e.shiftKey) onCellClick(getCellId(0, row), false);
                   }}
                 >
                   {row + 1}
@@ -383,10 +385,8 @@ const Grid: React.FC<GridProps> = ({
                   />
                 </div>
 
-                {/* Left Spacer inside Row - offloaded cells left */}
                 <div style={{ width: spacerLeft, height: 1, flexShrink: 0 }} />
 
-                {/* Render Visible Cells */}
                 {visibleCols.map((col) => {
                   const id = getCellId(col, row);
                   const cellData = cells[id] || { id, raw: '', value: '', style: {} };
@@ -414,11 +414,10 @@ const Grid: React.FC<GridProps> = ({
             );
           })}
 
-          {/* Bottom Spacer - offloaded rows */}
           <div style={{ height: spacerBottom, width: '100%' }} />
         </div>
 
-        {/* Loading Indicator at Bottom/Right */}
+        {/* Loading Indicator */}
         {isExpanding && (
            <div className="absolute bottom-4 right-4 z-50 bg-white/90 backdrop-blur border border-slate-200 shadow-elevation px-3 py-2 rounded-full flex items-center gap-2 animate-in fade-in duration-200 slide-in-from-bottom-2">
                <Loader2 className="animate-spin text-emerald-600" size={16} />

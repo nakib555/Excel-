@@ -1,27 +1,27 @@
 import React, { useState, memo, lazy, Suspense } from 'react';
 import { 
-  FileSpreadsheet, Undo, Redo, Download, Search, Sparkles, Grid3X3 
+  Undo, Redo, Download, Search, Sparkles, Grid3X3 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { DraggableScrollContainer, TabProps } from './toolbar/shared';
+import { AnimatePresence } from 'framer-motion';
+import { DraggableScrollContainer } from './tabs/shared';
 import { cn } from '../utils';
-import RibbonSkeleton from './toolbar/RibbonSkeleton';
+import { RibbonSkeleton } from './Skeletons';
 
-// Lazy imports for Tabs
-const HomeTab = lazy(() => import('./toolbar/HomeTab/index'));
-const InsertTab = lazy(() => import('./toolbar/InsertTab/index'));
-const DrawTab = lazy(() => import('./toolbar/DrawTab/index'));
-const PageLayoutTab = lazy(() => import('./toolbar/PageLayoutTab/index'));
-const FormulasTab = lazy(() => import('./toolbar/FormulasTab/index'));
-const DataTab = lazy(() => import('./toolbar/DataTab/index'));
-const ReviewTab = lazy(() => import('./toolbar/ReviewTab/index'));
-const ViewTab = lazy(() => import('./toolbar/ViewTab/index'));
-const AutomateTab = lazy(() => import('./toolbar/AutomateTab/index'));
-const FileTab = lazy(() => import('./toolbar/FileTab/index'));
+// Lazy imports for Tabs from the new 'tabs' directory
+const HomeTab = lazy(() => import('./tabs/Home/HomeTab'));
+const InsertTab = lazy(() => import('./tabs/Insert/InsertTab'));
+const DrawTab = lazy(() => import('./tabs/Draw/DrawTab'));
+const PageLayoutTab = lazy(() => import('./tabs/PageLayout/PageLayoutTab'));
+const FormulasTab = lazy(() => import('./tabs/Formulas/FormulasTab'));
+const DataTab = lazy(() => import('./tabs/Data/DataTab'));
+const ReviewTab = lazy(() => import('./tabs/Review/ReviewTab'));
+const ViewTab = lazy(() => import('./tabs/View/ViewTab'));
+const AutomateTab = lazy(() => import('./tabs/Automate/AutomateTab'));
+const FileTab = lazy(() => import('./tabs/File/FileTab'));
 
 const TABS = ['File', 'Home', 'Insert', 'Draw', 'Page Layout', 'Formulas', 'Data', 'Review', 'View', 'Automate'];
 
-const Toolbar: React.FC<TabProps> = (props) => {
+const Toolbar: React.FC<any> = (props) => {
   const [activeTab, setActiveTab] = useState('Home');
 
   return (

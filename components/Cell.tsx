@@ -80,6 +80,7 @@ const Cell = memo(({
 
   const baseFontSize = data.style.fontSize || 13;
   const scaledFontSize = Math.max(8, baseFontSize * scale); // Min font size legibility
+  const showContent = scale > 0.3; // Hide text content at very low zoom for performance/cleanliness
 
   const style: React.CSSProperties = {
     fontWeight: data.style.bold ? '600' : '400',
@@ -125,9 +126,11 @@ const Cell = memo(({
           onKeyDown={handleKeyDown}
         />
       ) : (
-        <span className="w-full truncate pointer-events-none leading-none">
-            {data.value}
-        </span>
+        showContent && (
+            <span className="w-full truncate pointer-events-none leading-none">
+                {data.value}
+            </span>
+        )
       )}
 
       {/* Selection Highlight Overlay */}

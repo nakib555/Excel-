@@ -20,12 +20,12 @@ const SheetTabs = lazy(() => import('./components/SheetTabs'));
 const StatusBar = lazy(() => import('./components/StatusBar'));
 
 // Configuration
-const INITIAL_ROWS = 200;
-const INITIAL_COLS = 50; 
+const INITIAL_ROWS = 1000;
+const INITIAL_COLS = 100; 
 const MAX_ROWS = 1048576; // Excel standard
 const MAX_COLS = 16384;   // Excel standard
-const EXPANSION_BATCH_ROWS = 200;
-const EXPANSION_BATCH_COLS = 50;
+const EXPANSION_BATCH_ROWS = 500;
+const EXPANSION_BATCH_COLS = 100;
 
 // Initial sample data generation helper
 const generateInitialData = (): Record<CellId, CellData> => {
@@ -294,7 +294,7 @@ const App: React.FC = () => {
   }, [activeCell, handleCellChange]);
 
   const handleZoomWheel = useCallback((delta: number) => {
-    setZoom(prev => Math.min(4, Math.max(0.1, prev + delta)));
+    setZoom(prev => Math.min(4, Math.max(0.25, prev + delta)));
   }, []);
 
   return (

@@ -18,10 +18,9 @@ interface StatusBarProps {
 const StatusBar: React.FC<StatusBarProps> = ({ selectionCount, stats, zoom, onZoomChange }) => {
   const displayZoom = Math.round(zoom * 100);
 
-  // Excel limits: 10% to 400%
-  // Using 10% steps for buttons to be consistent with slider
+  // Limit min zoom to 25% to avoid DOM explosion on large grids
   const handleZoomIn = () => onZoomChange(Math.min(4, (displayZoom + 10) / 100));
-  const handleZoomOut = () => onZoomChange(Math.max(0.1, (displayZoom - 10) / 100));
+  const handleZoomOut = () => onZoomChange(Math.max(0.25, (displayZoom - 10) / 100));
 
   return (
     <div className="h-9 bg-[#0f172a] text-white/90 border-t border-slate-700/50 flex items-center justify-between px-2 md:px-4 text-[11px] select-none z-50 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
@@ -95,7 +94,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ selectionCount, stats, zoom, onZo
                 onClick={handleZoomOut}
                 className="p-1 text-slate-400 hover:text-white transition-colors active:scale-95 disabled:opacity-30 cursor-pointer"
                 title="Zoom Out"
-                disabled={zoom <= 0.1}
+                disabled={zoom <= 0.25}
             >
                 <Minus size={16} strokeWidth={2} />
             </button>
@@ -104,7 +103,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ selectionCount, stats, zoom, onZo
             <div className="hidden sm:flex items-center w-24 md:w-28 group">
                    <input
                       type="range"
-                      min="10"
+                      min="25"
                       max="400"
                       step="1" 
                       value={displayZoom}
