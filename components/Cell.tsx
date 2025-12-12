@@ -1,3 +1,4 @@
+
 import React, { memo, useState, useRef, useEffect } from 'react';
 import { CellData } from '../types';
 import { cn } from '../utils';
@@ -82,7 +83,7 @@ const Cell = memo(({
 
   const baseFontSize = data.style.fontSize || 13;
   const scaledFontSize = Math.max(8, baseFontSize * scale); // Min font size legibility
-  const showContent = scale > 0.3; // Hide text content at very low zoom for performance/cleanliness
+  const showContent = scale > 0.25; // Hide text content at very low zoom for performance/cleanliness
 
   const style: React.CSSProperties = {
     fontWeight: data.style.bold ? '600' : '400',
@@ -96,8 +97,10 @@ const Cell = memo(({
     minWidth: width,
     minHeight: height,
     fontSize: `${scaledFontSize}px`,
-    // Smooth transition for zoom operations
-    transition: 'width 0.1s ease-out, height 0.1s ease-out, font-size 0.1s ease-out',
+    // Browser optimization hints
+    contentVisibility: 'auto',
+    contain: 'strict',
+    willChange: 'width, height'
   };
 
   return (
@@ -139,8 +142,11 @@ const Cell = memo(({
       {/* Selection Highlight Overlay */}
       {isSelected && (
         <div className="absolute inset-0 z-40 pointer-events-none border-[2px] border-primary-500 shadow-glow">
-             {/* Fill Handle */}
-             <div className="absolute -bottom-[5px] -right-[5px] w-2.5 h-2.5 bg-primary-500 border border-white cursor-crosshair rounded-[1px] shadow-sm z-50" />
+             {/* Fill Handle - scale slightly with zoom */}
+             <div 
+                className="absolute -bottom-[5px] -right-[5px] bg-primary-500 border border-white cursor-crosshair rounded-[1px] shadow-sm z-50" 
+                style={{ width: Math.max(6, 10 * scale), height: Math.max(6, 10 * scale) }}
+             />
         </div>
       )}
     </div>

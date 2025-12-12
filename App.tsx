@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
 import { evaluateFormula, getRange, getNextCellId } from './utils';
@@ -20,12 +21,12 @@ const SheetTabs = lazy(() => import('./components/SheetTabs'));
 const StatusBar = lazy(() => import('./components/StatusBar'));
 
 // Configuration
-const INITIAL_ROWS = 1000;
-const INITIAL_COLS = 100; 
+const INITIAL_ROWS = 200; // Start smaller for faster initial load
+const INITIAL_COLS = 50; 
 const MAX_ROWS = 1048576; // Excel standard
 const MAX_COLS = 16384;   // Excel standard
-const EXPANSION_BATCH_ROWS = 500;
-const EXPANSION_BATCH_COLS = 100;
+const EXPANSION_BATCH_ROWS = 200; // Smaller batches for smoother updates
+const EXPANSION_BATCH_COLS = 50;
 
 // Initial sample data generation helper
 const generateInitialData = (): Record<CellId, CellData> => {
@@ -304,7 +305,7 @@ const App: React.FC = () => {
   }, [activeCell, handleCellChange]);
 
   const handleZoomWheel = useCallback((delta: number) => {
-    setZoom(prev => Math.min(4, Math.max(0.25, prev + delta)));
+    setZoom(prev => Math.min(4, Math.max(0.25, Number((prev + delta).toFixed(2)))));
   }, []);
 
   return (
