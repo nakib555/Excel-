@@ -1,10 +1,11 @@
-import React, { memo, Suspense } from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { TabProps, GroupSkeleton } from '../../shared';
+import { TabProps } from '../../shared';
+import { createLazyGroup } from '../createLazyGroup';
 
-const OfficeScriptsGroup = React.lazy(() => import('./groups/OfficeScriptsGroup'));
-const OfficeScriptsGalleryGroup = React.lazy(() => import('./groups/OfficeScriptsGalleryGroup'));
-const PowerAutomateGroup = React.lazy(() => import('./groups/PowerAutomateGroup'));
+const OfficeScriptsGroup = createLazyGroup(() => import('./groups/OfficeScriptsGroup'));
+const OfficeScriptsGalleryGroup = createLazyGroup(() => import('./groups/OfficeScriptsGalleryGroup'));
+const PowerAutomateGroup = createLazyGroup(() => import('./groups/PowerAutomateGroup'));
 
 const AutomateTab: React.FC<TabProps> = (props) => {
   return (
@@ -14,9 +15,9 @@ const AutomateTab: React.FC<TabProps> = (props) => {
         exit={{ opacity: 0 }}
         className="flex h-full min-w-max gap-1"
     >
-        <Suspense fallback={<GroupSkeleton />}><OfficeScriptsGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><OfficeScriptsGalleryGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><PowerAutomateGroup {...props} /></Suspense>
+        <OfficeScriptsGroup {...props} />
+        <OfficeScriptsGalleryGroup {...props} />
+        <PowerAutomateGroup {...props} />
     </motion.div>
   );
 };

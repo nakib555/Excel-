@@ -1,11 +1,12 @@
-import React, { memo, Suspense } from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { TabProps, GroupSkeleton } from '../../shared';
+import { TabProps } from '../../shared';
+import { createLazyGroup } from '../createLazyGroup';
 
-const UndoGroup = React.lazy(() => import('./groups/UndoGroup'));
-const DrawingToolsGroup = React.lazy(() => import('./groups/DrawingToolsGroup'));
-const ConvertGroup = React.lazy(() => import('./groups/ConvertGroup'));
-const ReplayGroup = React.lazy(() => import('./groups/ReplayGroup'));
+const UndoGroup = createLazyGroup(() => import('./groups/UndoGroup'));
+const DrawingToolsGroup = createLazyGroup(() => import('./groups/DrawingToolsGroup'));
+const ConvertGroup = createLazyGroup(() => import('./groups/ConvertGroup'));
+const ReplayGroup = createLazyGroup(() => import('./groups/ReplayGroup'));
 
 const DrawTab: React.FC<TabProps> = (props) => {
   return (
@@ -15,10 +16,10 @@ const DrawTab: React.FC<TabProps> = (props) => {
         exit={{ opacity: 0 }}
         className="flex h-full min-w-max gap-1"
     >
-         <Suspense fallback={<GroupSkeleton />}><UndoGroup {...props} /></Suspense>
-         <Suspense fallback={<GroupSkeleton />}><DrawingToolsGroup {...props} /></Suspense>
-         <Suspense fallback={<GroupSkeleton />}><ConvertGroup {...props} /></Suspense>
-         <Suspense fallback={<GroupSkeleton />}><ReplayGroup {...props} /></Suspense>
+         <UndoGroup {...props} />
+         <DrawingToolsGroup {...props} />
+         <ConvertGroup {...props} />
+         <ReplayGroup {...props} />
     </motion.div>
   );
 };

@@ -1,12 +1,13 @@
-import React, { memo, Suspense } from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { TabProps, GroupSkeleton } from '../../shared';
+import { TabProps } from '../../shared';
+import { createLazyGroup } from '../createLazyGroup';
 
-const GetTransformGroup = React.lazy(() => import('./groups/GetTransformGroup'));
-const QueriesConnectionsGroup = React.lazy(() => import('./groups/QueriesConnectionsGroup'));
-const DataTypesGroup = React.lazy(() => import('./groups/DataTypesGroup'));
-const SortFilterGroup = React.lazy(() => import('./groups/SortFilterGroup'));
-const DataToolsGroup = React.lazy(() => import('./groups/DataToolsGroup'));
+const GetTransformGroup = createLazyGroup(() => import('./groups/GetTransformGroup'));
+const QueriesConnectionsGroup = createLazyGroup(() => import('./groups/QueriesConnectionsGroup'));
+const DataTypesGroup = createLazyGroup(() => import('./groups/DataTypesGroup'));
+const SortFilterGroup = createLazyGroup(() => import('./groups/SortFilterGroup'));
+const DataToolsGroup = createLazyGroup(() => import('./groups/DataToolsGroup'));
 
 const DataTab: React.FC<TabProps> = (props) => {
   return (
@@ -16,11 +17,11 @@ const DataTab: React.FC<TabProps> = (props) => {
         exit={{ opacity: 0 }}
         className="flex h-full min-w-max gap-1"
     >
-        <Suspense fallback={<GroupSkeleton />}><GetTransformGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><QueriesConnectionsGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><DataTypesGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><SortFilterGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><DataToolsGroup {...props} /></Suspense>
+        <GetTransformGroup {...props} />
+        <QueriesConnectionsGroup {...props} />
+        <DataTypesGroup {...props} />
+        <SortFilterGroup {...props} />
+        <DataToolsGroup {...props} />
     </motion.div>
   );
 };

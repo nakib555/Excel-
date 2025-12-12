@@ -1,14 +1,15 @@
-import React, { memo, Suspense } from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { TabProps, GroupSkeleton } from '../../shared';
+import { TabProps } from '../../shared';
+import { createLazyGroup } from '../createLazyGroup';
 
-const ProofingGroup = React.lazy(() => import('./groups/ProofingGroup'));
-const PerformanceGroup = React.lazy(() => import('./groups/PerformanceGroup'));
-const AccessibilityGroup = React.lazy(() => import('./groups/AccessibilityGroup'));
-const LanguageGroup = React.lazy(() => import('./groups/LanguageGroup'));
-const CommentsGroup = React.lazy(() => import('./groups/CommentsGroup'));
-const ProtectGroup = React.lazy(() => import('./groups/ProtectGroup'));
-const InkGroup = React.lazy(() => import('./groups/InkGroup'));
+const ProofingGroup = createLazyGroup(() => import('./groups/ProofingGroup'));
+const PerformanceGroup = createLazyGroup(() => import('./groups/PerformanceGroup'));
+const AccessibilityGroup = createLazyGroup(() => import('./groups/AccessibilityGroup'));
+const LanguageGroup = createLazyGroup(() => import('./groups/LanguageGroup'));
+const CommentsGroup = createLazyGroup(() => import('./groups/CommentsGroup'));
+const ProtectGroup = createLazyGroup(() => import('./groups/ProtectGroup'));
+const InkGroup = createLazyGroup(() => import('./groups/InkGroup'));
 
 const ReviewTab: React.FC<TabProps> = (props) => {
   return (
@@ -18,13 +19,13 @@ const ReviewTab: React.FC<TabProps> = (props) => {
         exit={{ opacity: 0 }}
         className="flex h-full min-w-max gap-1"
     >
-        <Suspense fallback={<GroupSkeleton />}><ProofingGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><PerformanceGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><AccessibilityGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><LanguageGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><CommentsGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><ProtectGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><InkGroup {...props} /></Suspense>
+        <ProofingGroup {...props} />
+        <PerformanceGroup {...props} />
+        <AccessibilityGroup {...props} />
+        <LanguageGroup {...props} />
+        <CommentsGroup {...props} />
+        <ProtectGroup {...props} />
+        <InkGroup {...props} />
     </motion.div>
   );
 };

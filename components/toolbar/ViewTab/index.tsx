@@ -1,12 +1,13 @@
-import React, { memo, Suspense } from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { TabProps, GroupSkeleton } from '../../shared';
+import { TabProps } from '../../shared';
+import { createLazyGroup } from '../createLazyGroup';
 
-const SheetViewGroup = React.lazy(() => import('./groups/SheetViewGroup'));
-const WorkbookViewsGroup = React.lazy(() => import('./groups/WorkbookViewsGroup'));
-const ShowGroup = React.lazy(() => import('./groups/ShowGroup'));
-const ZoomGroup = React.lazy(() => import('./groups/ZoomGroup'));
-const WindowGroup = React.lazy(() => import('./groups/WindowGroup'));
+const SheetViewGroup = createLazyGroup(() => import('./groups/SheetViewGroup'));
+const WorkbookViewsGroup = createLazyGroup(() => import('./groups/WorkbookViewsGroup'));
+const ShowGroup = createLazyGroup(() => import('./groups/ShowGroup'));
+const ZoomGroup = createLazyGroup(() => import('./groups/ZoomGroup'));
+const WindowGroup = createLazyGroup(() => import('./groups/WindowGroup'));
 
 const ViewTab: React.FC<TabProps> = (props) => {
   return (
@@ -16,11 +17,11 @@ const ViewTab: React.FC<TabProps> = (props) => {
         exit={{ opacity: 0 }}
         className="flex h-full min-w-max gap-1"
     >
-         <Suspense fallback={<GroupSkeleton />}><SheetViewGroup {...props} /></Suspense>
-         <Suspense fallback={<GroupSkeleton />}><WorkbookViewsGroup {...props} /></Suspense>
-         <Suspense fallback={<GroupSkeleton />}><ShowGroup {...props} /></Suspense>
-         <Suspense fallback={<GroupSkeleton />}><ZoomGroup {...props} /></Suspense>
-         <Suspense fallback={<GroupSkeleton />}><WindowGroup {...props} /></Suspense>
+         <SheetViewGroup {...props} />
+         <WorkbookViewsGroup {...props} />
+         <ShowGroup {...props} />
+         <ZoomGroup {...props} />
+         <WindowGroup {...props} />
     </motion.div>
   );
 };

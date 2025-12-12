@@ -1,12 +1,13 @@
-import React, { memo, Suspense } from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { TabProps, GroupSkeleton } from '../../shared';
+import { TabProps } from '../../shared';
+import { createLazyGroup } from '../createLazyGroup';
 
-const ThemesGroup = React.lazy(() => import('./groups/ThemesGroup'));
-const PageSetupGroup = React.lazy(() => import('./groups/PageSetupGroup'));
-const ScaleToFitGroup = React.lazy(() => import('./groups/ScaleToFitGroup'));
-const SheetOptionsGroup = React.lazy(() => import('./groups/SheetOptionsGroup'));
-const ArrangeGroup = React.lazy(() => import('./groups/ArrangeGroup'));
+const ThemesGroup = createLazyGroup(() => import('./groups/ThemesGroup'));
+const PageSetupGroup = createLazyGroup(() => import('./groups/PageSetupGroup'));
+const ScaleToFitGroup = createLazyGroup(() => import('./groups/ScaleToFitGroup'));
+const SheetOptionsGroup = createLazyGroup(() => import('./groups/SheetOptionsGroup'));
+const ArrangeGroup = createLazyGroup(() => import('./groups/ArrangeGroup'));
 
 const PageLayoutTab: React.FC<TabProps> = (props) => {
   return (
@@ -16,11 +17,11 @@ const PageLayoutTab: React.FC<TabProps> = (props) => {
         exit={{ opacity: 0 }}
         className="flex h-full min-w-max gap-1"
     >
-        <Suspense fallback={<GroupSkeleton />}><ThemesGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><PageSetupGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><ScaleToFitGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><SheetOptionsGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><ArrangeGroup {...props} /></Suspense>
+        <ThemesGroup {...props} />
+        <PageSetupGroup {...props} />
+        <ScaleToFitGroup {...props} />
+        <SheetOptionsGroup {...props} />
+        <ArrangeGroup {...props} />
     </motion.div>
   );
 };

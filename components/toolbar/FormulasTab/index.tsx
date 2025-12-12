@@ -1,11 +1,12 @@
-import React, { memo, Suspense } from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { TabProps, GroupSkeleton } from '../../shared';
+import { TabProps } from '../../shared';
+import { createLazyGroup } from '../createLazyGroup';
 
-const FunctionLibraryGroup = React.lazy(() => import('./groups/FunctionLibraryGroup'));
-const DefinedNamesGroup = React.lazy(() => import('./groups/DefinedNamesGroup'));
-const FormulaAuditingGroup = React.lazy(() => import('./groups/FormulaAuditingGroup'));
-const CalculationGroup = React.lazy(() => import('./groups/CalculationGroup'));
+const FunctionLibraryGroup = createLazyGroup(() => import('./groups/FunctionLibraryGroup'));
+const DefinedNamesGroup = createLazyGroup(() => import('./groups/DefinedNamesGroup'));
+const FormulaAuditingGroup = createLazyGroup(() => import('./groups/FormulaAuditingGroup'));
+const CalculationGroup = createLazyGroup(() => import('./groups/CalculationGroup'));
 
 const FormulasTab: React.FC<TabProps> = (props) => {
   return (
@@ -15,10 +16,10 @@ const FormulasTab: React.FC<TabProps> = (props) => {
         exit={{ opacity: 0 }}
         className="flex h-full min-w-max gap-1"
     >
-        <Suspense fallback={<GroupSkeleton />}><FunctionLibraryGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><DefinedNamesGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><FormulaAuditingGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton />}><CalculationGroup {...props} /></Suspense>
+        <FunctionLibraryGroup {...props} />
+        <DefinedNamesGroup {...props} />
+        <FormulaAuditingGroup {...props} />
+        <CalculationGroup {...props} />
     </motion.div>
   );
 };
