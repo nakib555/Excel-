@@ -70,12 +70,11 @@ const Cell = memo(({
   };
 
   // --- LOD (Level of Detail) Optimization ---
-  const isMicroView = scale < 0.4;
-  const fontSize = Math.max(9, (data.style.fontSize || 13) * scale);
+  const isMicroView = scale < 0.25; // Only hide content if extremely small
+  // Allow font size to scale linearly down to 7px, then clamp
+  const fontSize = Math.max(scale < 0.6 ? 7 : 9, (data.style.fontSize || 13) * scale);
 
   // Style Calculation - Optimized
-  // We use CSS variables for dynamic sizing where possible in a real app, 
-  // but inline styles are necessary for virtualization with variable/user-defined sizes.
   const style: React.CSSProperties = {
     width: width,
     height: height,
@@ -125,6 +124,7 @@ const Cell = memo(({
           color,
           backgroundColor,
           fontSize: isMicroView ? 0 : `${fontSize}px`,
+          lineHeight: 1, // Ensure text is centered vertically without gap
       }}
       onMouseDown={(e) => onMouseDown(id, e.shiftKey)}
       onMouseEnter={() => onMouseEnter(id)}
@@ -146,7 +146,7 @@ const Cell = memo(({
         />
       ) : (
         !isMicroView && data.value && (
-            <span className="w-full truncate pointer-events-none leading-none block">
+            <span className="w-full truncate pointer-events-none block">
                 {data.value}
             </span>
         )

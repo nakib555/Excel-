@@ -19,10 +19,10 @@ const getDeviceSafeNodeLimit = () => {
     if (typeof navigator !== 'undefined' && 'deviceMemory' in navigator) {
         // @ts-ignore
         const ram = (navigator as any).deviceMemory as number;
-        // If RAM <= 4GB, use stricter limit (800 nodes). Desktop usually 1500+ is fine.
-        return ram && ram <= 4 ? 800 : 1600; 
+        // Increase limits for modern devices to prevent aggressive virtualization culling
+        return ram && ram <= 4 ? 1500 : 3500; 
     }
-    return 1200; // Conservative default
+    return 2500; // Conservative default bumped up
 };
 
 const MAX_DOM_NODES = getDeviceSafeNodeLimit();
@@ -67,7 +67,8 @@ const GridRow = memo(({
     onNavigate, 
     startResize,
     headerColW,
-    isGhost
+    isGhost,
+    bgPatternStyle
 }: any) => {
     const isActiveRow = activeCell && parseInt(activeCell.replace(/[A-Z]+/, '')) === rowIdx + 1;
     
@@ -89,16 +90,13 @@ const GridRow = memo(({
                 />
             </div>
 
-            {/* Spacer Left */}
-            <div style={{ width: spacerLeft, height: '100%', flexShrink: 0 }} />
+            {/* Spacer Left with Pattern */}
+            <div style={{ width: spacerLeft, height: '100%', flexShrink: 0, ...bgPatternStyle }} />
             
             {/* Cells Loop */}
             {visibleCols.map((col: number) => {
                 const id = getCellId(col, rowIdx);
                 const data = cells[id] || { id, raw: '', value: '', style: {} };
-                // Optimize selection check: pass boolean instead of array lookup if possible, 
-                // but for now .includes is fast enough for small selectionRange.
-                // For large ranges, we'd use a Set or hash map.
                 const isSelected = activeCell === id;
                 const isInRange = selectionRange ? selectionRange.includes(id) : false;
                 
@@ -108,7 +106,7 @@ const GridRow = memo(({
                         id={id} 
                         data={data}
                         isSelected={isSelected}
-                        isActive={isSelected} // simplified for demo
+                        isActive={isSelected} 
                         isInRange={isInRange}
                         width={getColW(col)}
                         height={height}
@@ -123,20 +121,18 @@ const GridRow = memo(({
                 );
             })}
 
-            {/* Spacer Right */}
-            <div style={{ width: spacerRight, height: '100%', flexShrink: 0 }} />
+            {/* Spacer Right with Pattern */}
+            <div style={{ width: spacerRight, height: '100%', flexShrink: 0, ...bgPatternStyle }} />
         </div>
     );
 }, (prev, next) => {
     // Custom check if row needs re-render
-    // Re-render if scale changes, layout changes, or if ANY cell in this row *might* have changed 
-    // (Optimization: In a real app, we check if row index matches active/selection changes)
     if (prev.scale !== next.scale) return false;
     if (prev.height !== next.height) return false;
     if (prev.isGhost !== next.isGhost) return false;
     if (prev.visibleCols !== next.visibleCols) return false;
     // Deep check avoided for speed; relying on parent passing stable props or specific change signals
-    return false; // For safety in this demo, strict re-render on parent change unless we implement deep comparison
+    return false; 
 });
 
 GridRow.displayName = 'GridRow';
@@ -214,28 +210,32 @@ const Grid: React.FC<GridProps> = ({
     const totalVisible = rowsVisible * colsVisible;
 
     // Buffer Strategy (Load)
-    // Reduce buffer on low RAM / high node count scenarios
-    let rowBuffer = scale > 0.8 ? 3 : 1;
-    let colBuffer = scale > 0.8 ? 2 : 1;
+    // When zoomed out (scale < 1), we see many more cells, so we need a larger buffer 
+    // to prevent white space while scrolling.
+    const inverseScaleMultiplier = Math.max(1, 1 / scale);
+    let rowBuffer = Math.ceil(4 * inverseScaleMultiplier); 
+    let colBuffer = Math.ceil(2 * inverseScaleMultiplier);
+    
+    // Cap buffer if it gets too crazy to prevent massive DOM
+    rowBuffer = Math.min(rowBuffer, 12);
+    colBuffer = Math.min(colBuffer, 6);
 
     // Offload Strategy (Memory Overload Protection)
-    // If visible nodes exceed capability, strictly cap them to prevent crash.
     let safeRowEnd = rowEndIndex;
     let safeColEnd = colEndIndex;
     let isOverloaded = false;
 
     if (totalVisible > MAX_DOM_NODES) {
         // We are overloaded. 
-        // Strategy: Reduce the rendered window size, even if it means empty space at edges of viewport.
-        // Prioritize center of view? Or top-left? Top-left is standard for grids.
+        // Strategy: Reduce buffer to minimum, but try to keep visible area intact
         const ratio = MAX_DOM_NODES / totalVisible;
         const safeRows = Math.floor(rowsVisible * Math.sqrt(ratio));
         const safeCols = Math.floor(colsVisible * Math.sqrt(ratio));
         
         safeRowEnd = rowStartIndex + safeRows;
         safeColEnd = colStartIndex + safeCols;
-        rowBuffer = 0;
-        colBuffer = 0;
+        rowBuffer = 1; // Minimal buffer
+        colBuffer = 1;
         isOverloaded = true;
     }
 
@@ -245,7 +245,7 @@ const Grid: React.FC<GridProps> = ({
     const finalColStart = Math.max(0, colStartIndex - colBuffer);
     const finalColEnd = Math.min(size.cols - 1, safeColEnd + colBuffer);
 
-    // Spacers to maintain scrollbar size while offloading DOM
+    // Spacers
     const spacerTop = finalRowStart * avgRowH;
     const spacerBottom = (size.rows - 1 - finalRowEnd) * avgRowH;
     const spacerLeft = finalColStart * avgColW;
@@ -272,6 +272,13 @@ const Grid: React.FC<GridProps> = ({
     for (let i = visibleColStart; i <= visibleColEnd; i++) cols.push(i);
     return cols;
   }, [visibleColStart, visibleColEnd]);
+
+  // Background Pattern for Spacers (to look like empty cells)
+  const bgPatternStyle = useMemo(() => ({
+    backgroundImage: `linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)`,
+    backgroundSize: `${DEFAULT_COL_WIDTH * scale}px ${DEFAULT_ROW_HEIGHT * scale}px`,
+    backgroundPosition: '0 0'
+  }), [scale]);
 
   // --- 2. SMOOTH ZOOM & SCROLL PRESERVATION ---
   useLayoutEffect(() => {
@@ -329,9 +336,6 @@ const Grid: React.FC<GridProps> = ({
         if (isPinching && e.touches.length < 2) {
             setIsPinching(false);
             if (gridLayerRef.current) {
-                // Calculate final scale delta
-                // In a real impl, we'd read the matrix, but here we approximate with last ratio
-                // Resetting transform handled by React re-render or below
                 const currentTransform = gridLayerRef.current.style.transform;
                 const match = currentTransform.match(/scale\(([^)]+)\)/);
                 const ratio = match ? parseFloat(match[1]) : 1;
@@ -379,14 +383,13 @@ const Grid: React.FC<GridProps> = ({
     if (!containerRef.current) return;
     const element = containerRef.current;
     
-    // Ghost Mode Logic: Detect fast scrolling
+    // Ghost Mode: Detect fast scrolling
     setIsScrollingFast(true);
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     scrollTimeoutRef.current = setTimeout(() => setIsScrollingFast(false), 150);
 
     checkExpansion();
 
-    // Use RAF for smooth state update
     requestAnimationFrame(() => {
         setScrollState({ 
             scrollTop: element.scrollTop, 
@@ -502,7 +505,9 @@ const Grid: React.FC<GridProps> = ({
 
         {/* Grid Body */}
         <div>
-            <div style={{ height: spacerTop, width: '100%' }} />
+            {/* Top Spacer with Grid Pattern */}
+            <div style={{ height: spacerTop, width: '100%', ...bgPatternStyle }} />
+            
             {visibleRows.map(row => (
                 <GridRow 
                     key={row}
@@ -527,9 +532,12 @@ const Grid: React.FC<GridProps> = ({
                     startResize={startResize}
                     // Code Logic: Use Ghost element when scrolling fast for performance or overloaded
                     isGhost={isScrollingFast || isOverloaded}
+                    bgPatternStyle={bgPatternStyle}
                 />
             ))}
-            <div style={{ height: spacerBottom, width: '100%' }} />
+            
+            {/* Bottom Spacer with Grid Pattern */}
+            <div style={{ height: spacerBottom, width: '100%', ...bgPatternStyle }} />
         </div>
 
         {/* --- 5. GHOST OVERLAY / FEEDBACK --- */}
@@ -542,7 +550,7 @@ const Grid: React.FC<GridProps> = ({
                )}>
                    {isExpanding ? <Loader2 className="animate-spin text-emerald-400" size={16} /> : <AlertTriangle className="text-white" size={16} />}
                    <span className="text-xs font-medium">
-                       {isExpanding ? "Expanding Sheet..." : "Zoom View Optimized (Reduced DOM)"}
+                       {isExpanding ? "Expanding Sheet..." : "View Optimized (Reduced Detail)"}
                    </span>
                </div>
            </div>
