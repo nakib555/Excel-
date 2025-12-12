@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useRef, memo, useState } from 'react';
 import Cell, { NavigationDirection } from './Cell';
 import { CellId, CellData, GridSize } from '../types';
 import { numToChar, getCellId, cn } from '../utils';
@@ -17,6 +17,8 @@ interface GridProps {
   onNavigate: (direction: NavigationDirection) => void;
   onColumnResize: (id: string, width: number) => void;
   onRowResize: (rowIdx: number, height: number) => void;
+  onSelectionDrag: (startId: CellId, currentId: CellId) => void;
+  onContextMenu: (e: React.MouseEvent, id: CellId) => void;
 }
 
 const DEFAULT_COL_WIDTH = 100;
@@ -39,11 +41,17 @@ const Grid: React.FC<GridProps> = ({
   onCellChange,
   onNavigate,
   onColumnResize,
-  onRowResize
+  onRowResize,
+  onSelectionDrag,
+  onContextMenu
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cols = Array.from({ length: size.cols }, (_, i) => i);
   const rows = Array.from({ length: size.rows }, (_, i) => i);
+
+  // Drag Selection State
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartRef = useRef<CellId | null>(null);
 
   // Resize State
   const resizingRef = useRef<{
@@ -87,29 +95,35 @@ const Grid: React.FC<GridProps> = ({
     }
   };
 
-  // Resizing Logic
+  // Drag & Resize Logic
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!resizingRef.current) return;
-      
-      const { type, index, start, initialSize } = resizingRef.current;
-      
-      if (type === 'col') {
-        const diff = e.clientX - start;
-        const newWidth = Math.max(MIN_COL_WIDTH, initialSize + diff / scale);
-        onColumnResize(numToChar(index), newWidth);
-      } else {
-        const diff = e.clientY - start;
-        const newHeight = Math.max(MIN_ROW_HEIGHT, initialSize + diff / scale);
-        onRowResize(index, newHeight);
+      // Handle Column/Row Resize
+      if (resizingRef.current) {
+        const { type, index, start, initialSize } = resizingRef.current;
+        if (type === 'col') {
+          const diff = e.clientX - start;
+          const newWidth = Math.max(MIN_COL_WIDTH, initialSize + diff / scale);
+          onColumnResize(numToChar(index), newWidth);
+        } else {
+          const diff = e.clientY - start;
+          const newHeight = Math.max(MIN_ROW_HEIGHT, initialSize + diff / scale);
+          onRowResize(index, newHeight);
+        }
       }
     };
 
     const handleMouseUp = () => {
+      // Stop Resizing
       if (resizingRef.current) {
         resizingRef.current = null;
         document.body.style.cursor = 'default';
         document.body.style.userSelect = 'auto';
+      }
+      // Stop Selection Dragging
+      if (isDragging) {
+          setIsDragging(false);
+          dragStartRef.current = null;
       }
     };
 
@@ -119,7 +133,7 @@ const Grid: React.FC<GridProps> = ({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [onColumnResize, onRowResize, scale]);
+  }, [onColumnResize, onRowResize, scale, isDragging]);
 
   const startResize = (e: React.MouseEvent, type: 'col' | 'row', index: number, currentSize: number) => {
     e.preventDefault();
@@ -128,10 +142,22 @@ const Grid: React.FC<GridProps> = ({
       type, 
       index, 
       start: type === 'col' ? e.clientX : e.clientY, 
-      initialSize: currentSize / scale // Store raw (unscaled) size for calc
+      initialSize: currentSize / scale 
     };
     document.body.style.cursor = type === 'col' ? 'col-resize' : 'row-resize';
     document.body.style.userSelect = 'none';
+  };
+
+  const handleCellMouseDown = (id: CellId) => {
+      setIsDragging(true);
+      dragStartRef.current = id;
+      onCellClick(id, false); // Select the cell
+  };
+
+  const handleCellMouseEnter = (id: CellId) => {
+      if (isDragging && dragStartRef.current) {
+          onSelectionDrag(dragStartRef.current, id);
+      }
   };
 
   return (
@@ -171,6 +197,7 @@ const Grid: React.FC<GridProps> = ({
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                 )}
                 style={{ width, height: sHeaderRowHeight, fontSize: `${12 * scale}px` }}
+                onContextMenu={(e) => { e.preventDefault(); /* Could add col context menu here */ }}
               >
                 {colLetter}
                 <div className={cn("absolute bottom-0 left-0 right-0 h-[2px]", isActiveCol ? "bg-emerald-500" : "bg-transparent")} />
@@ -206,6 +233,7 @@ const Grid: React.FC<GridProps> = ({
                     height: height,
                     fontSize: `${12 * scale}px`
                   }}
+                  onContextMenu={(e) => { e.preventDefault(); /* Could add row context menu here */ }}
                 >
                   {row + 1}
                   <div className={cn("absolute top-0 right-0 bottom-0 w-[2px]", isActiveRow ? "bg-emerald-500" : "bg-transparent")} />
@@ -237,6 +265,9 @@ const Grid: React.FC<GridProps> = ({
                       onDoubleClick={onCellDoubleClick}
                       onChange={onCellChange}
                       onNavigate={onNavigate}
+                      onMouseDown={handleCellMouseDown}
+                      onMouseEnter={handleCellMouseEnter}
+                      onContextMenu={onContextMenu}
                     />
                   );
                 })}
