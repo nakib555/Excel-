@@ -376,11 +376,33 @@ const Grid: React.FC<GridProps> = ({
   }, [onColumnResize, onRowResize, scale]);
 
   const handleWheel = (e: React.WheelEvent) => {
-      // Only capture wheel for zoom to keep native scroll passive and smooth
+      // 1. CTRL + Wheel = ZOOM
       if (e.ctrlKey) {
           e.preventDefault();
           const delta = e.deltaY > 0 ? -0.1 : 0.1;
           onZoom(delta);
+          return;
+      }
+      
+      // 2. ALT + Wheel = RESIZE ROW/COL (Desktop Feature)
+      if (e.altKey && activeCell) {
+          e.preventDefault();
+          const { row, col } = parseCellId(activeCell)!;
+          
+          if (e.deltaY !== 0) {
+              // Resize Row Height
+              // Assuming rowHeights is stored in state in App.tsx, we fire callback
+              const currentH = rowHeights[row] || DEFAULT_ROW_HEIGHT;
+              // deltaY is usually around 100, scale it down
+              const change = e.deltaY > 0 ? -5 : 5; 
+              onRowResize(row, Math.max(MIN_ROW_HEIGHT, currentH + change));
+          } else if (e.deltaX !== 0) {
+              // Resize Col Width
+              const colChar = numToChar(col);
+              const currentW = columnWidths[colChar] || DEFAULT_COL_WIDTH;
+              const change = e.deltaX > 0 ? -5 : 5;
+              onColumnResize(colChar, Math.max(MIN_COL_WIDTH, currentW + change));
+          }
       }
   };
 

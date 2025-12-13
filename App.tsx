@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
-import { evaluateFormula, getRange, getNextCellId, parseCellId, getCellId, extractDependencies, getStyleId } from './utils';
+import { evaluateFormula, getRange, getNextCellId, parseCellId, getCellId, extractDependencies, getStyleId, numToChar } from './utils';
 import { NavigationDirection } from './components';
 
 // Import Skeletons
@@ -19,6 +19,7 @@ const FormulaBar = lazy(() => import('./components/FormulaBar'));
 const Grid = lazy(() => import('./components/Grid'));
 const SheetTabs = lazy(() => import('./components/SheetTabs'));
 const StatusBar = lazy(() => import('./components/StatusBar'));
+const MobileResizeTool = lazy(() => import('./components/MobileResizeTool'));
 
 // --- EXCEL ENGINE CONSTANTS ---
 // Theoretical limits (Excel specs)
@@ -32,6 +33,10 @@ const INITIAL_COLS = 26;  // A-Z
 // --- UPDATED BATCH RATES (User Request: 80) ---
 const EXPANSION_BATCH_ROWS = 80; // Generate 80 rows at a time
 const EXPANSION_BATCH_COLS = 80; // Generate 80 cols at a time
+
+// Defaults for resizing
+const DEFAULT_COL_WIDTH = 100;
+const DEFAULT_ROW_HEIGHT = 28;
 
 /**
  * 1️⃣ SPARSE DATA GENERATION
@@ -111,6 +116,7 @@ const App: React.FC = () => {
   const [activeSheetId, setActiveSheetId] = useState<string>('sheet1');
   const [gridSize, setGridSize] = useState<GridSize>({ rows: INITIAL_ROWS, cols: INITIAL_COLS });
   const [zoom, setZoom] = useState<number>(1);
+  const [showMobileResize, setShowMobileResize] = useState(false);
   const clipboardRef = useRef<{ cells: Record<CellId, CellData>; baseRow: number; baseCol: number } | null>(null);
   
   const activeSheet = useMemo(() => 
@@ -300,6 +306,45 @@ const App: React.FC = () => {
   const handleRowResize = useCallback((rowIdx: number, height: number) => {
     setSheets(prev => prev.map(s => s.id === activeSheetId ? { ...s, rowHeights: { ...s.rowHeights, [rowIdx]: height } } : s));
   }, [activeSheetId]);
+
+  // Relative Resizing Helpers for Tools/Keyboard
+  const resizeActiveRow = useCallback((delta: number) => {
+     if (!activeCell) return;
+     const { row } = parseCellId(activeCell)!;
+     const currentH = rowHeights[row] || DEFAULT_ROW_HEIGHT;
+     handleRowResize(row, Math.max(20, currentH + delta));
+  }, [activeCell, rowHeights, handleRowResize]);
+
+  const resizeActiveCol = useCallback((delta: number) => {
+     if (!activeCell) return;
+     const { col } = parseCellId(activeCell)!;
+     const colChar = numToChar(col);
+     const currentW = columnWidths[colChar] || DEFAULT_COL_WIDTH;
+     handleColumnResize(colChar, Math.max(30, currentW + delta));
+  }, [activeCell, columnWidths, handleColumnResize]);
+
+  // Keyboard Shortcuts for Desktop Resizing
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.altKey && activeCell) {
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                resizeActiveCol(5);
+            } else if (e.key === 'ArrowLeft') {
+                 e.preventDefault();
+                 resizeActiveCol(-5);
+            } else if (e.key === 'ArrowDown') {
+                 e.preventDefault();
+                 resizeActiveRow(5);
+            } else if (e.key === 'ArrowUp') {
+                 e.preventDefault();
+                 resizeActiveRow(-5);
+            }
+        }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeCell, resizeActiveCol, resizeActiveRow]);
 
   /**
    * 3️⃣ INFINITE SCROLL EXPANSION
@@ -518,6 +563,16 @@ const App: React.FC = () => {
                 onZoom={handleZoomWheel}
               />
           </Suspense>
+          
+          <Suspense fallback={null}>
+               <MobileResizeTool 
+                   isOpen={showMobileResize}
+                   onClose={() => setShowMobileResize(false)}
+                   activeCell={activeCell}
+                   onResizeRow={resizeActiveRow}
+                   onResizeCol={resizeActiveCol}
+               />
+          </Suspense>
         </div>
 
         <Suspense fallback={<SheetTabsSkeleton />}>
@@ -535,6 +590,7 @@ const App: React.FC = () => {
               stats={selectionStats}
               zoom={zoom}
               onZoomChange={setZoom}
+              onToggleMobileResize={() => setShowMobileResize(prev => !prev)}
             />
         </Suspense>
     </div>

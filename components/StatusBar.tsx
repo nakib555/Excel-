@@ -1,3 +1,4 @@
+
 import React, { memo } from 'react';
 import {
   CheckCircle2,
@@ -5,7 +6,8 @@ import {
   FileSpreadsheet,
   Layout,
   Minus,
-  Plus
+  Plus,
+  Scaling
 } from 'lucide-react';
 
 interface StatusBarProps {
@@ -13,9 +15,10 @@ interface StatusBarProps {
   stats: { sum: number; count: number; average: number; hasNumeric: boolean } | null;
   zoom: number;
   onZoomChange: (value: number) => void;
+  onToggleMobileResize?: () => void;
 }
 
-const StatusBar: React.FC<StatusBarProps> = ({ selectionCount, stats, zoom, onZoomChange }) => {
+const StatusBar: React.FC<StatusBarProps> = ({ selectionCount, stats, zoom, onZoomChange, onToggleMobileResize }) => {
   const displayZoom = Math.round(zoom * 100);
 
   // Limit min zoom to 25% to avoid DOM explosion on large grids
@@ -71,6 +74,17 @@ const StatusBar: React.FC<StatusBarProps> = ({ selectionCount, stats, zoom, onZo
               </div>
            </div>
         )}
+
+        {/* Mobile Resize Toggle */}
+        <div className="md:hidden flex items-center border-l border-slate-600/50 pl-3">
+            <button 
+                onClick={onToggleMobileResize}
+                className="p-1 text-emerald-400 hover:bg-white/10 rounded transition-colors active:scale-95"
+                title="Resize Cells"
+            >
+                <Scaling size={16} />
+            </button>
+        </div>
 
         {/* View Controls - Desktop Only */}
         <div className="hidden lg:flex items-center gap-1 mr-2 pl-4">
