@@ -21,66 +21,68 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-14 left-4 right-4 md:hidden z-[1000] animate-in slide-in-from-bottom-5 fade-in duration-200">
-      <div className="bg-white/90 backdrop-blur-md border border-slate-200 shadow-2xl rounded-xl p-4 flex flex-col gap-4">
+    // Positioned at bottom-[84px] to sit clearly above the SheetTabs (40px) + StatusBar (36px) stack = 76px
+    <div className="fixed bottom-[84px] left-4 right-4 md:hidden z-[1000] animate-in slide-in-from-bottom-5 fade-in duration-200">
+      <div className="bg-white/95 backdrop-blur-md border border-slate-200 shadow-2xl rounded-xl p-4 flex flex-col gap-4">
         
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-            <div className="flex items-center gap-2">
-                <div className="w-2 h-6 bg-emerald-500 rounded-full"></div>
-                <span className="font-semibold text-slate-800 text-sm">Resize {activeCell || 'Cell'}</span>
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-3">
+                {/* Green pill indicator matching the screenshot */}
+                <div className="w-1.5 h-5 bg-emerald-500 rounded-full shadow-sm"></div>
+                <span className="font-bold text-slate-800 text-sm tracking-tight">Resize {activeCell || 'Cell'}</span>
             </div>
             <button 
                 onClick={onClose}
-                className="p-1 rounded-full hover:bg-slate-100 text-slate-500"
+                className="p-1.5 -mr-1 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
             >
                 <X size={18} />
             </button>
         </div>
 
         {/* Controls */}
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-4">
             
             {/* Column Width Control */}
             <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 w-24 text-slate-500 text-xs font-medium">
-                    <MoveHorizontal size={14} /> Width
+                <div className="flex items-center gap-2 w-20 text-slate-500 text-xs font-semibold">
+                    <MoveHorizontal size={14} className="text-slate-400" /> Width
                 </div>
-                <div className="flex-1 flex items-center justify-between bg-slate-100 rounded-lg p-1">
+                <div className="flex-1 flex items-center justify-between bg-slate-100/80 rounded-lg p-1 border border-slate-100">
                     <button 
                         onClick={() => onResizeCol(-5)}
-                        className="p-2 bg-white rounded shadow-sm text-slate-700 active:scale-95 transition-transform"
+                        className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm border border-slate-200/50 text-slate-600 active:scale-95 transition-all hover:border-slate-300"
                     >
-                        <Minus size={16} />
+                        <Minus size={14} strokeWidth={2.5} />
                     </button>
-                    <span className="text-xs font-bold text-slate-400">Column</span>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Column</span>
                     <button 
                         onClick={() => onResizeCol(5)}
-                        className="p-2 bg-white rounded shadow-sm text-slate-700 active:scale-95 transition-transform"
+                        className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm border border-slate-200/50 text-slate-600 active:scale-95 transition-all hover:border-slate-300"
                     >
-                        <Plus size={16} />
+                        <Plus size={14} strokeWidth={2.5} />
                     </button>
                 </div>
             </div>
 
             {/* Row Height Control */}
             <div className="flex items-center gap-3">
-                 <div className="flex items-center gap-2 w-24 text-slate-500 text-xs font-medium">
-                    <MoveVertical size={14} /> Height
+                 <div className="flex items-center gap-2 w-20 text-slate-500 text-xs font-semibold">
+                    <MoveVertical size={14} className="text-slate-400" /> Height
                 </div>
-                <div className="flex-1 flex items-center justify-between bg-slate-100 rounded-lg p-1">
+                <div className="flex-1 flex items-center justify-between bg-slate-100/80 rounded-lg p-1 border border-slate-100">
                      <button 
                         onClick={() => onResizeRow(-5)}
-                        className="p-2 bg-white rounded shadow-sm text-slate-700 active:scale-95 transition-transform"
+                        className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm border border-slate-200/50 text-slate-600 active:scale-95 transition-all hover:border-slate-300"
                     >
-                        <Minus size={16} />
+                        <Minus size={14} strokeWidth={2.5} />
                     </button>
-                    <span className="text-xs font-bold text-slate-400">Row</span>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Row</span>
                     <button 
                         onClick={() => onResizeRow(5)}
-                        className="p-2 bg-white rounded shadow-sm text-slate-700 active:scale-95 transition-transform"
+                        className="w-8 h-8 flex items-center justify-center bg-white rounded shadow-sm border border-slate-200/50 text-slate-600 active:scale-95 transition-all hover:border-slate-300"
                     >
-                        <Plus size={16} />
+                        <Plus size={14} strokeWidth={2.5} />
                     </button>
                 </div>
             </div>
