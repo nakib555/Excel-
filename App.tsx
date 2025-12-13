@@ -25,10 +25,12 @@ const MAX_ROWS = 1048576;
 const MAX_COLS = 16384;   
 
 // Viewport Strategy
-const INITIAL_ROWS = 100; // Start small, expand infinitely
+const INITIAL_ROWS = 100; 
 const INITIAL_COLS = 26;  // A-Z
-const EXPANSION_BATCH_ROWS = 100; // Add 100 rows when hitting edge
-const EXPANSION_BATCH_COLS = 10;  // Add 10 cols when hitting edge
+
+// --- UPDATED BATCH RATES (User Request: 30) ---
+const EXPANSION_BATCH_ROWS = 30; // Generate 30 rows at a time
+const EXPANSION_BATCH_COLS = 30; // Generate 30 cols at a time
 
 /**
  * 1️⃣ SPARSE DATA GENERATION
@@ -275,6 +277,8 @@ const App: React.FC = () => {
    * "Excel expands the grid conceptually as you move."
    * We treat the grid as potentially infinite. We only increase the coordinate bounds
    * when the user hits the edge, creating the illusion of infinite space up to MAX_ROWS.
+   * 
+   * Update: Generates cells in batches of 30.
    */
   const handleExpandGrid = useCallback((direction: 'row' | 'col') => {
     setGridSize(prev => {

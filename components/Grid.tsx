@@ -17,11 +17,13 @@ const MIN_ROW_HEIGHT = 20;
 
 /**
  * 3️⃣ VISIBLE CELLS & SCROLLING BUFFER
- * Excel keeps "Visible rows + a buffer above and below".
- * Usually ~2-3 screens worth of rows are kept in the pre-render cache.
- * We increase BUFFER_SIZE to 50 (approx 2.5 screens) to ensure silky smooth scrolling.
+ * 
+ * - LOADING RATE: 30 cells (rows/cols) when scrolling.
+ * - OFFLOAD RATE: 10 cells (rows/cols) when idle > 10s.
  */
-const BUFFER_SIZE = 50; 
+const LOADING_BUFFER = 30; 
+const STRICT_BUFFER = 10;
+const OFFLOAD_DELAY_MS = 10000;
 
 interface GridProps {
   size: GridSize;
@@ -70,10 +72,13 @@ const Grid: React.FC<GridProps> = ({
 
   // Transient State
   const [isPinching, setIsPinching] = useState(false);
-  const [isScrollingFast, setIsScrollingFast] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false);
   const touchStartDist = useRef<number>(0);
   const rafRef = useRef<number | null>(null);
-  const scrollTimeoutRef = useRef<any>(null);
+  
+  // Offloading Timer
+  const offloadTimerRef = useRef<any>(null);
+  const [isIdle, setIsIdle] = useState(false);
   
   // Virtualization State
   const [scrollState, setScrollState] = useState({ 
@@ -93,7 +98,7 @@ const Grid: React.FC<GridProps> = ({
 
   // --- 1. EXCEL-LIKE VIRTUALIZATION LOGIC ---
   // Calculates the "Visible + Used" set of cells.
-  // Everything else is treated as "Empty / Conceptual" and offloaded from DOM.
+  // Implements the specific Logic: 30 rate loading, 10s timeout -> 10 cell offloading.
   const { 
     visibleRows, visibleCols, 
     spacerTop, spacerBottom, 
@@ -112,15 +117,18 @@ const Grid: React.FC<GridProps> = ({
     const viewportStartCol = Math.floor(scrollLeft / avgColW);
     const viewportEndCol = Math.min(size.cols - 1, Math.ceil((scrollLeft + clientWidth) / avgColW));
 
-    // 2. Apply Strict Buffering (The Yellow Zone) - "2-3 screens worth"
-    const renderStartRow = Math.max(0, viewportStartRow - BUFFER_SIZE);
-    const renderEndRow = Math.min(size.rows - 1, viewportEndRow + BUFFER_SIZE);
+    // 2. Dynamic Buffer Determination
+    // If scrolling (not idle), load ahead by 30 (LOADING_BUFFER).
+    // If idle (>10s), shrink to 10 (STRICT_BUFFER) to offload memory.
+    const currentBuffer = isIdle ? STRICT_BUFFER : LOADING_BUFFER;
+
+    const renderStartRow = Math.max(0, viewportStartRow - currentBuffer);
+    const renderEndRow = Math.min(size.rows - 1, viewportEndRow + currentBuffer);
     
-    const renderStartCol = Math.max(0, viewportStartCol - BUFFER_SIZE);
-    const renderEndCol = Math.min(size.cols - 1, viewportEndCol + BUFFER_SIZE);
+    const renderStartCol = Math.max(0, viewportStartCol - currentBuffer);
+    const renderEndCol = Math.min(size.cols - 1, viewportEndCol + currentBuffer);
 
     // 3. Calculate Spacers (The Black Zone / Void)
-    // These represent the "conceptual" empty cells that do not exist in RAM/DOM.
     const spacerTop = renderStartRow * avgRowH;
     const spacerBottom = (size.rows - 1 - renderEndRow) * avgRowH;
     const spacerLeft = renderStartCol * avgColW;
@@ -139,7 +147,7 @@ const Grid: React.FC<GridProps> = ({
         spacerTop, spacerBottom,
         spacerLeft, spacerRight
     };
-  }, [scrollState, size, scale]); 
+  }, [scrollState, size, scale, isIdle]); 
 
   // Background Pattern for Spacers (Visual "Empty Cells" Trick)
   const bgPatternStyle = useMemo(() => ({
@@ -188,6 +196,8 @@ const Grid: React.FC<GridProps> = ({
                  const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
                  const originX = el.scrollLeft + (cx - rect.left);
                  const originY = el.scrollTop + (cy - rect.top);
+                 // Temporarily disable transition for instant pinch tracking
+                 gridLayerRef.current.style.transition = 'none';
                  gridLayerRef.current.style.transformOrigin = `${originX}px ${originY}px`;
             }
         }
@@ -221,7 +231,11 @@ const Grid: React.FC<GridProps> = ({
                 const currentTransform = gridLayerRef.current.style.transform;
                 const match = currentTransform.match(/scale\(([^)]+)\)/);
                 const ratio = match ? parseFloat(match[1]) : 1;
+                
+                // Reset CSS styles for next controlled zoom
                 gridLayerRef.current.style.transform = '';
+                gridLayerRef.current.style.transition = ''; 
+                
                 const newScale = Math.max(0.25, Math.min(4, currentScaleRef.current * ratio));
                 onZoom(newScale - currentScaleRef.current);
             }
@@ -241,12 +255,12 @@ const Grid: React.FC<GridProps> = ({
     };
   }, [onZoom]);
 
-  // --- 4. EXPANSION & TRIM LOGIC ---
+  // --- 4. EXPANSION & SCROLL LOGIC (With Idle Timer) ---
   const checkExpansion = useCallback(() => {
      if (!containerRef.current || loadingRef.current) return;
      const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = containerRef.current;
      
-     // Infinite Scroll Expansion
+     // Infinite Scroll Expansion Trigger (approx 1 screen away)
      const rowThreshold = clientHeight; 
      const colThreshold = clientWidth; 
      
@@ -267,14 +281,16 @@ const Grid: React.FC<GridProps> = ({
     if (!containerRef.current) return;
     const element = containerRef.current;
     
-    // 1. Detect fast scrolling to enable Ghost Mode
-    setIsScrollingFast(true);
-    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    // 1. Mark as Active (Enable 30 Load Rate)
+    setIsIdle(false);
+    setIsScrolling(true);
     
-    scrollTimeoutRef.current = setTimeout(() => {
-        setIsScrollingFast(false);
-        // Trim logic removed
-    }, 150);
+    // 2. Reset Offload Timer (The 10s Rule)
+    if (offloadTimerRef.current) clearTimeout(offloadTimerRef.current);
+    offloadTimerRef.current = setTimeout(() => {
+        setIsScrolling(false);
+        setIsIdle(true); // Trigger re-render with STRICT_BUFFER (10)
+    }, OFFLOAD_DELAY_MS);
 
     checkExpansion();
 
@@ -360,8 +376,8 @@ const Grid: React.FC<GridProps> = ({
         ref={gridLayerRef}
         className={cn(
             "inline-block bg-white min-w-full relative origin-top-left",
-            !isPinching && "transition-transform duration-100 ease-out", 
-            isPinching && "will-change-transform"
+            // Smooth Zoom Transition: Active unless pinching (for performance/tracking)
+            !isPinching && "transition-[transform] duration-200 ease-out will-change-transform", 
         )}
       >
         
@@ -417,9 +433,11 @@ const Grid: React.FC<GridProps> = ({
                 <Suspense 
                     key={row} 
                     fallback={
+                        // Shiny Ghost Element for Batched Loading
                         <div className="flex" style={{ height: getRowH(row), width: 'max-content' }}>
                             <div className="sticky left-0 z-10 border-r border-b border-slate-300 bg-[#f8f9fa]" style={{ width: headerColW, height: getRowH(row) }} />
                             <div style={{ width: spacerLeft, height: '100%' }} />
+                            {/* Shiny effect applied via CSS class */}
                             <div className="flex-1 border-b border-slate-100 bg-white skeleton-shine" style={{ minWidth: '800px' }} />
                         </div>
                     }
@@ -443,7 +461,7 @@ const Grid: React.FC<GridProps> = ({
                         onCellChange={onCellChange}
                         onNavigate={onNavigate}
                         startResize={startResize}
-                        isGhost={isScrollingFast}
+                        isGhost={isScrolling}
                         bgPatternStyle={bgPatternStyle}
                     />
                 </Suspense>
@@ -458,7 +476,7 @@ const Grid: React.FC<GridProps> = ({
            <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
                <div className="backdrop-blur text-white px-4 py-2 rounded-full flex items-center gap-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 border border-white/10 bg-slate-800/90">
                    <Loader2 className="animate-spin text-emerald-400" size={16} />
-                   <span className="text-xs font-medium">Expanding Sheet...</span>
+                   <span className="text-xs font-medium">Generating Cells...</span>
                </div>
            </div>
         )}
