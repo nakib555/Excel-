@@ -1,15 +1,14 @@
 
-import React, { useEffect, useRef, memo, useCallback, useState, useMemo, useLayoutEffect, Suspense, lazy } from 'react';
+import React, { useEffect, useRef, memo, useCallback, useState, useMemo, useLayoutEffect, Suspense } from 'react';
 import { CellId, CellData, GridSize, CellStyle } from '../types';
 import { numToChar, getCellId, parseCellId, cn } from '../utils';
 import { NavigationDirection } from './Cell';
 import { Loader2 } from 'lucide-react';
 import { RowSkeleton } from './Skeletons';
 
-// Lazy load GridRow to handle sheet expansion and scrolling efficiently
-const GridRow = lazy(() => import('./GridRow'));
-// Lazy load ColumnHeader for granular column loading
-const ColumnHeader = lazy(() => import('./ColumnHeader'));
+// Static imports for smoother scrolling performance and reduced overhead
+import GridRow from './GridRow';
+import ColumnHeader from './ColumnHeader';
 
 // --- EXCEL-LIKE ENGINE CONSTANTS ---
 const DEFAULT_COL_WIDTH = 100;
@@ -440,21 +439,17 @@ const Grid: React.FC<GridProps> = ({
                     const colChar = numToChar(col);
                     const isActive = activeCell?.startsWith(colChar);
                     return (
-                        <Suspense 
+                        <ColumnHeader 
                             key={col}
-                            fallback={<div className="border-r border-slate-300 bg-[#f8f9fa] skeleton-shine" style={{ width, height: headerRowH, flexShrink: 0 }} />}
-                        >
-                            <ColumnHeader 
-                                col={col}
-                                width={width}
-                                height={headerRowH}
-                                colChar={colChar}
-                                isActive={isActive}
-                                fontSize={headerFontSize}
-                                onCellClick={onCellClick}
-                                startResize={startResize}
-                            />
-                        </Suspense>
+                            col={col}
+                            width={width}
+                            height={headerRowH}
+                            colChar={colChar}
+                            isActive={isActive}
+                            fontSize={headerFontSize}
+                            onCellClick={onCellClick}
+                            startResize={startResize}
+                        />
                     )
                 })}
                 <div style={{ width: spacerRight, height: 1, flexShrink: 0 }} />
@@ -466,43 +461,30 @@ const Grid: React.FC<GridProps> = ({
             <div style={{ height: spacerTop, width: '100%', ...bgPatternStyle }} />
             
             {visibleRows.map(row => (
-                <Suspense 
-                    key={row} 
-                    fallback={
-                        <RowSkeleton 
-                            height={getRowH(row)} 
-                            visibleCols={visibleCols} 
-                            headerColW={headerColW} 
-                            spacerLeft={spacerLeft} 
-                            spacerRight={spacerRight}
-                            getColW={getColW}
-                        />
-                    }
-                >
-                    <GridRow 
-                        rowIdx={row}
-                        visibleCols={visibleCols}
-                        height={getRowH(row)}
-                        spacerLeft={spacerLeft}
-                        spacerRight={spacerRight}
-                        getColW={getColW}
-                        cells={cells}
-                        styles={styles}
-                        activeCell={activeCell}
-                        selectionBounds={selectionBounds} // Pass bounds O(1)
-                        scale={scale}
-                        headerColW={headerColW}
-                        onCellClick={onCellClick}
-                        handleMouseDown={handleMouseDown}
-                        handleMouseEnter={handleMouseEnter}
-                        onCellDoubleClick={onCellDoubleClick}
-                        onCellChange={onCellChange}
-                        onNavigate={onNavigate}
-                        startResize={startResize}
-                        isGhost={isScrolling}
-                        bgPatternStyle={bgPatternStyle}
-                    />
-                </Suspense>
+                <GridRow 
+                    key={row}
+                    rowIdx={row}
+                    visibleCols={visibleCols}
+                    height={getRowH(row)}
+                    spacerLeft={spacerLeft}
+                    spacerRight={spacerRight}
+                    getColW={getColW}
+                    cells={cells}
+                    styles={styles}
+                    activeCell={activeCell}
+                    selectionBounds={selectionBounds} // Pass bounds O(1)
+                    scale={scale}
+                    headerColW={headerColW}
+                    onCellClick={onCellClick}
+                    handleMouseDown={handleMouseDown}
+                    handleMouseEnter={handleMouseEnter}
+                    onCellDoubleClick={onCellDoubleClick}
+                    onCellChange={onCellChange}
+                    onNavigate={onNavigate}
+                    startResize={startResize}
+                    isGhost={isScrolling}
+                    bgPatternStyle={bgPatternStyle}
+                />
             ))}
             
             <div style={{ height: spacerBottom, width: '100%', ...bgPatternStyle }} />

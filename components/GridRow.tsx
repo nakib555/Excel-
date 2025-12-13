@@ -1,12 +1,9 @@
 
-import React, { memo, Suspense, lazy } from 'react';
+import React, { memo } from 'react';
 import { getCellId, parseCellId, cn } from '../utils';
 import { NavigationDirection } from './Cell';
 import { CellStyle } from '../types';
-import { CellSkeleton } from './Skeletons';
-
-// Lazy load Cell to enable granular code splitting and loading states
-const Cell = lazy(() => import('./Cell'));
+import Cell from './Cell';
 
 interface GridRowProps {
   rowIdx: number;
@@ -105,28 +102,24 @@ const GridRow = memo(({
                 const width = getColW(col);
                 
                 return (
-                    <Suspense 
-                        key={id} 
-                        fallback={<CellSkeleton width={width} height={height} />}
-                    >
-                        <Cell 
-                            id={id} 
-                            data={data}
-                            style={cellStyle}
-                            isSelected={isSelected}
-                            isActive={isSelected} 
-                            isInRange={isInRange}
-                            width={width}
-                            height={height}
-                            scale={scale}
-                            isGhost={isGhost}
-                            onMouseDown={handleMouseDown}
-                            onMouseEnter={handleMouseEnter}
-                            onDoubleClick={onCellDoubleClick}
-                            onChange={onCellChange}
-                            onNavigate={(dir) => onNavigate(dir, false)}
-                        />
-                    </Suspense>
+                    <Cell 
+                        key={id}
+                        id={id} 
+                        data={data}
+                        style={cellStyle}
+                        isSelected={isSelected}
+                        isActive={isSelected} 
+                        isInRange={isInRange}
+                        width={width}
+                        height={height}
+                        scale={scale}
+                        isGhost={isGhost}
+                        onMouseDown={handleMouseDown}
+                        onMouseEnter={handleMouseEnter}
+                        onDoubleClick={onCellDoubleClick}
+                        onChange={onCellChange}
+                        onNavigate={(dir) => onNavigate(dir, false)}
+                    />
                 );
             })}
 

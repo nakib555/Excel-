@@ -1,10 +1,8 @@
-import React, { useRef, useState, useEffect, memo, lazy, Suspense } from 'react';
+
+import React, { useRef, useState, useEffect, memo } from 'react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Sheet } from '../types';
-import { TabItemSkeleton } from './Skeletons';
-
-// Lazy load individual tab items
-const SheetTabItem = lazy(() => import('./SheetTabItem'));
+import SheetTabItem from './SheetTabItem';
 
 interface SheetTabsProps {
   sheets: Sheet[];
@@ -104,14 +102,13 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
         {sheets.map((sheet) => {
           const isActive = sheet.id === activeSheetId;
           return (
-            <Suspense key={sheet.id} fallback={<TabItemSkeleton />}>
-                <SheetTabItem 
-                    id={sheet.id}
-                    name={sheet.name}
-                    isActive={isActive}
-                    onClick={handleTabClick}
-                />
-            </Suspense>
+            <SheetTabItem 
+                key={sheet.id}
+                id={sheet.id}
+                name={sheet.name}
+                isActive={isActive}
+                onClick={handleTabClick}
+            />
           );
         })}
         {/* Spacer */}
