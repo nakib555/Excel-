@@ -1,5 +1,6 @@
 import React, { memo, Suspense, lazy } from 'react';
 import { getCellId, parseCellId, cn } from '../utils';
+import { NavigationDirection } from './Cell';
 
 // Lazy load Cell to support granular loading during rapid expansion/scrolling
 const Cell = lazy(() => import('./Cell'));
@@ -20,7 +21,7 @@ interface GridRowProps {
   handleMouseEnter: (id: string) => void;
   onCellDoubleClick: (id: string) => void;
   onCellChange: (id: string, value: string) => void;
-  onNavigate: (direction: any, isShift: boolean) => void;
+  onNavigate: (direction: NavigationDirection, isShift: boolean) => void;
   startResize: (e: React.MouseEvent, type: 'col' | 'row', index: number, size: number) => void;
   headerColW: number;
   isGhost: boolean;
@@ -106,7 +107,7 @@ const GridRow = memo(({
                             onMouseEnter={handleMouseEnter}
                             onDoubleClick={onCellDoubleClick}
                             onChange={onCellChange}
-                            onNavigate={onNavigate}
+                            onNavigate={(dir) => onNavigate(dir, false)}
                         />
                     </Suspense>
                 );

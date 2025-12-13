@@ -15,9 +15,13 @@ const HEADER_ROW_HEIGHT = 28;
 const MIN_COL_WIDTH = 30;
 const MIN_ROW_HEIGHT = 20;
 
-// Excel Buffer Strategy: "Keep exactly 20 rows/cols loaded outside"
-// This creates the "Used Cells" vs "Conceptual Cells" distinction.
-const BUFFER_SIZE = 20; 
+/**
+ * 3️⃣ VISIBLE CELLS & SCROLLING BUFFER
+ * Excel keeps "Visible rows + a buffer above and below".
+ * Usually ~2-3 screens worth of rows are kept in the pre-render cache.
+ * We increase BUFFER_SIZE to 50 (approx 2.5 screens) to ensure silky smooth scrolling.
+ */
+const BUFFER_SIZE = 50; 
 
 interface GridProps {
   size: GridSize;
@@ -101,9 +105,6 @@ const Grid: React.FC<GridProps> = ({
     const { scrollTop, scrollLeft, clientHeight, clientWidth } = scrollState;
     
     // Effective dimensions with scale
-    // Note: We use O(1) average math here for speed. 
-    // Variable heights in Excel require binary search offset trees, 
-    // but for this implementation, we assume average for virtualization boundaries.
     const avgRowH = DEFAULT_ROW_HEIGHT * scale;
     const avgColW = DEFAULT_COL_WIDTH * scale;
 
@@ -114,8 +115,7 @@ const Grid: React.FC<GridProps> = ({
     const viewportStartCol = Math.floor(scrollLeft / avgColW);
     const viewportEndCol = Math.min(size.cols - 1, Math.ceil((scrollLeft + clientWidth) / avgColW));
 
-    // 2. Apply Strict Buffering (The Yellow Zone)
-    // "Keep exactly 20 rows/cols loaded outside"
+    // 2. Apply Strict Buffering (The Yellow Zone) - "2-3 screens worth"
     const renderStartRow = Math.max(0, viewportStartRow - BUFFER_SIZE);
     const renderEndRow = Math.min(size.rows - 1, viewportEndRow + BUFFER_SIZE);
     
@@ -143,8 +143,6 @@ const Grid: React.FC<GridProps> = ({
         spacerLeft, spacerRight
     };
   }, [scrollState, size, scale]); 
-  // removed rowHeights/columnWidths dependency to avoid layout thrashing during resize. 
-  // The grid will visually update via props, but the virtual window stays stable.
 
   // Background Pattern for Spacers (Visual "Empty Cells" Trick)
   const bgPatternStyle = useMemo(() => ({
