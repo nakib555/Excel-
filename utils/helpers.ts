@@ -86,10 +86,41 @@ export const getNextCellId = (currentId: string, dRow: number, dCol: number, max
 };
 
 /**
+ * FORMATTER CACHE (Flyweight)
+ * drastically reduces garbage collection during scrolling by reusing Intl objects
+ */
+const formatterCache = new Map<string, Intl.NumberFormat>();
+
+const getFormatter = (type: 'currency' | 'percent' | 'comma', decimals: number): Intl.NumberFormat => {
+    const key = `${type}:${decimals}`;
+    if (!formatterCache.has(key)) {
+        const options: Intl.NumberFormatOptions = {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        };
+        
+        if (type === 'currency') {
+            options.style = 'currency';
+            options.currency = 'USD';
+        } else if (type === 'percent') {
+            options.style = 'percent';
+        }
+        // 'comma' uses default decimal formatting
+
+        formatterCache.set(key, new Intl.NumberFormat('en-US', options));
+    }
+    return formatterCache.get(key)!;
+};
+
+/**
  * Formats a cell value based on its style configuration
  */
 export const formatCellValue = (value: string, style: CellStyle = {}): string => {
   if (!value || value === '#ERR') return value;
+  
+  // Quick check for simple text to avoid parseFloat overhead
+  if (!style.format && /^[a-zA-Z\s]+$/.test(value)) return value;
+
   const num = parseFloat(value);
   if (isNaN(num)) return value;
 
@@ -97,25 +128,11 @@ export const formatCellValue = (value: string, style: CellStyle = {}): string =>
 
   switch (style.format) {
     case 'currency':
-      return new Intl.NumberFormat('en-US', { 
-          style: 'currency', 
-          currency: 'USD', 
-          minimumFractionDigits: decimals, 
-          maximumFractionDigits: decimals 
-      }).format(num);
+      return getFormatter('currency', decimals).format(num);
     case 'percent':
-      // Excel typically treats 1 as 100%. If value is > 1 it might format large.
-      // We assume raw value 0.5 = 50%
-      return new Intl.NumberFormat('en-US', { 
-          style: 'percent', 
-          minimumFractionDigits: decimals, 
-          maximumFractionDigits: decimals 
-      }).format(num);
+      return getFormatter('percent', decimals).format(num);
     case 'comma':
-       return new Intl.NumberFormat('en-US', { 
-           minimumFractionDigits: decimals, 
-           maximumFractionDigits: decimals 
-       }).format(num);
+      return getFormatter('comma', decimals).format(num);
     default:
       return value;
   }
@@ -143,10 +160,6 @@ export const getStyleId = (
     const hash = hashStyle(newStyle);
     if (!hash) return { id: "", registry }; // Empty style
 
-    // Check if style already exists (Reverse lookup could be optimized with a secondary map, but for now linear search or existing check)
-    // To be perfectly safe and simple without secondary maps: Use the Hash as the ID if short enough, 
-    // or assume the registry keys ARE the unique IDs we generated.
-    
     // Implementation: Search for existing value
     // This O(N) lookup is fine because N (number of unique styles) is typically small (< 1000) even in large sheets.
     for (const [id, style] of Object.entries(registry)) {

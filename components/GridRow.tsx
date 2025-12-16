@@ -1,6 +1,7 @@
 
+
 import React, { memo } from 'react';
-import { getCellId, parseCellId, cn } from '../utils';
+import { getCellId, parseCellId, cn, formatCellValue } from '../utils';
 import { NavigationDirection } from './Cell';
 import { CellStyle } from '../types';
 import Cell from './Cell'; // Static import
@@ -26,6 +27,7 @@ interface GridRowProps {
   startResize: (e: React.MouseEvent, type: 'col' | 'row', index: number, size: number) => void;
   headerColW: number;
   isGhost: boolean;
+  isScrollingFast: boolean;
   bgPatternStyle: React.CSSProperties;
 }
 
@@ -38,13 +40,42 @@ const EmptyCell = memo(({ width, height, id, onMouseDown, onMouseEnter, onDouble
           height, 
           minWidth: width, 
           minHeight: height,
-          // Optimization: If it's just a spacer, we can reuse the pattern or just white
       }}
       onMouseDown={(e) => onMouseDown(id, e.shiftKey)}
       onMouseEnter={() => onMouseEnter(id)}
       onDoubleClick={() => onDoubleClick(id)}
     />
 ), (prev, next) => prev.width === next.width && prev.height === next.height);
+
+// High-Performance Cell for Fast Scrolling (Pure rendering, no interactive overhead)
+const FastCell = memo(({ width, height, data, style }: any) => {
+    const displayValue = formatCellValue(data.value, style);
+    
+    return (
+        <div
+            className="border-r border-b border-slate-200 box-border flex-shrink-0 overflow-hidden select-none px-[4px] flex items-center"
+            style={{
+                width, 
+                height,
+                minWidth: width,
+                minHeight: height,
+                backgroundColor: style.bg || '#fff',
+                color: style.color || '#0f172a',
+                fontWeight: style.bold ? '600' : '400',
+                fontStyle: style.italic ? 'italic' : 'normal',
+                textDecoration: style.underline ? 'underline' : 'none',
+                textAlign: style.align || 'left',
+                fontSize: `${(style.fontSize || 13)}px`,
+                contentVisibility: 'auto',
+                contain: 'strict'
+            }}
+        >
+             <span className={cn("w-full block", !style.wrapText && "truncate")}>
+                {displayValue}
+             </span>
+        </div>
+    );
+}, (prev, next) => prev.data === next.data && prev.style === next.style && prev.width === next.width && prev.height === next.height);
 
 const GridRow = memo(({ 
     rowIdx, 
@@ -67,6 +98,7 @@ const GridRow = memo(({
     startResize,
     headerColW,
     isGhost,
+    isScrollingFast,
     bgPatternStyle
 }: GridRowProps) => {
     const isActiveRow = activeCell && parseInt(activeCell.replace(/[A-Z]+/, '')) === rowIdx + 1;
@@ -124,6 +156,20 @@ const GridRow = memo(({
                     const safeData = data || { id, raw: '', value: '' };
                     const cellStyle = (safeData.styleId && styles[safeData.styleId]) ? styles[safeData.styleId] : {};
                     
+                    // MEMORY OPTIMIZATION:
+                    // If scrolling fast and this cell is NOT active/selected, render a FastCell
+                    if (isScrollingFast && !isSelected && !isInRange) {
+                        return (
+                             <FastCell 
+                                key={id}
+                                width={width}
+                                height={height}
+                                data={safeData}
+                                style={cellStyle}
+                             />
+                        );
+                    }
+
                     return (
                         <Cell 
                             key={id}
@@ -170,6 +216,7 @@ const GridRow = memo(({
     if (prev.scale !== next.scale) return false;
     if (prev.height !== next.height) return false;
     if (prev.isGhost !== next.isGhost) return false;
+    if (prev.isScrollingFast !== next.isScrollingFast) return false; // Important check for fast scrolling
     if (prev.visibleCols !== next.visibleCols) return false;
     if (prev.headerColW !== next.headerColW) return false;
     if (prev.spacerLeft !== next.spacerLeft) return false;

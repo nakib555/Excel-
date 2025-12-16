@@ -1,4 +1,5 @@
 
+
 import React, { useEffect, useRef, memo, useCallback, useState, useMemo, useLayoutEffect, Suspense } from 'react';
 import { CellId, CellData, GridSize, CellStyle } from '../types';
 import { numToChar, charToNum, getCellId, parseCellId, cn } from '../utils';
@@ -18,17 +19,7 @@ const HEADER_ROW_HEIGHT = 28;
 const MIN_COL_WIDTH = 30;
 const MIN_ROW_HEIGHT = 20;
 
-/**
- * 3️⃣ VISIBLE CELLS & SCROLLING BUFFER
- * Dynamic buffering strategy:
- * - IDLE_BUFFER: Keep enough cells ready so small nudges don't trigger renders.
- * - BASE_BUFFER: Standard buffer for normal usage.
- * - VELOCITY_MULTIPLIER: heavily increased for 4GB ram devices to prevent whitespace.
- */
-const IDLE_BUFFER = 5; // Increased from 2
-const BASE_BUFFER = 15; // Increased from 10
-const MAX_BUFFER = 80; // Max rows to render outside viewport
-const SCROLL_UPDATE_THRESHOLD = 20; // Increased to ignore micro-scrolls for performance
+const SCROLL_UPDATE_THRESHOLD = 20; 
 
 interface GridProps {
   size: GridSize;
@@ -74,6 +65,9 @@ const Grid: React.FC<GridProps> = ({
   const lastScrollPos = useRef({ top: 0, left: 0, time: 0 });
   const velocityRef = useRef({ y: 0, x: 0 });
   
+  // Detect Mobile/Tablet to reduce buffer size
+  const isMobile = useRef(typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)).current;
+
   // Interaction State
   const isDraggingRef = useRef(false);
   const selectionStartRef = useRef<string | null>(null);
@@ -95,7 +89,7 @@ const Grid: React.FC<GridProps> = ({
     scrollLeft: 0, 
     clientHeight: 800, 
     clientWidth: 1200,
-    velocityFactor: 0 // New state to trigger render on high velocity changes
+    velocityFactor: 0 
   });
   
   const [isExpanding, setIsExpanding] = useState(false);
@@ -128,6 +122,11 @@ const Grid: React.FC<GridProps> = ({
   } = useMemo(() => {
     const { scrollTop, scrollLeft, clientHeight, clientWidth, velocityFactor } = scrollState;
     
+    // Tweak buffers based on device capability
+    const IDLE_BUFFER = isMobile ? 3 : 5; 
+    const BASE_BUFFER = isMobile ? 8 : 15;
+    const MAX_BUFFER = isMobile ? 20 : 80;
+
     const avgRowH = DEFAULT_ROW_HEIGHT * scale;
     const avgColW = DEFAULT_COL_WIDTH * scale;
 
@@ -139,12 +138,11 @@ const Grid: React.FC<GridProps> = ({
     const viewportEndCol = Math.min(size.cols - 1, Math.ceil((scrollLeft + clientWidth) / avgColW));
 
     // Dynamic Buffer Calculation based on Velocity
-    // If velocityFactor is high (scrolling fast), increase buffer significantly
     let dynamicBuffer = isIdle ? IDLE_BUFFER : BASE_BUFFER;
     
-    // Aggressive buffering for smoothness
+    // Aggressive buffering for smoothness, but capped for mobile memory
     if (velocityFactor > 3) dynamicBuffer = MAX_BUFFER; 
-    else if (velocityFactor > 1) dynamicBuffer = Math.min(MAX_BUFFER, BASE_BUFFER * 3);
+    else if (velocityFactor > 1) dynamicBuffer = Math.min(MAX_BUFFER, BASE_BUFFER * 2);
     else if (velocityFactor > 0.5) dynamicBuffer = Math.min(MAX_BUFFER, BASE_BUFFER * 1.5);
 
     const renderStartRow = Math.max(0, viewportStartRow - dynamicBuffer);
@@ -172,7 +170,7 @@ const Grid: React.FC<GridProps> = ({
         spacerTop, spacerBottom,
         spacerLeft, spacerRight
     };
-  }, [scrollState, size, scale, isIdle]); 
+  }, [scrollState, size, scale, isIdle, isMobile]); 
 
   // Background Pattern
   const bgPatternStyle = useMemo(() => ({
@@ -185,44 +183,30 @@ const Grid: React.FC<GridProps> = ({
   useLayoutEffect(() => {
     if (Math.abs(prevScaleRef.current - scale) > 0.001 && containerRef.current) {
         const el = containerRef.current;
-        
         let targetUnscaledCenterX = 0;
         let targetUnscaledCenterY = 0;
         let hasTarget = false;
 
-        // Strategy: Focus on the center of the selection
         if (selectionBounds) {
              const { minRow, maxRow, minCol, maxCol } = selectionBounds;
-             
-             // Calculate Top/Bottom in unscaled units
              let top = minRow * DEFAULT_ROW_HEIGHT;
              let bottom = (maxRow + 1) * DEFAULT_ROW_HEIGHT;
              
-             // Adjust for custom row heights (Sparse)
              for (const [rStr, h] of Object.entries(rowHeights)) {
                  const r = parseInt(rStr);
                  const delta = Number(h) - DEFAULT_ROW_HEIGHT;
-                 if (r < minRow) {
-                     top += delta;
-                     bottom += delta;
-                 } else if (r <= maxRow) {
-                     bottom += delta;
-                 }
+                 if (r < minRow) { top += delta; bottom += delta; } 
+                 else if (r <= maxRow) { bottom += delta; }
              }
 
-             // Calculate Left/Right in unscaled units
              let left = minCol * DEFAULT_COL_WIDTH;
              let right = (maxCol + 1) * DEFAULT_COL_WIDTH;
              
              for (const [cStr, w] of Object.entries(columnWidths)) {
                  const c = charToNum(cStr);
                  const delta = Number(w) - DEFAULT_COL_WIDTH;
-                 if (c < minCol) {
-                     left += delta;
-                     right += delta;
-                 } else if (c <= maxCol) {
-                     right += delta;
-                 }
+                 if (c < minCol) { left += delta; right += delta; } 
+                 else if (c <= maxCol) { right += delta; }
              }
 
              targetUnscaledCenterY = (top + bottom) / 2;
@@ -231,18 +215,15 @@ const Grid: React.FC<GridProps> = ({
         }
 
         if (hasTarget) {
-            // Apply new scroll position centering the selection
             el.scrollTop = (targetUnscaledCenterY * scale) - el.clientHeight / 2;
             el.scrollLeft = (targetUnscaledCenterX * scale) - el.clientWidth / 2;
         } else {
-            // Fallback: Maintain viewport center
             const scaleRatio = scale / prevScaleRef.current;
             const centerY = el.scrollTop + el.clientHeight / 2;
             const centerX = el.scrollLeft + el.clientWidth / 2;
             el.scrollTop = (centerY * scaleRatio) - el.clientHeight / 2;
             el.scrollLeft = (centerX * scaleRatio) - el.clientWidth / 2;
         }
-
         prevScaleRef.current = scale;
     }
   }, [scale, selectionBounds, rowHeights, columnWidths]);
@@ -333,18 +314,16 @@ const Grid: React.FC<GridProps> = ({
      if (!containerRef.current || loadingRef.current) return;
      const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = containerRef.current;
      
-     // Dynamic Threshold: Look further ahead if scrolling fast
      const yMultiplier = Math.max(1, vy); 
      const xMultiplier = Math.max(1, vx);
      
-     const rowThreshold = clientHeight * (2 + yMultiplier * 1.5); // Look 2-3 screens ahead
+     const rowThreshold = clientHeight * (2 + yMultiplier * 1.5); 
      const colThreshold = clientWidth * (2 + xMultiplier * 1.5); 
      
      if ((scrollHeight - (scrollTop + clientHeight)) < rowThreshold) {
         loadingRef.current = true;
         setIsExpanding(true);
         onExpandGrid('row');
-        // Debounce
         setTimeout(() => { loadingRef.current = false; setIsExpanding(false); }, 150);
      } else if ((scrollWidth - (scrollLeft + clientWidth)) < colThreshold) {
         loadingRef.current = true;
@@ -366,15 +345,12 @@ const Grid: React.FC<GridProps> = ({
     const dy = Math.abs(currentTop - lastScrollPos.current.top);
     const dx = Math.abs(currentLeft - lastScrollPos.current.left);
     
-    // Calculate Velocity (pixels/ms)
     const vy = dy / dt;
     const vx = dx / dt;
     velocityRef.current = { x: vx, y: vy };
 
-    // Commit new pos
     lastScrollPos.current = { top: currentTop, left: currentLeft, time: now };
 
-    // Set scroll status
     if (isIdle) setIsIdle(false);
     setIsScrolling(true);
     
@@ -384,13 +360,12 @@ const Grid: React.FC<GridProps> = ({
         setIsIdle(true); 
     }, 800); 
 
-    // Check infinite scroll
     checkExpansion(vy, vx);
 
-    // Render Throttle: Prevent micro-updates
-    if (dy < SCROLL_UPDATE_THRESHOLD && dx < SCROLL_UPDATE_THRESHOLD) return;
+    // Throttle for touch devices to prevent main thread blocking
+    const updateThreshold = isMobile ? SCROLL_UPDATE_THRESHOLD * 1.5 : SCROLL_UPDATE_THRESHOLD;
+    if (dy < updateThreshold && dx < updateThreshold) return;
 
-    // Debounced Render via rAF
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
         setScrollState({ 
@@ -398,10 +373,10 @@ const Grid: React.FC<GridProps> = ({
             scrollLeft: currentLeft, 
             clientHeight: element.clientHeight, 
             clientWidth: element.clientWidth,
-            velocityFactor: Math.max(vy, vx) // Pass velocity to updating render logic
+            velocityFactor: Math.max(vy, vx)
         });
     });
-  }, [checkExpansion, isIdle]);
+  }, [checkExpansion, isIdle, isMobile]);
 
   // --- 5. EVENT HANDLERS ---
   const handleMouseDown = useCallback((id: string, isShift: boolean) => {
@@ -446,14 +421,12 @@ const Grid: React.FC<GridProps> = ({
   }, [onColumnResize, onRowResize, scale]);
 
   const handleWheel = (e: React.WheelEvent) => {
-      // 1. CTRL + Wheel = ZOOM
       if (e.ctrlKey) {
           e.preventDefault();
           const delta = e.deltaY > 0 ? -0.1 : 0.1;
           onZoom(delta);
           return;
       }
-      // 2. ALT + Wheel = RESIZE
       if (e.altKey && activeCell) {
           e.preventDefault();
           const { row, col } = parseCellId(activeCell)!;
@@ -470,7 +443,6 @@ const Grid: React.FC<GridProps> = ({
       }
   };
 
-  // Dimensions Helpers
   const getColW = useCallback((i: number) => (columnWidths[numToChar(i)] || DEFAULT_COL_WIDTH) * scale, [columnWidths, scale]);
   const getRowH = useCallback((i: number) => (rowHeights[i] || DEFAULT_ROW_HEIGHT) * scale, [rowHeights, scale]);
   const headerColW = HEADER_COL_WIDTH * scale;
@@ -478,6 +450,10 @@ const Grid: React.FC<GridProps> = ({
   const headerFontSize = Math.max(7, 12 * scale);
   const arrowSize = Math.max(4, 8 * scale);
   const arrowOffset = Math.max(2, 4 * scale);
+
+  // Velocity threshold is lower on mobile to trigger fast mode earlier
+  const velocityThreshold = isMobile ? 0.5 : 2;
+  const isScrollingFast = Math.abs(scrollState.velocityFactor) > velocityThreshold;
 
   return (
     <div 
@@ -495,8 +471,6 @@ const Grid: React.FC<GridProps> = ({
             !isPinching && "transition-[transform] duration-75 ease-out", 
         )}
       >
-        
-        {/* Sticky Headers Wrapper */}
         <div className="sticky top-0 z-20 bg-[#f8f9fa] shadow-sm flex" style={{ width: 'max-content' }}>
             <div 
                 className="flex-shrink-0 bg-[#f8f9fa] border-r border-b border-slate-300 sticky left-0 z-30 select-none relative"
@@ -517,7 +491,6 @@ const Grid: React.FC<GridProps> = ({
                  />
             </div>
 
-            {/* Column Headers */}
             <div className="flex border-b border-slate-300">
                 <div style={{ width: spacerLeft, height: 1, flexShrink: 0 }} />
                 {visibleCols.map(col => {
@@ -542,7 +515,6 @@ const Grid: React.FC<GridProps> = ({
             </div>
         </div>
 
-        {/* Grid Body */}
         <div>
             <div style={{ height: spacerTop, width: '100%', ...bgPatternStyle }} />
             
@@ -568,7 +540,8 @@ const Grid: React.FC<GridProps> = ({
                     onCellChange={onCellChange}
                     onNavigate={onNavigate}
                     startResize={startResize}
-                    isGhost={isScrolling && Math.abs(scrollState.velocityFactor) > 6} // Increased ghost threshold
+                    isGhost={isScrolling && Math.abs(scrollState.velocityFactor) > 6} 
+                    isScrollingFast={isScrollingFast}
                     bgPatternStyle={bgPatternStyle}
                 />
             ))}
@@ -576,7 +549,6 @@ const Grid: React.FC<GridProps> = ({
             <div style={{ height: spacerBottom, width: '100%', ...bgPatternStyle }} />
         </div>
 
-        {/* Feedback Overlay */}
         {(isExpanding) && (
            <div className="fixed bottom-12 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
                <div className="backdrop-blur text-white px-4 py-2 rounded-full flex items-center gap-3 shadow-2xl animate-in fade-in slide-in-from-bottom-2 border border-white/10 bg-slate-800/90">
