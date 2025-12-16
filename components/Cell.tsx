@@ -76,14 +76,12 @@ const Cell = memo(({
   const isMicroView = scale < 0.25; 
   const fontSize = Math.max(scale < 0.6 ? 7 : 9, (resolvedStyle.fontSize || 13) * scale);
 
-  // Style Calculation - Optimized with strict containment
+  // Style Calculation 
   const containerStyle: React.CSSProperties = {
     width: width,
     height: height,
     minWidth: width,
     minHeight: height,
-    contentVisibility: 'auto',
-    contain: 'strict', 
   };
   
   // Ghost Mode - Use shared skeleton for consistency with lazy loading

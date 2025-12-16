@@ -1,5 +1,4 @@
 
-
 import React, { memo } from 'react';
 import { getCellId, parseCellId, cn, formatCellValue } from '../utils';
 import { NavigationDirection } from './Cell';
@@ -66,8 +65,6 @@ const FastCell = memo(({ width, height, data, style }: any) => {
                 textDecoration: style.underline ? 'underline' : 'none',
                 textAlign: style.align || 'left',
                 fontSize: `${(style.fontSize || 13)}px`,
-                contentVisibility: 'auto',
-                contain: 'strict'
             }}
         >
              <span className={cn("w-full block", !style.wrapText && "truncate")}>
