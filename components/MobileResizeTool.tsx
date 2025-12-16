@@ -28,13 +28,13 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-[84px] left-2 right-2 md:hidden z-[1000] animate-in slide-in-from-bottom-5 fade-in duration-200">
-      <div className="h-14 bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-full flex items-center px-2 gap-2 ring-1 ring-black/5 overflow-hidden">
+    <div className="fixed bottom-[84px] left-1/2 -translate-x-1/2 w-fit max-w-[calc(100%-16px)] md:hidden z-[1000] animate-in slide-in-from-bottom-5 fade-in duration-200">
+      <div className="h-14 bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-full flex items-center px-1.5 gap-1.5 ring-1 ring-black/5 overflow-hidden mx-auto">
         
         {/* Close Button */}
         <button 
             onClick={onClose}
-            className="flex-shrink-0 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
         >
             <X size={18} />
         </button>
@@ -43,7 +43,7 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
         <div className="w-[1px] h-5 bg-slate-200 flex-shrink-0" />
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 flex items-center gap-3 overflow-x-auto no-scrollbar scroll-smooth pr-1 pl-1">
+        <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth px-1">
             
             {/* Mode Switcher */}
             <div className="flex items-center bg-slate-100/80 p-1 rounded-full flex-shrink-0 gap-1">
@@ -80,7 +80,7 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
             </div>
 
             {/* Controls Group */}
-            <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0">
                 {(resizeMode === 'col' || resizeMode === 'cell') && (
                     <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/50 rounded-full p-0.5 pr-1">
                         <div className="w-7 h-7 flex items-center justify-center text-slate-400 rounded-full"><MoveHorizontal size={14} /></div>
@@ -105,7 +105,7 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
         {/* Reset Button */}
         <button
             onClick={onReset}
-            className="flex-shrink-0 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors active:rotate-180 duration-500"
+            className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors active:rotate-180 duration-500"
             title="Reset to Default"
         >
             <RotateCcw size={16} />
