@@ -12,7 +12,6 @@ import ColumnHeader from './ColumnHeader';
 // --- EXCEL-LIKE ENGINE CONSTANTS ---
 const DEFAULT_COL_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 28;
-const HEADER_COL_WIDTH = 46;
 const HEADER_ROW_HEIGHT = 28;
 const MIN_COL_WIDTH = 30;
 const MIN_ROW_HEIGHT = 20;
@@ -97,6 +96,15 @@ const Grid: React.FC<GridProps> = ({
   const prevScaleRef = useRef(scale);
   const currentScaleRef = useRef(scale);
   useEffect(() => { currentScaleRef.current = scale; }, [scale]);
+
+  // --- Dynamic Header Width Calculation ---
+  // Calculates width based on number of digits in max row index to prevent overflow
+  const headerColW = useMemo(() => {
+     const digits = size.rows.toString().length;
+     // Base 46px, plus roughly 8px per extra digit beyond 3
+     const baseW = Math.max(46, (digits * 8) + 20); 
+     return baseW * scale;
+  }, [size.rows, scale]);
 
   // --- 0. SELECTION BOUNDS OPTIMIZATION (O(1)) ---
   const selectionBounds = useMemo(() => {
@@ -481,7 +489,6 @@ const Grid: React.FC<GridProps> = ({
 
   const getColW = useCallback((i: number) => (columnWidths[numToChar(i)] || DEFAULT_COL_WIDTH) * scale, [columnWidths, scale]);
   const getRowH = useCallback((i: number) => (rowHeights[i] || DEFAULT_ROW_HEIGHT) * scale, [rowHeights, scale]);
-  const headerColW = HEADER_COL_WIDTH * scale;
   const headerRowH = HEADER_ROW_HEIGHT * scale;
   const headerFontSize = Math.max(7, 12 * scale);
   const arrowSize = Math.max(4, 8 * scale);

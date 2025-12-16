@@ -7,7 +7,7 @@ import { DraggableScrollContainer } from './tabs/shared';
 import { cn } from '../utils';
 import { RibbonSkeleton } from './Skeletons';
 
-// Lazy imports for Tabs from the new 'tabs' directory
+// Lazy imports for Tabs using relative paths to avoid alias resolution issues
 const HomeTab = lazy(() => import('./tabs/Home/HomeTab'));
 const InsertTab = lazy(() => import('./tabs/Insert/InsertTab'));
 const DrawTab = lazy(() => import('./tabs/Draw/DrawTab'));

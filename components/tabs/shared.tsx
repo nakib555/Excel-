@@ -1,5 +1,5 @@
-
 import React, { useRef, useState, useEffect, memo } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { CellStyle } from '../../types';
 
@@ -172,6 +172,78 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
   );
 });
 
+// Reusable Smart Dropdown Component using Portal for Fixed Positioning
+export const SmartDropdown = ({ 
+    trigger, 
+    children, 
+    contentWidth = 'w-48', 
+    className = "",
+    open,
+    onToggle
+}: {
+    trigger: React.ReactNode;
+    children?: React.ReactNode;
+    contentWidth?: string; 
+    className?: string;
+    open: boolean;
+    onToggle: () => void;
+}) => {
+    const triggerRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
+    const [coords, setCoords] = useState({ top: 0, left: 0 });
+
+    useEffect(() => {
+        if (open && triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            let top = rect.bottom + 4;
+            let left = rect.left;
+            
+            // Adjust if going off-screen (basic check)
+            if (left + 200 > window.innerWidth) {
+                left = window.innerWidth - 210;
+            }
+            if (left < 0) left = 10;
+            
+            // Adjust vertical if needed (omitted for toolbar dropdowns which usually go down)
+            
+            setCoords({ top, left });
+        }
+    }, [open]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+             if (
+                triggerRef.current && 
+                !triggerRef.current.contains(e.target as Node) &&
+                contentRef.current &&
+                !contentRef.current.contains(e.target as Node)
+            ) {
+                if (open) onToggle();
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [open, onToggle]);
+
+    return (
+        <>
+            <div ref={triggerRef} onClick={onToggle} className="inline-block h-full">
+                {trigger}
+            </div>
+            {open && createPortal(
+                <div 
+                    ref={contentRef}
+                    className={`fixed z-[1000] bg-white shadow-elevation border border-slate-200 rounded-lg animate-in fade-in zoom-in-95 duration-100 p-1 ${contentWidth} ${className}`}
+                    style={{ top: coords.top, left: coords.left }}
+                >
+                    {children}
+                </div>,
+                document.body
+            )}
+        </>
+    );
+};
+
 export const ColorPicker: React.FC<{ 
     icon: React.ReactNode; 
     color: string; 
@@ -179,32 +251,40 @@ export const ColorPicker: React.FC<{
     colors: string[];
     title: string;
 }> = memo(({ icon, color, onChange, colors, title }) => {
+    const [open, setOpen] = useState(false);
+    
     // Style the inner icon before wrapping
     const styledIcon = React.isValidElement(icon) 
         ? React.cloneElement(icon as React.ReactElement<any>, { size: 16, strokeWidth: 2 }) 
         : icon;
 
     return (
-        <div className="relative group">
-            <RibbonButton 
-                variant="icon-only"
-                onClick={() => {}}
-                title={title}
-                hasDropdown
-                icon={
-                    <div className="relative flex flex-col items-center justify-center h-full w-full">
-                        {styledIcon}
-                        <div className="h-0.5 w-4 mt-0.5 rounded-sm shadow-sm" style={{ backgroundColor: color, border: color === 'transparent' ? '1px solid #e2e8f0' : 'none' }} />
-                    </div>
-                }
-            />
-             <div className="fixed mt-1 p-3 bg-white shadow-elevation rounded-lg border border-slate-200 hidden group-hover:grid grid-cols-5 gap-1.5 z-[100] w-40 left-auto animate-in fade-in zoom-in-95 duration-100">
+        <SmartDropdown
+            open={open}
+            onToggle={() => setOpen(!open)}
+            contentWidth="w-40"
+            trigger={
+                <RibbonButton 
+                    variant="icon-only"
+                    onClick={() => {}} // Handled by SmartDropdown trigger wrapper
+                    title={title}
+                    hasDropdown
+                    icon={
+                        <div className="relative flex flex-col items-center justify-center h-full w-full">
+                            {styledIcon}
+                            <div className="h-0.5 w-4 mt-0.5 rounded-sm shadow-sm" style={{ backgroundColor: color, border: color === 'transparent' ? '1px solid #e2e8f0' : 'none' }} />
+                        </div>
+                    }
+                />
+            }
+        >
+             <div className="grid grid-cols-5 gap-1.5 p-2">
                 {colors.map(c => (
                     <button
                         key={c}
                         className="w-6 h-6 rounded border border-slate-200 hover:scale-110 hover:border-slate-400 hover:shadow-sm transition-all relative overflow-hidden"
                         style={{ backgroundColor: c === 'transparent' ? 'white' : c }}
-                        onClick={() => onChange(c)}
+                        onClick={() => { onChange(c); setOpen(false); }}
                         title={c}
                     >
                          {c === 'transparent' && (
@@ -215,7 +295,7 @@ export const ColorPicker: React.FC<{
                     </button>
                 ))}
             </div>
-        </div>
+        </SmartDropdown>
     )
 });
 
