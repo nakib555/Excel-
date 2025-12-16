@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, memo } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { CellStyle } from '../../types';
@@ -192,7 +192,7 @@ export const SmartDropdown = ({
     const contentRef = useRef<HTMLDivElement>(null);
     const [coords, setCoords] = useState({ top: 0, left: 0 });
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (open && triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect();
             let top = rect.bottom + 4;
@@ -265,7 +265,7 @@ export const ColorPicker: React.FC<{
             contentWidth="w-40"
             trigger={
                 <RibbonButton 
-                    variant="icon-only"
+                    variant="icon-only" 
                     onClick={() => {}} // Handled by SmartDropdown trigger wrapper
                     title={title}
                     hasDropdown
