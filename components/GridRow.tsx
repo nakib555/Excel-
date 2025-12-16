@@ -95,7 +95,7 @@ const GridRow = memo(({
                 style={{ width: headerColW, height, fontSize: `${headerFontSize}px` }}
                 onClick={() => onCellClick(getCellId(0, rowIdx), false)}
             >
-                {rowIdx + 1}
+                {Math.floor(rowIdx + 1)}
                 <div 
                     className="absolute bottom-0 left-0 right-0 h-1 cursor-row-resize hover:bg-emerald-500 z-10"
                     onMouseDown={(e) => startResize(e, 'row', rowIdx, height)} 

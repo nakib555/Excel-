@@ -56,11 +56,25 @@ const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap:
       { id: "B1", val: "Cost", style: { bold: true, bg: '#f1f5f9', color: '#475569', format: 'currency' as const } },
       { id: "C1", val: "Qty", style: { bold: true, bg: '#f1f5f9', color: '#475569' } },
       { id: "D1", val: "Total", style: { bold: true, bg: '#f1f5f9', color: '#475569', format: 'currency' as const } },
-      { id: "A2", val: "MacBook Pro" }, { id: "B2", val: "2400", style: { format: 'currency' as const } }, { id: "C2", val: "2" }, { id: "D2", val: "=B2*C2", style: { format: 'currency' as const } },
-      { id: "A3", val: "Monitor" }, { id: "B3", val: "500", style: { format: 'currency' as const } }, { id: "C3", val: "4" }, { id: "D3", val: "=B3*C3", style: { format: 'currency' as const } },
-      { id: "A4", val: "Keyboard" }, { id: "B4", val: "150", style: { format: 'currency' as const } }, { id: "C4", val: "5" }, { id: "D4", val: "=B4*C4", style: { format: 'currency' as const } },
+      
+      // Data Rows - Set decimalPlaces: 0 for cleaner integer display
+      { id: "A2", val: "MacBook Pro" }, 
+      { id: "B2", val: "2400", style: { format: 'currency' as const, decimalPlaces: 0 } }, 
+      { id: "C2", val: "2" }, 
+      { id: "D2", val: "=B2*C2", style: { format: 'currency' as const, decimalPlaces: 0 } },
+      
+      { id: "A3", val: "Monitor" }, 
+      { id: "B3", val: "500", style: { format: 'currency' as const, decimalPlaces: 0 } }, 
+      { id: "C3", val: "4" }, 
+      { id: "D3", val: "=B3*C3", style: { format: 'currency' as const, decimalPlaces: 0 } },
+      
+      { id: "A4", val: "Keyboard" }, 
+      { id: "B4", val: "150", style: { format: 'currency' as const, decimalPlaces: 0 } }, 
+      { id: "C4", val: "5" }, 
+      { id: "D4", val: "=B4*C4", style: { format: 'currency' as const, decimalPlaces: 0 } },
+      
       { id: "C5", val: "Grand Total", style: { bold: true, align: 'right' as const } }, 
-      { id: "D5", val: "=SUM(D2:D4)", style: { bold: true, color: '#059669', bg: '#ecfdf5', format: 'currency' as const } },
+      { id: "D5", val: "=SUM(D2:D4)", style: { bold: true, color: '#059669', bg: '#ecfdf5', format: 'currency' as const, decimalPlaces: 0 } },
     ];
 
     // Hydrate only used cells
