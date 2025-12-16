@@ -1,12 +1,9 @@
 
-import React, { memo, lazy, Suspense } from 'react';
+import React, { memo } from 'react';
 import { getCellId, parseCellId, cn } from '../utils';
 import { NavigationDirection } from './Cell';
 import { CellStyle } from '../types';
-import { CellSkeleton } from './Skeletons';
-
-// Lazy load Cell to enable granular loading state with blurred skeletons
-const Cell = lazy(() => import('./Cell'));
+import Cell from './Cell'; // Static import
 
 interface GridRowProps {
   rowIdx: number;
@@ -31,6 +28,23 @@ interface GridRowProps {
   isGhost: boolean;
   bgPatternStyle: React.CSSProperties;
 }
+
+// Lightweight component for Empty Cells (No React overhead for hooks/state)
+const EmptyCell = memo(({ width, height, id, onMouseDown, onMouseEnter, onDoubleClick, bgPatternStyle }: any) => (
+    <div
+      className="border-r border-b border-slate-200 box-border flex-shrink-0 bg-white select-none"
+      style={{
+          width, 
+          height, 
+          minWidth: width, 
+          minHeight: height,
+          // Optimization: If it's just a spacer, we can reuse the pattern or just white
+      }}
+      onMouseDown={(e) => onMouseDown(id, e.shiftKey)}
+      onMouseEnter={() => onMouseEnter(id)}
+      onDoubleClick={() => onDoubleClick(id)}
+    />
+), (prev, next) => prev.width === next.width && prev.height === next.height);
 
 const GridRow = memo(({ 
     rowIdx, 
@@ -94,21 +108,27 @@ const GridRow = memo(({
             {/* Cells Loop */}
             {visibleCols.map((col: number) => {
                 const id = getCellId(col, rowIdx);
-                const data = cells[id] || { id, raw: '', value: '' };
-                const cellStyle = (data.styleId && styles[data.styleId]) ? styles[data.styleId] : {};
-
+                const data = cells[id]; // Direct undefined check is faster than 'in' operator
+                
+                // PERFORMANCE CRITICAL: 
+                // Determine if we need the Heavy Cell Component or the Lightweight Div
                 const isSelected = activeCell === id;
                 const isInRange = isRowSelected && selectionBounds 
                     ? (col >= selectionBounds.minCol && col <= selectionBounds.maxCol)
                     : false;
-                
+
                 const width = getColW(col);
-                
-                return (
-                    <Suspense key={id} fallback={<CellSkeleton width={width} height={height} />}>
+
+                // If cell has data, style, is active, or selected -> Render full component
+                if (data || isSelected || isInRange) {
+                    const safeData = data || { id, raw: '', value: '' };
+                    const cellStyle = (safeData.styleId && styles[safeData.styleId]) ? styles[safeData.styleId] : {};
+                    
+                    return (
                         <Cell 
+                            key={id}
                             id={id} 
-                            data={data}
+                            data={safeData}
                             style={cellStyle}
                             isSelected={isSelected}
                             isActive={isSelected} 
@@ -123,7 +143,21 @@ const GridRow = memo(({
                             onChange={onCellChange}
                             onNavigate={(dir) => onNavigate(dir, false)}
                         />
-                    </Suspense>
+                    );
+                }
+
+                // Otherwise, render lightweight primitive
+                return (
+                    <EmptyCell 
+                        key={id}
+                        width={width}
+                        height={height}
+                        id={id}
+                        onMouseDown={handleMouseDown}
+                        onMouseEnter={handleMouseEnter}
+                        onDoubleClick={onCellDoubleClick}
+                        bgPatternStyle={bgPatternStyle}
+                    />
                 );
             })}
 
@@ -140,10 +174,9 @@ const GridRow = memo(({
     if (prev.headerColW !== next.headerColW) return false;
     if (prev.spacerLeft !== next.spacerLeft) return false;
     if (prev.spacerRight !== next.spacerRight) return false;
-    if (prev.cells !== next.cells) return false;
+    if (prev.cells !== next.cells) return false; // Reference check on sparse object
     if (prev.styles !== next.styles) return false;
-    if (prev.getColW !== next.getColW) return false; // Added check for column width function
-
+    
     // 2. Active Cell Check
     const isRowInvolvedActive = (id: string | null, rowIdx: number) => {
         if (!id) return false;

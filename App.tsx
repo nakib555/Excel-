@@ -27,12 +27,13 @@ const MAX_ROWS = 1048576;
 const MAX_COLS = 16384;   
 
 // Viewport Strategy
-const INITIAL_ROWS = 100; 
-const INITIAL_COLS = 26;  // A-Z
+const INITIAL_ROWS = 150; 
+const INITIAL_COLS = 30;  // A-Z + buffer
 
-// --- UPDATED BATCH RATES (User Request: 80) ---
-const EXPANSION_BATCH_ROWS = 80; // Generate 80 rows at a time
-const EXPANSION_BATCH_COLS = 80; // Generate 80 cols at a time
+// --- UPDATED BATCH RATES (Optimized for velocity scrolling) ---
+// Drastically increased for 4GB RAM devices to batch expensive operations
+const EXPANSION_BATCH_ROWS = 300; 
+const EXPANSION_BATCH_COLS = 100; 
 
 // Defaults for resizing
 const DEFAULT_COL_WIDTH = 100;
@@ -370,7 +371,7 @@ const App: React.FC = () => {
    * We treat the grid as potentially infinite. We only increase the coordinate bounds
    * when the user hits the edge, creating the illusion of infinite space up to MAX_ROWS.
    * 
-   * Update: Generates cells in batches of 80.
+   * Update: Generates cells in larger batches to handle fast scrolling.
    */
   const handleExpandGrid = useCallback((direction: 'row' | 'col') => {
     setGridSize(prev => {
