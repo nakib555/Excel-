@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
 import { evaluateFormula, getRange, getNextCellId, parseCellId, getCellId, extractDependencies, getStyleId, numToChar } from './utils';
@@ -314,6 +313,34 @@ const App: React.FC = () => {
     if (nextId && nextId !== activeCell) handleCellClick(nextId, isShift);
   }, [activeCell, gridSize, handleCellClick]);
 
+  /**
+   * 🗺️ NAME BOX NAVIGATION HANDLER
+   * Allows jumping to specific coordinates (e.g., "XFD1048576").
+   * Expands the grid on demand if the target is outside current bounds.
+   */
+  const handleNameBoxSubmit = useCallback((input: string) => {
+    const coords = parseCellId(input);
+    if (!coords) return;
+    
+    const { row, col } = coords;
+    
+    // Check Excel Limits
+    if (row >= MAX_ROWS || col >= MAX_COLS) {
+        alert(`Cell reference out of bounds. Max: ${numToChar(MAX_COLS-1)}${MAX_ROWS}`);
+        return;
+    }
+
+    // Force Expand Grid if needed to show this cell
+    setGridSize(prev => ({
+        rows: Math.max(prev.rows, row + 50), // Add generous buffer
+        cols: Math.max(prev.cols, col + 20)
+    }));
+
+    // Select the cell
+    const id = getCellId(col, row);
+    handleCellClick(id, false);
+  }, [handleCellClick]);
+
   const handleColumnResize = useCallback((colId: string, width: number) => {
     setSheets(prev => prev.map(s => s.id === activeSheetId ? { ...s, columnWidths: { ...s.columnWidths, [colId]: width } } : s));
   }, [activeSheetId]);
@@ -571,6 +598,7 @@ const App: React.FC = () => {
               value={activeCell ? (cells[activeCell]?.raw || '') : ''}
               onChange={handleFormulaChange}
               onSubmit={handleFormulaSubmit}
+              onNameBoxSubmit={handleNameBoxSubmit}
             />
         </Suspense>
         

@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useRef, memo, useCallback, useState, useMemo, useLayoutEffect, Suspense } from 'react';
 import { CellId, CellData, GridSize, CellStyle } from '../types';
 import { numToChar, charToNum, getCellId, parseCellId, cn } from '../utils';
@@ -227,6 +225,44 @@ const Grid: React.FC<GridProps> = ({
         prevScaleRef.current = scale;
     }
   }, [scale, selectionBounds, rowHeights, columnWidths]);
+
+  // --- 2.5 JUMP TO CELL (SCROLL SYNC) ---
+  // When activeCell changes drastically (e.g. NameBox jump), scroll to it.
+  useEffect(() => {
+    if (!activeCell || !containerRef.current) return;
+    
+    const parsed = parseCellId(activeCell);
+    if (!parsed) return;
+    const { row, col } = parsed;
+    
+    // Calculate approximate position (O(K) where K is number of resized rows/cols)
+    // Much faster than O(N) iteration
+    let top = row * DEFAULT_ROW_HEIGHT;
+    for (const [rStr, h] of Object.entries(rowHeights)) {
+        const r = parseInt(rStr);
+        if (r < row) top += (Number(h) - DEFAULT_ROW_HEIGHT);
+    }
+    top *= scale;
+
+    let left = col * DEFAULT_COL_WIDTH;
+    for (const [cStr, w] of Object.entries(columnWidths)) {
+        const c = charToNum(cStr);
+        if (c < col) left += (Number(w) - DEFAULT_COL_WIDTH);
+    }
+    left *= scale;
+
+    const el = containerRef.current;
+    const cellH = ((rowHeights[row] ? Number(rowHeights[row]) : undefined) || DEFAULT_ROW_HEIGHT) * scale;
+    const cellW = ((columnWidths[numToChar(col)] ? Number(columnWidths[numToChar(col)]) : undefined) || DEFAULT_COL_WIDTH) * scale;
+
+    // Scroll if out of view
+    if (top < el.scrollTop) el.scrollTop = top;
+    else if (top + cellH > el.scrollTop + el.clientHeight) el.scrollTop = top + cellH - el.clientHeight;
+
+    if (left < el.scrollLeft) el.scrollLeft = left;
+    else if (left + cellW > el.scrollLeft + el.clientWidth) el.scrollLeft = left + cellW - el.clientWidth;
+
+  }, [activeCell, rowHeights, columnWidths, scale]);
 
   // --- 3. PINCH ZOOM LOGIC ---
   const isPinchingRef = useRef(false);
