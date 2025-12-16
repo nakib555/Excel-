@@ -190,7 +190,7 @@ export const SmartDropdown = ({
 }) => {
     const triggerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
-    const [coords, setCoords] = useState({ top: 0, left: 0 });
+    const [coords, setCoords] = useState<{top: number, left: number} | null>(null);
 
     useLayoutEffect(() => {
         if (open && triggerRef.current) {
@@ -207,6 +207,8 @@ export const SmartDropdown = ({
             // Adjust vertical if needed (omitted for toolbar dropdowns which usually go down)
             
             setCoords({ top, left });
+        } else {
+            setCoords(null);
         }
     }, [open]);
 
@@ -230,7 +232,7 @@ export const SmartDropdown = ({
             <div ref={triggerRef} onClick={onToggle} className="inline-block h-full">
                 {trigger}
             </div>
-            {open && createPortal(
+            {open && coords && createPortal(
                 <div 
                     ref={contentRef}
                     className={`fixed z-[1000] bg-white shadow-elevation border border-slate-200 rounded-lg animate-in fade-in zoom-in-95 duration-100 p-1 ${contentWidth} ${className}`}
