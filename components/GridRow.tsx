@@ -1,3 +1,4 @@
+
 import React, { memo } from 'react';
 import { getCellId, parseCellId, cn, formatCellValue } from '../utils';
 import { NavigationDirection } from './Cell';
@@ -50,9 +51,19 @@ const EmptyCell = memo(({ width, height, id, onMouseDown, onMouseEnter, onDouble
 const FastCell = memo(({ width, height, data, style, onMouseDown }: any) => {
     const displayValue = formatCellValue(data.value, style);
     
+    // Rotation logic for FastCell
+    const rotation = style.textRotation || 0;
+    const isVertical = style.verticalText;
+    const hasRotation = rotation !== 0;
+    const cssRotation = rotation ? -rotation : 0;
+    const textAlign = style.align || 'left';
+
     return (
         <div
-            className="border-r border-b border-slate-200 box-border flex-shrink-0 overflow-hidden select-none px-[4px] flex items-center"
+            className={cn(
+                "border-r border-b border-slate-200 box-border flex-shrink-0 select-none px-[4px] flex items-center",
+                (hasRotation || isVertical) ? "overflow-visible z-[5]" : "overflow-hidden"
+            )}
             style={{
                 width, 
                 height,
@@ -63,12 +74,23 @@ const FastCell = memo(({ width, height, data, style, onMouseDown }: any) => {
                 fontWeight: style.bold ? '600' : '400',
                 fontStyle: style.italic ? 'italic' : 'normal',
                 textDecoration: style.underline ? 'underline' : 'none',
-                textAlign: style.align || 'left',
+                textAlign,
                 fontSize: `${(style.fontSize || 13)}px`,
             }}
             onMouseDown={(e) => onMouseDown && onMouseDown(data.id, e.shiftKey)}
         >
-             <span className={cn("w-full block", !style.wrapText && "truncate")}>
+             <span 
+                className={cn("w-full block origin-left", !style.wrapText && !hasRotation && !isVertical && "truncate")}
+                style={{
+                    ...(isVertical ? { writingMode: 'vertical-rl', textOrientation: 'upright', width: '100%', display: 'flex', alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start' } : {}),
+                    ...(hasRotation ? { 
+                        transform: `rotate(${cssRotation}deg)`, 
+                        width: 'max-content',
+                        transformOrigin: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'center right' : 'center left',
+                        display: 'inline-block'
+                    } : {})
+                }}
+             >
                 {displayValue}
              </span>
         </div>

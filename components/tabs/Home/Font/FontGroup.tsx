@@ -19,7 +19,7 @@ const FontGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle }) => 
             <div className="flex items-center gap-1.5">
                 <FontSelector />
                 <FontSizeSelector currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
-                <div className="flex items-center ml-0.5 bg-slate-200/50 rounded p-0.5 border border-slate-200 h-7">
+                <div className="flex items-center gap-0.5">
                     <IncreaseFontSize currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                     <DecreaseFontSize currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 </div>

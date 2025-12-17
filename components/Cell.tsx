@@ -95,6 +95,21 @@ const Cell = memo(({
   const textDecoration = resolvedStyle.underline ? 'underline' : 'none';
   const color = resolvedStyle.color || '#0f172a';
   const backgroundColor = resolvedStyle.bg || (isInRange ? 'rgba(16, 185, 129, 0.1)' : '#fff');
+  
+  // Orientation logic
+  const verticalText = resolvedStyle.verticalText;
+  const rotation = resolvedStyle.textRotation || 0;
+  
+  // Apply rotation logic
+  // Excel +45deg is CCW. CSS rotate(45deg) is Clockwise. 
+  // So Excel +45 = CSS -45deg.
+  const cssRotation = rotation ? -rotation : 0; 
+  
+  // If rotated, we might need overflow visible to see it
+  const hasRotation = rotation !== 0;
+  const isVertical = verticalText;
+  
+  // WhiteSpace logic: if rotated, usually no-wrap unless specified, but standard flow differs
   const whiteSpace = resolvedStyle.wrapText ? 'normal' : 'nowrap';
   
   const displayValue = formatCellValue(data.value, resolvedStyle);
@@ -102,9 +117,11 @@ const Cell = memo(({
   return (
     <div
       className={cn(
-        "relative box-border flex items-center px-[4px] overflow-hidden select-none outline-none flex-shrink-0 border-r border-b border-slate-200",
+        "relative box-border flex items-center px-[4px] select-none outline-none flex-shrink-0 border-r border-b border-slate-200",
         isActive && "z-20",
-        isSelected && !isActive && "z-10" 
+        isSelected && !isActive && "z-10",
+        // If rotated, allow overflow visible so text sticks out like Excel
+        (hasRotation || isVertical) ? "overflow-visible z-[5]" : "overflow-hidden"
       )}
       style={{
           ...containerStyle,
@@ -138,7 +155,23 @@ const Cell = memo(({
         />
       ) : (
         !isMicroView && displayValue && (
-            <span className={cn("w-full pointer-events-none block", !resolvedStyle.wrapText && "truncate")}>
+            <span 
+                className={cn("pointer-events-none block origin-left", !resolvedStyle.wrapText && !hasRotation && !isVertical && "truncate")}
+                style={{
+                    // CSS writing-mode for vertical stacked text
+                    ...(isVertical ? { writingMode: 'vertical-rl', textOrientation: 'upright', width: '100%', display: 'flex', alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start' } : {}),
+                    // Transform for rotation
+                    ...(hasRotation ? { 
+                        transform: `rotate(${cssRotation}deg)`, 
+                        width: 'max-content',
+                        transformOrigin: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'center right' : 'center left',
+                        // Alignment adjustments for rotated text
+                        marginLeft: textAlign === 'center' ? 'auto' : undefined,
+                        marginRight: textAlign === 'center' ? 'auto' : undefined,
+                        display: 'inline-block'
+                    } : { width: '100%' })
+                }}
+            >
                 {displayValue}
             </span>
         )

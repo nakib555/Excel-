@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { RibbonButton, TabProps } from '../../shared';
 
@@ -8,10 +9,10 @@ const IncreaseFontSize: React.FC<IncreaseFontSizeProps> = ({ currentStyle, onTog
     return (
         <RibbonButton 
             variant="icon-only" 
-            icon={<span className="font-serif text-sm relative top-[1px] text-slate-700">A<span className="align-super text-[8px] absolute top-0 -right-1 text-slate-500">▲</span></span>} 
+            icon={<span className="font-serif text-[13px] font-medium text-slate-700">A</span>} 
             onClick={() => onToggleStyle('fontSize', currentFontSize + 1)} 
             title="Increase Font Size" 
-            className="w-6 h-6" 
+            hasDropdown
         />
     );
 };

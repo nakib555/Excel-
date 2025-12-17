@@ -1,3 +1,5 @@
+
+
 import React, { useRef, useState, useEffect, useLayoutEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
@@ -168,7 +170,22 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
   return (
     <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}>
       {styledIcon}
-      {hasDropdown && <ChevronDown size={8} className="absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]" />}
+      {hasDropdown && (
+        <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="8" 
+            height="8" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className="lucide lucide-chevron-down absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]"
+        >
+            <path d="m6 9 6 6 6-6"/>
+        </svg>
+      )}
     </button>
   );
 });
@@ -204,8 +221,6 @@ export const SmartDropdown = ({
                 left = window.innerWidth - 210;
             }
             if (left < 0) left = 10;
-            
-            // Adjust vertical if needed (omitted for toolbar dropdowns which usually go down)
             
             setCoords({ top, left });
         } else {

@@ -13,6 +13,8 @@ export interface CellStyle {
   wrapText?: boolean;
   format?: 'general' | 'currency' | 'percent' | 'comma' | 'number';
   decimalPlaces?: number;
+  textRotation?: number; // 0 to 180 (or -90 to 90). Excel usually uses -90 to 90.
+  verticalText?: boolean;
 }
 
 export interface CellData {

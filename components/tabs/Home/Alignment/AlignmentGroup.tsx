@@ -38,7 +38,7 @@ const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle }
             <div className="flex flex-col justify-center h-full gap-1">
                 {/* Row 1 */}
                 <div className="flex gap-1">
-                     <Orientation />
+                     <Orientation currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                      <WrapText currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 </div>
                 {/* Row 2 */}
