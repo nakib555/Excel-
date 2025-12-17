@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Lock, EyeOff, Minus, Check, ChevronDown } from 'lucide-react';
+import { X, Lock, EyeOff, Minus, Check, ChevronDown, MoveRight, Merge as MergeIcon } from 'lucide-react';
 import { CellStyle } from '../../types';
 import { cn } from '../../utils';
 
@@ -100,6 +100,31 @@ const CURRENCY_SYMBOL_OPTIONS = [
     { value: 'CNY', label: '¥ Chinese' },
 ];
 
+const HORIZONTAL_ALIGN_OPTIONS = [
+    { value: 'general', label: 'General' },
+    { value: 'left', label: 'Left (Indent)' },
+    { value: 'center', label: 'Center' },
+    { value: 'right', label: 'Right (Indent)' },
+    { value: 'fill', label: 'Fill' },
+    { value: 'justify', label: 'Justify' },
+    { value: 'centerAcross', label: 'Center Across Selection' },
+    { value: 'distributed', label: 'Distributed (Indent)' },
+];
+
+const VERTICAL_ALIGN_OPTIONS = [
+    { value: 'top', label: 'Top' },
+    { value: 'middle', label: 'Center' },
+    { value: 'bottom', label: 'Bottom' },
+    { value: 'justify', label: 'Justify' },
+    { value: 'distributed', label: 'Distributed' },
+];
+
+const TEXT_DIRECTION_OPTIONS = [
+    { value: 'context', label: 'Context' },
+    { value: 'ltr', label: 'Left-to-Right' },
+    { value: 'rtl', label: 'Right-to-Left' },
+];
+
 // Helper Component for Lists (Font, Size, etc.)
 const ScrollableList = ({ 
     items, 
@@ -176,13 +201,13 @@ const ModernSelect = ({
         <div ref={containerRef} className={cn("relative", className)}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full h-9 bg-white border border-slate-300 rounded-md px-3 text-sm text-slate-700 flex items-center justify-between hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm"
+                className="w-full h-8 bg-white border border-slate-300 rounded-[3px] px-3 text-[13px] text-slate-700 flex items-center justify-between hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm"
             >
                 <span className="truncate">{selectedLabel}</span>
                 <ChevronDown size={14} className="text-slate-400" />
             </button>
             {isOpen && (
-                <div className="absolute top-full left-0 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl z-50 max-h-60 overflow-auto py-1 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute top-full left-0 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl z-[1100] max-h-60 overflow-auto py-1 animate-in fade-in zoom-in-95 duration-100">
                     {options.map(option => (
                         <div
                             key={option.value}
@@ -617,127 +642,179 @@ const NumberTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => 
 
 const AlignmentTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => {
     return (
-        <div className="flex flex-col md:flex-row gap-4 h-full">
-            <div className="flex-1 flex flex-col gap-2">
+        <div className="flex flex-row gap-6 h-full font-sans">
+            {/* Left Column: Alignments and Controls */}
+            <div className="flex-1 flex flex-col gap-1">
+                
                 <GroupBox label="Text alignment">
-                    <div className="grid grid-cols-[80px_1fr] gap-y-3 gap-x-2 items-center">
-                        <span className="text-xs text-slate-600 text-right">Horizontal:</span>
-                        <select 
-                            className="border border-slate-300 rounded-[2px] text-sm py-1 px-1 outline-none focus:border-blue-500"
-                            value={style.align || 'left'}
-                            onChange={(e) => onChange('align', e.target.value)}
-                        >
-                            <option value="left">Left (Indent)</option>
-                            <option value="center">Center</option>
-                            <option value="right">Right (Indent)</option>
-                            <option value="justify">Justify</option>
-                        </select>
+                    <div className="flex flex-col gap-4 py-1">
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-[13px] text-slate-600 pl-0.5">Horizontal:</span>
+                            <ModernSelect 
+                                value={style.align || 'general'}
+                                options={HORIZONTAL_ALIGN_OPTIONS}
+                                onChange={(val) => onChange('align', val)}
+                                className="w-full"
+                            />
+                        </div>
 
-                        <span className="text-xs text-slate-600 text-right">Vertical:</span>
-                        <select 
-                            className="border border-slate-300 rounded-[2px] text-sm py-1 px-1 outline-none focus:border-blue-500"
-                            value={style.verticalAlign || 'bottom'}
-                            onChange={(e) => onChange('verticalAlign', e.target.value)}
-                        >
-                            <option value="top">Top</option>
-                            <option value="middle">Center</option>
-                            <option value="bottom">Bottom</option>
-                            <option value="distributed">Distributed</option>
-                        </select>
-                        
-                        <span className="text-xs text-slate-600 text-right">Indent:</span>
-                        <input 
-                            type="number" 
-                            className="w-16 border border-slate-300 rounded-[2px] px-2 py-0.5 text-sm outline-none focus:border-blue-500"
-                            value={style.indent || 0}
-                            onChange={(e) => onChange('indent', parseInt(e.target.value))} 
-                            min={0}
-                        />
+                        <div className="flex items-center gap-4">
+                            <span className="text-[13px] text-slate-600 pl-0.5 min-w-[60px]">Indent:</span>
+                            <div className="flex-1 flex items-center bg-slate-50 border border-slate-300 rounded-[3px] shadow-inner overflow-hidden focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400 transition-all">
+                                <button onClick={() => onChange('indent', Math.max(0, (style.indent || 0) - 1))} className="p-1 hover:bg-slate-200 text-slate-400 transition-colors"><Minus size={14}/></button>
+                                <input 
+                                    type="number" 
+                                    className="flex-1 bg-transparent text-center text-[13px] py-1 outline-none font-medium"
+                                    value={style.indent || 0}
+                                    onChange={(e) => onChange('indent', parseInt(e.target.value) || 0)}
+                                    min={0}
+                                />
+                                <button onClick={() => onChange('indent', (style.indent || 0) + 1)} className="p-1 hover:bg-slate-200 text-slate-400 transition-colors"><Check size={14}/></button>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-[13px] text-slate-600 pl-0.5">Vertical:</span>
+                            <ModernSelect 
+                                value={style.verticalAlign || 'bottom'}
+                                options={VERTICAL_ALIGN_OPTIONS}
+                                onChange={(val) => onChange('verticalAlign', val)}
+                                className="w-full"
+                            />
+                        </div>
                     </div>
                 </GroupBox>
 
                 <GroupBox label="Text control">
-                    <div className="flex flex-col gap-2 pl-2">
-                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer hover:bg-slate-100/50 rounded">
+                    <div className="flex flex-col gap-3 py-1">
+                        <label className="flex items-center gap-3 text-[13px] text-slate-700 select-none cursor-pointer group">
+                            <div className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center transition-all",
+                                style.wrapText ? "bg-blue-600 border-blue-600 shadow-sm" : "bg-white border-slate-300 group-hover:border-blue-400"
+                            )}>
+                                {style.wrapText && <Check size={12} className="text-white" strokeWidth={3} />}
+                            </div>
                             <input 
                                 type="checkbox" 
-                                className="rounded-sm border-slate-300 text-blue-600 focus:ring-blue-500"
+                                className="sr-only"
                                 checked={style.wrapText || false}
                                 onChange={(e) => onChange('wrapText', e.target.checked)}
                             />
-                            Wrap text
+                            <span>Wrap text</span>
                         </label>
-                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer hover:bg-slate-100/50 rounded">
+
+                        <label className="flex items-center gap-3 text-[13px] text-slate-700 select-none cursor-pointer group">
+                            <div className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center transition-all",
+                                style.shrinkToFit ? "bg-blue-600 border-blue-600 shadow-sm" : "bg-white border-slate-300 group-hover:border-blue-400"
+                            )}>
+                                {style.shrinkToFit && <Check size={12} className="text-white" strokeWidth={3} />}
+                            </div>
                             <input 
                                 type="checkbox"
-                                className="rounded-sm border-slate-300 text-blue-600 focus:ring-blue-500"
+                                className="sr-only"
                                 checked={style.shrinkToFit || false}
                                 onChange={(e) => onChange('shrinkToFit', e.target.checked)}
                             />
-                            Shrink to fit
+                            <span>Shrink to fit</span>
                         </label>
+
+                        <label className="flex items-center gap-3 text-[13px] text-slate-700 select-none cursor-pointer group">
+                            <div className={cn(
+                                "w-4 h-4 rounded border flex items-center justify-center transition-all",
+                                false ? "bg-blue-600 border-blue-600 shadow-sm" : "bg-white border-slate-300 group-hover:border-blue-400"
+                            )}>
+                                {false && <Check size={12} className="text-white" strokeWidth={3} />}
+                            </div>
+                            <input type="checkbox" className="sr-only" />
+                            <span>Merge cells</span>
+                        </label>
+                    </div>
+                </GroupBox>
+
+                <GroupBox label="Right-to-left">
+                    <div className="flex flex-col gap-1.5 py-1">
+                        <span className="text-[13px] text-slate-600 pl-0.5">Text direction:</span>
+                        <ModernSelect 
+                            value="context"
+                            options={TEXT_DIRECTION_OPTIONS}
+                            onChange={() => {}}
+                            className="w-full"
+                        />
                     </div>
                 </GroupBox>
             </div>
 
-            {/* Orientation Dial */}
-            <div className="w-40 flex flex-col">
+            {/* Right Column: Orientation */}
+            <div className="w-[200px] flex flex-col">
                 <GroupBox label="Orientation" className="h-full flex flex-col items-center">
-                    <div className="relative w-24 h-24 mt-4 select-none">
-                        {/* Dial background */}
-                        <div className="absolute inset-0 rounded-full border border-slate-300 bg-white"></div>
-                         {/* Axis */}
-                        <div className="absolute top-0 bottom-0 left-1/2 w-[1px] bg-slate-200"></div>
-                        <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-slate-200"></div>
+                    <div className="relative w-36 h-36 mt-4 select-none">
+                        {/* Dial background (Excel style semi-circle look) */}
+                        <div className="absolute inset-0 rounded-full border border-slate-200 bg-slate-50 shadow-inner overflow-hidden">
+                             {/* Segment markings */}
+                             <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
+                                <div className="absolute top-0 left-1/2 -ml-[1px] h-full w-[1px] bg-slate-400"></div>
+                                <div className="absolute left-0 top-1/2 -mt-[1px] w-full h-[1px] bg-slate-400"></div>
+                                <div className="absolute inset-0 rotate-45"><div className="absolute top-0 left-1/2 -ml-[1px] h-full w-[1px] bg-slate-400"></div></div>
+                                <div className="absolute inset-0 -rotate-45"><div className="absolute top-0 left-1/2 -ml-[1px] h-full w-[1px] bg-slate-400"></div></div>
+                             </div>
+                        </div>
                         
-                        {/* Semi-circle mask to make it look like Excel's half-dial */}
-                        <div className="absolute top-0 bottom-0 left-0 w-1/2 bg-[#f0f0f0] border-r border-slate-300" style={{ display: 'none' }}></div> {/* hidden for full dial */}
+                        {/* Half-circle covering background for Excel aesthetic */}
+                        <div className="absolute top-0 bottom-0 left-0 w-1/2 bg-white border-r border-slate-300 shadow-xl z-0 rounded-l-full"></div>
 
-                        {/* Interactive Points */}
+                        {/* Axis Points */}
+                        <div className="absolute top-0 left-1/2 -ml-1 w-2 h-2 rounded-full bg-slate-300 z-20"></div>
+                        <div className="absolute bottom-0 left-1/2 -ml-1 w-2 h-2 rounded-full bg-slate-300 z-20"></div>
+                        <div className="absolute top-1/2 right-0 -mt-1 w-2 h-2 rounded-full bg-slate-300 z-20"></div>
+
+                        {/* Interactive Invisible Dial for Dragging/Clicking */}
                         <div 
-                            className="absolute top-[-4px] left-1/2 -ml-1 w-2 h-2 rounded-full bg-slate-400 hover:bg-blue-500 cursor-pointer" 
-                            title="90°" onClick={() => onChange('textRotation', 90)}
-                        />
-                        <div 
-                            className="absolute bottom-[-4px] left-1/2 -ml-1 w-2 h-2 rounded-full bg-slate-400 hover:bg-blue-500 cursor-pointer" 
-                            title="-90°" onClick={() => onChange('textRotation', -90)}
-                        />
-                        <div 
-                            className="absolute top-1/2 right-[-4px] -mt-1 w-2 h-2 rounded-full bg-slate-400 hover:bg-blue-500 cursor-pointer" 
-                            title="0°" onClick={() => onChange('textRotation', 0)}
-                        />
-                        <div 
-                            className="absolute top-[15%] right-[15%] w-2 h-2 rounded-full bg-slate-300 hover:bg-blue-500 cursor-pointer" 
-                            title="45°" onClick={() => onChange('textRotation', 45)}
-                        />
-                        <div 
-                            className="absolute bottom-[15%] right-[15%] w-2 h-2 rounded-full bg-slate-300 hover:bg-blue-500 cursor-pointer" 
-                            title="-45°" onClick={() => onChange('textRotation', -45)}
+                            className="absolute inset-0 rounded-full z-30 cursor-pointer"
+                            onMouseDown={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const cx = rect.left + rect.width / 2;
+                                const cy = rect.top + rect.height / 2;
+                                const angle = Math.atan2(e.clientY - cy, e.clientX - cx);
+                                let deg = Math.round(angle * (180 / Math.PI));
+                                // Excel uses -90 to 90. 0 is far right.
+                                if (deg > 90) deg = 90;
+                                if (deg < -90) deg = -90;
+                                onChange('textRotation', -deg);
+                            }}
                         />
 
-                        {/* Text Preview */}
+                        {/* The "Text" Needle - Pivot from left */}
                         <div 
-                            className="absolute top-1/2 left-1/2 text-[10px] font-bold text-slate-900 pointer-events-none origin-left ml-1 flex items-center gap-1 transition-transform"
+                            className="absolute top-1/2 left-1/2 w-28 h-8 flex items-center gap-1 z-40 pointer-events-none transition-transform duration-200"
                             style={{ 
-                                transform: `translate(-50%, -50%) rotate(${-(style.textRotation || 0)}deg)`,
-                                width: '60px',
-                                justifyContent: (style.textRotation === 90 || style.textRotation === -90) ? 'center' : 'flex-start'
+                                transform: `translate(0, -50%) rotate(${-(style.textRotation || 0)}deg)`,
+                                transformOrigin: '0 50%'
                             }}
                         >
-                            Text <span className="w-4 h-[1px] bg-red-500"></span>
+                            <div className="w-[85px] h-[1px] bg-slate-400 relative">
+                                {/* Red marker at tip */}
+                                <div className="absolute right-0 top-1/2 -mt-1 w-2 h-2 bg-red-600 rounded-sm rotate-45 shadow-sm"></div>
+                            </div>
+                            <span className="text-[12px] font-bold text-slate-800 tracking-wider font-sans uppercase">Text</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 mt-auto mb-2">
-                        <input 
-                            type="number" 
-                            className="w-12 border border-slate-300 rounded-[2px] px-1 text-sm text-center outline-none focus:border-blue-500"
-                            value={style.textRotation || 0}
-                            onChange={(e) => onChange('textRotation', parseInt(e.target.value))}
-                            min={-90}
-                            max={90}
-                        />
-                        <span className="text-xs text-slate-600">Degrees</span>
+                    <div className="mt-auto mb-6 flex flex-col items-center gap-3 w-full">
+                        <div className="h-[1px] w-full bg-slate-200 shadow-sm"></div>
+                        <div className="flex items-center gap-3">
+                            <div className="flex items-center bg-white border border-slate-300 rounded-[3px] shadow-sm ring-1 ring-black/5">
+                                <input 
+                                    type="number" 
+                                    className="w-14 py-1.5 text-center text-[14px] font-bold outline-none text-blue-700 bg-transparent"
+                                    value={style.textRotation || 0}
+                                    onChange={(e) => onChange('textRotation', Math.max(-90, Math.min(90, parseInt(e.target.value) || 0)))}
+                                    min={-90}
+                                    max={90}
+                                />
+                            </div>
+                            <span className="text-[13px] font-medium text-slate-500 uppercase tracking-tight">Degrees</span>
+                        </div>
                     </div>
                 </GroupBox>
             </div>
