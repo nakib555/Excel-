@@ -1,11 +1,11 @@
 
-
 import React, { useEffect, useRef, memo, useCallback, useState, useMemo, useLayoutEffect, Suspense } from 'react';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
 import { numToChar, charToNum, getCellId, parseCellId, cn, getRange, getMergeRangeDimensions } from '../utils';
 import { NavigationDirection } from './Cell';
 import { Loader2 } from 'lucide-react';
-import { RowSkeleton } from './Skeletons';
+// Fix: RowSkeleton does not exist in Skeletons.tsx, using GroupSkeleton or specific component loaders instead
+import { GroupSkeleton } from './Skeletons';
 
 import GridRow from './GridRow';
 import ColumnHeader from './ColumnHeader';
@@ -245,7 +245,7 @@ const Grid: React.FC<GridProps> = ({
         } else {
             const scaleRatio = scale / prevScaleRef.current;
             const centerY = el.scrollTop + el.clientHeight / 2;
-            const centerX = el.scrollLeft + el.clientWidth / 2;
+            const centerX = el.scrollLeft + el.clientHeight / 2;
             el.scrollTop = (centerY * scaleRatio) - el.clientHeight / 2;
             el.scrollLeft = (centerX * scaleRatio) - el.clientWidth / 2;
         }

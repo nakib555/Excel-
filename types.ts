@@ -1,5 +1,4 @@
 
-
 export type CellId = string; // e.g., "A1", "B2"
 
 export interface CellBorder {
@@ -12,8 +11,8 @@ export interface CellStyle {
   italic?: boolean;
   underline?: boolean;
   strikethrough?: boolean;
-  align?: 'left' | 'center' | 'right' | 'justify';
-  verticalAlign?: 'top' | 'middle' | 'bottom' | 'distributed';
+  align?: 'left' | 'center' | 'right' | 'justify' | 'fill' | 'centerAcross' | 'distributed';
+  verticalAlign?: 'top' | 'middle' | 'bottom' | 'justify' | 'distributed';
   indent?: number; // Indentation level (0, 1, 2...)
   color?: string;
   bg?: string;
@@ -21,6 +20,8 @@ export interface CellStyle {
   fontSize?: number;
   wrapText?: boolean;
   shrinkToFit?: boolean; // Scales text down to fit cell width
+  mergeCells?: boolean;
+  textDirection?: 'context' | 'ltr' | 'rtl';
   format?: 'general' | 'number' | 'currency' | 'accounting' | 'shortDate' | 'longDate' | 'time' | 'percent' | 'fraction' | 'scientific' | 'text' | 'comma' | 'custom';
   formatString?: string; // For custom formats
   currencySymbol?: string; // 'USD', 'EUR', 'GBP', 'CNY', etc.

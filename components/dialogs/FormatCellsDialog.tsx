@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Lock, EyeOff, Minus, Check, ChevronDown, MoveRight, Merge as MergeIcon } from 'lucide-react';
+import { X, Lock, EyeOff, Minus, Check, ChevronDown, MoveRight, Merge as MergeIcon, Plus } from 'lucide-react';
 import { CellStyle } from '../../types';
 import { cn } from '../../utils';
 
@@ -21,9 +21,9 @@ const CATEGORIES = [
 const DATE_TYPES = [
     '*3/14/2012',
     'Wednesday, March 14, 2012',
-    '3/14/12',
-    '3/14/2012',
-    '03/14/12',
+    '2012-03-14',
+    '3-14-12',
+    '03-14-12',
     '14-Mar-12',
     '14-Mar'
 ];
@@ -47,8 +47,8 @@ const FRACTION_TYPES = [
 ];
 
 const SPECIAL_TYPES = [
-    'Zip Code',
-    'Zip Code + 4',
+    'ZIP Code',
+    'ZIP Code + 4',
     'Phone Number',
     'Social Security Number'
 ];
@@ -85,21 +85,6 @@ const COLORS = [
     '#0f172a', '#1e293b', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0', '#f1f5f9', '#f8fafc'
 ];
 
-const LOCALE_OPTIONS = [
-    { value: 'en-US', label: 'English (United States)' },
-    { value: 'en-GB', label: 'English (United Kingdom)' },
-    { value: 'ja-JP', label: 'Japanese' },
-    { value: 'fr-FR', label: 'French' },
-];
-
-const CURRENCY_SYMBOL_OPTIONS = [
-    { value: 'USD', label: '$ English (United States)' },
-    { value: 'None', label: 'None' },
-    { value: 'GBP', label: '£ English (United Kingdom)' },
-    { value: 'EUR', label: '€ Euro' },
-    { value: 'CNY', label: '¥ Chinese' },
-];
-
 const HORIZONTAL_ALIGN_OPTIONS = [
     { value: 'general', label: 'General' },
     { value: 'left', label: 'Left (Indent)' },
@@ -125,7 +110,14 @@ const TEXT_DIRECTION_OPTIONS = [
     { value: 'rtl', label: 'Right-to-Left' },
 ];
 
-// Helper Component for Lists (Font, Size, etc.)
+const CURRENCY_SYMBOL_OPTIONS = [
+    { value: 'USD', label: '$ English (United States)' },
+    { value: 'None', label: 'None' },
+    { value: 'GBP', label: '£ English (United Kingdom)' },
+    { value: 'EUR', label: '€ Euro' },
+    { value: 'CNY', label: '¥ Chinese' },
+];
+
 const ScrollableList = ({ 
     items, 
     selected, 
@@ -145,10 +137,10 @@ const ScrollableList = ({
         if (selectedRef.current) {
             selectedRef.current.scrollIntoView({ block: 'nearest' });
         }
-    }, []);
+    }, [selected]);
 
     return (
-        <div className={cn("border border-slate-200 bg-white overflow-y-auto flex flex-col h-full shadow-sm select-none rounded-md", className)}>
+        <div className={cn("border border-slate-200 bg-white overflow-y-auto flex flex-col h-full shadow-sm select-none rounded-sm", className)}>
             {items.map(item => {
                 const isSelected = selected === item;
                 return (
@@ -156,8 +148,8 @@ const ScrollableList = ({
                         key={item} 
                         ref={isSelected ? selectedRef : null}
                         className={cn(
-                            "px-3 py-1.5 text-[13px] cursor-pointer whitespace-nowrap border-l-2 border-transparent transition-colors",
-                            isSelected ? "bg-blue-50 text-blue-700 border-l-blue-500 font-medium" : "text-slate-700 hover:bg-slate-50"
+                            "px-3 py-1 text-[13px] cursor-pointer whitespace-nowrap transition-colors",
+                            isSelected ? "bg-[#0067b8] text-white" : "text-slate-800 hover:bg-slate-100"
                         )}
                         style={itemStyle ? itemStyle(item) : {}}
                         onClick={() => onSelect(item)}
@@ -170,7 +162,6 @@ const ScrollableList = ({
     );
 };
 
-// Modern Custom Select Component
 const ModernSelect = ({ 
     value, 
     options, 
@@ -201,24 +192,23 @@ const ModernSelect = ({
         <div ref={containerRef} className={cn("relative", className)}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full h-8 bg-white border border-slate-300 rounded-[3px] px-3 text-[13px] text-slate-700 flex items-center justify-between hover:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all shadow-sm"
+                className="w-full h-7 bg-white border border-slate-400 rounded-sm px-2 text-[12px] text-slate-800 flex items-center justify-between hover:border-slate-500 focus:ring-1 focus:ring-blue-400 transition-all shadow-sm"
             >
                 <span className="truncate">{selectedLabel}</span>
-                <ChevronDown size={14} className="text-slate-400" />
+                <ChevronDown size={12} className="text-slate-500" />
             </button>
             {isOpen && (
-                <div className="absolute top-full left-0 w-full mt-1 bg-white border border-slate-200 rounded-md shadow-xl z-[1100] max-h-60 overflow-auto py-1 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute top-full left-0 w-full mt-1 bg-white border border-slate-300 rounded-sm shadow-xl z-[1100] max-h-60 overflow-auto py-1 animate-in fade-in zoom-in-95 duration-75">
                     {options.map(option => (
                         <div
                             key={option.value}
                             onClick={() => { onChange(option.value); setIsOpen(false); }}
                             className={cn(
-                                "px-3 py-2 text-sm cursor-pointer hover:bg-slate-50 text-slate-700 flex items-center gap-2",
-                                option.value === value && "bg-blue-50 text-blue-700 font-medium"
+                                "px-3 py-1.5 text-[12px] cursor-pointer hover:bg-slate-100 text-slate-800",
+                                option.value === value && "bg-blue-50 font-medium"
                             )}
                         >
-                            {option.value === value && <Check size={12} className="text-blue-600" />}
-                            <span className={option.value !== value ? "pl-5" : ""}>{option.label}</span>
+                            <span>{option.label}</span>
                         </div>
                     ))}
                 </div>
@@ -227,141 +217,14 @@ const ModernSelect = ({
     );
 };
 
-const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, initialStyle, onApply }) => {
-  const [activeTab, setActiveTab] = useState('Number');
-  const [style, setStyle] = useState<CellStyle>(initialStyle);
-  const [isDragging, setIsDragging] = useState(false);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const dragRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-      if (isOpen) {
-          setStyle(JSON.parse(JSON.stringify(initialStyle))); // Deep copy
-          setPosition({ 
-              x: Math.max(0, (window.innerWidth - 700) / 2), 
-              y: Math.max(0, (window.innerHeight - 580) / 2) 
-          });
-      }
-  }, [isOpen, initialStyle]);
-
-  useEffect(() => {
-      const handleMouseMove = (e: MouseEvent) => {
-          if (!isDragging) return;
-          setPosition(prev => ({
-              x: prev.x + e.movementX,
-              y: prev.y + e.movementY
-          }));
-      };
-      const handleMouseUp = () => setIsDragging(false);
-
-      if (isDragging) {
-          window.addEventListener('mousemove', handleMouseMove);
-          window.addEventListener('mouseup', handleMouseUp);
-      }
-      return () => {
-          window.removeEventListener('mousemove', handleMouseMove);
-          window.removeEventListener('mouseup', handleMouseUp);
-      };
-  }, [isDragging]);
-
-  const updateStyle = (key: keyof CellStyle, value: any) => {
-      setStyle(prev => ({ ...prev, [key]: value }));
-  };
-
-  const handleApply = () => {
-      onApply(style);
-      onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-[1000] flex items-start justify-start pointer-events-none">
-        <div 
-            className="bg-white rounded-lg shadow-2xl border border-slate-200 w-full max-w-2xl md:w-[700px] h-[580px] flex flex-col pointer-events-auto overflow-hidden animate-in zoom-in-95 duration-100 ring-1 ring-black/5 font-sans"
-            style={{ 
-                transform: `translate(${position.x}px, ${position.y}px)`,
-                position: 'absolute'
-            }}
-        >
-            {/* Header */}
-            <div 
-                ref={dragRef}
-                className="h-10 bg-slate-50 border-b border-slate-200 flex items-center justify-between px-4 select-none cursor-default"
-                onMouseDown={(e) => {
-                    if (e.target === dragRef.current || (e.target as HTMLElement).tagName === 'SPAN') {
-                        setIsDragging(true);
-                    }
-                }}
-            >
-                <span className="text-sm font-semibold text-slate-800">Format Cells</span>
-                <button 
-                    onClick={onClose} 
-                    className="text-slate-400 hover:text-red-600 hover:bg-slate-200 p-1 rounded-md transition-colors"
-                >
-                    <X size={18} />
-                </button>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex bg-slate-50 border-b border-slate-200 px-4 pt-2 gap-1 overflow-x-auto no-scrollbar">
-                {TABS.map(tab => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
-                        className={cn(
-                            "px-5 py-2 text-[13px] rounded-t-md border-t border-l border-r relative top-[1px] transition-all font-medium",
-                            activeTab === tab 
-                                ? "bg-white border-slate-200 border-b-white text-blue-600 z-10" 
-                                : "bg-transparent border-transparent text-slate-500 hover:text-slate-800 hover:bg-slate-100 border-b-slate-200"
-                        )}
-                    >
-                        {tab}
-                    </button>
-                ))}
-                <div className="flex-1 border-b border-slate-200"></div>
-            </div>
-
-            {/* Content Area */}
-            <div className="flex-1 bg-white p-6 overflow-y-auto">
-                {activeTab === 'Number' && <NumberTab style={style} onChange={updateStyle} />}
-                {activeTab === 'Alignment' && <AlignmentTab style={style} onChange={updateStyle} />}
-                {activeTab === 'Font' && <FontTab style={style} onChange={updateStyle} />}
-                {activeTab === 'Border' && <BorderTab style={style} onChange={updateStyle} />}
-                {activeTab === 'Fill' && <FillTab style={style} onChange={updateStyle} />}
-                {activeTab === 'Protection' && <ProtectionTab style={style} onChange={updateStyle} />}
-            </div>
-
-            {/* Footer */}
-            <div className="h-16 border-t border-slate-200 bg-slate-50 flex items-center justify-end px-6 gap-3">
-                <button 
-                    onClick={onClose}
-                    className="px-5 py-2 bg-white hover:bg-slate-50 border border-slate-300 rounded-md text-sm text-slate-700 shadow-sm transition-colors font-medium min-w-[90px]"
-                >
-                    Cancel
-                </button>
-                <button 
-                    onClick={handleApply}
-                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 border border-transparent rounded-md text-sm text-white shadow-md transition-colors font-medium min-w-[90px]"
-                >
-                    OK
-                </button>
-            </div>
-        </div>
-    </div>
-  );
-};
-
-// --- Sub-Components for Tabs ---
-
 const GroupBox = ({ label, children, className }: { label: string, children?: React.ReactNode, className?: string }) => (
-    <fieldset className={cn("border border-slate-200 rounded-lg p-4 relative mt-3", className)}>
-        <legend className="text-[11px] font-bold text-slate-500 uppercase tracking-wider px-2 bg-white ml-2">{label}</legend>
+    <div className={cn("border border-slate-300 rounded-sm p-4 relative pt-5 mt-2", className)}>
+        <span className="absolute -top-2.5 left-2 bg-white px-1 text-[12px] font-medium text-slate-700">{label}</span>
         {children}
-    </fieldset>
+    </div>
 );
 
-const NumberTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => {
+const NumberTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => {
     const activeCat = style.format || 'general';
     const getCategory = () => {
         if (!style.format || style.format === 'general') return 'General';
@@ -387,7 +250,6 @@ const NumberTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => 
         };
         if (map[cat]) onChange('format', map[cat]);
         
-        // Reset type selection on cat change
         if (cat === 'Date') setSelectedType(DATE_TYPES[0]);
         if (cat === 'Time') setSelectedType(TIME_TYPES[0]);
         if (cat === 'Fraction') setSelectedType(FRACTION_TYPES[0]);
@@ -395,243 +257,79 @@ const NumberTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => 
         if (cat === 'Custom') setSelectedType(CUSTOM_TYPES[0]);
     };
 
-    const getSampleValue = () => {
-        if (selectedCat === 'Date') return '3/14/2012';
-        if (selectedCat === 'Time') return '1:30:55 PM';
-        if (selectedCat === 'Text') return 'Sample Text';
-        if (selectedCat === 'Currency') return `${style.currencySymbol || '$'}1,234.10`;
-        if (selectedCat === 'Percentage') return '25.00%';
-        return '1234.56';
-    }
-
     return (
-        <div className="flex h-full gap-6">
-            <div className="w-[160px] flex flex-col gap-2">
-                <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider pl-1">Category</span>
+        <div className={cn("flex h-full", isMobile ? "flex-col gap-4" : "gap-4")}>
+            <div className={cn("flex flex-col gap-1", isMobile ? "w-full" : "w-[150px]")}>
+                <span className="text-[12px] text-slate-700 font-medium">Category:</span>
                 <ScrollableList 
                     items={CATEGORIES}
                     selected={selectedCat}
                     onSelect={handleCatChange}
-                    className="flex-1 shadow-inner border-slate-200"
+                    className="flex-1"
                 />
             </div>
             
-            <div className="flex-1 flex flex-col gap-6 pt-1">
-                {/* Sample Section */}
-                <div className="flex flex-col gap-2">
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sample</span>
-                    <div className="h-12 bg-white border border-slate-300 rounded-md flex items-center px-4 text-sm font-medium text-slate-900 shadow-sm ring-1 ring-slate-900/5">
-                        {getSampleValue()}
+            <div className="flex-1 flex flex-col gap-2 pt-5">
+                <div className="flex flex-col gap-1">
+                    <span className="text-[12px] text-slate-700">Sample</span>
+                    <div className="h-8 bg-white border border-slate-300 rounded-sm flex items-center px-2 text-[13px] text-slate-800">
+                        {style.format === 'currency' ? `${style.currencySymbol || '$'}1,234.56` : '1234.56'}
                     </div>
                 </div>
 
-                {/* Dynamic Content */}
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col pt-2">
                     {selectedCat === 'General' && (
-                        <div className="mt-4 p-4 bg-slate-50 rounded-md text-sm text-slate-600 leading-relaxed border border-slate-100">
+                        <div className="text-[12px] text-slate-600 leading-relaxed">
                             General format cells have no specific number format.
                         </div>
                     )}
 
                     {(selectedCat === 'Number' || selectedCat === 'Currency') && (
-                        <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-right-2 duration-300">
-                            <div className="flex items-center gap-4">
-                                <span className="text-sm text-slate-700 w-28">Decimal places:</span>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2">
+                                <span className="text-[12px] text-slate-700 w-28">Decimal places:</span>
                                 <input 
                                     type="number" 
-                                    className="w-20 border border-slate-300 rounded-md px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 shadow-sm transition-all" 
+                                    className="w-16 h-7 border border-slate-300 rounded-sm px-2 text-[12px] outline-none" 
                                     value={style.decimalPlaces ?? 2}
                                     onChange={(e) => onChange('decimalPlaces', parseInt(e.target.value))}
                                     min={0}
-                                    max={30}
                                 />
                             </div>
                             
                             {selectedCat === 'Currency' && (
-                                <div className="flex items-center gap-4">
-                                    <span className="text-sm text-slate-700 w-28">Symbol:</span>
-                                    <div className="w-56">
-                                        <ModernSelect 
-                                            value={style.currencySymbol || 'USD'}
-                                            options={CURRENCY_SYMBOL_OPTIONS}
-                                            onChange={(val) => onChange('currencySymbol', val)}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {selectedCat === 'Number' && (
-                                <label className="flex items-center gap-2 mt-1 cursor-pointer">
-                                    <input type="checkbox" className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" defaultChecked />
-                                    <span className="text-sm text-slate-700">Use 1000 Separator (,)</span>
-                                </label>
-                            )}
-
-                            <div className="flex flex-col gap-2 mt-2">
-                                <span className="text-sm text-slate-700">Negative numbers:</span>
-                                <div className="border border-slate-200 h-32 overflow-y-auto bg-white rounded-md shadow-inner">
-                                    {NEGATIVE_NUMBERS.map(opt => (
-                                        <div 
-                                            key={opt.value}
-                                            onClick={() => setSelectedNegative(opt.value)}
-                                            className={cn(
-                                                "px-3 py-2 text-sm cursor-pointer transition-colors",
-                                                selectedNegative === opt.value ? "bg-blue-50 ring-1 ring-inset ring-blue-500/20" : "hover:bg-slate-50"
-                                            )}
-                                            style={{ color: selectedNegative === opt.value ? (opt.color === 'red' ? '#dc2626' : '#1e293b') : (opt.color === 'red' ? '#dc2626' : '#1e293b') }}
-                                        >
-                                            {opt.label}
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {selectedCat === 'Accounting' && (
-                        <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-right-2 duration-300">
-                            <div className="flex items-center gap-4">
-                                <span className="text-sm text-slate-700 w-28">Decimal places:</span>
-                                <input 
-                                    type="number" 
-                                    className="w-20 border border-slate-300 rounded-md px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 shadow-sm transition-all" 
-                                    value={style.decimalPlaces ?? 2}
-                                    onChange={(e) => onChange('decimalPlaces', parseInt(e.target.value))}
-                                    min={0}
-                                />
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <span className="text-sm text-slate-700 w-28">Symbol:</span>
-                                <div className="w-56">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[12px] text-slate-700 w-28">Symbol:</span>
                                     <ModernSelect 
                                         value={style.currencySymbol || 'USD'}
                                         options={CURRENCY_SYMBOL_OPTIONS}
                                         onChange={(val) => onChange('currencySymbol', val)}
+                                        className="w-48"
                                     />
                                 </div>
-                            </div>
-                            <div className="mt-4 p-4 bg-slate-50 rounded-md text-sm text-slate-600 leading-relaxed border border-slate-100">
-                                Accounting formats line up the currency symbols and decimal points in a column.
+                            )}
+
+                            <div className="flex flex-col gap-1 mt-2">
+                                <span className="text-[12px] text-slate-700">Negative numbers:</span>
+                                <ScrollableList 
+                                    items={NEGATIVE_NUMBERS.map(n => n.label)}
+                                    selected={selectedNegative}
+                                    onSelect={setSelectedNegative}
+                                    className="h-24"
+                                />
                             </div>
                         </div>
                     )}
 
                     {(selectedCat === 'Date' || selectedCat === 'Time') && (
-                        <div className="flex flex-col gap-5 h-full animate-in fade-in slide-in-from-right-2 duration-300">
-                            <div className="flex flex-col gap-2 flex-1">
-                                <span className="text-sm text-slate-700">Type:</span>
-                                <ScrollableList 
-                                    items={selectedCat === 'Date' ? DATE_TYPES : TIME_TYPES}
-                                    selected={selectedType}
-                                    onSelect={setSelectedType}
-                                    className="flex-1 shadow-inner border-slate-200"
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <span className="text-sm text-slate-700">Locale (location):</span>
-                                <ModernSelect 
-                                    value="en-US"
-                                    options={LOCALE_OPTIONS}
-                                    onChange={() => {}}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {selectedCat === 'Percentage' && (
-                        <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-right-2 duration-300">
-                             <div className="flex items-center gap-4">
-                                <span className="text-sm text-slate-700 w-28">Decimal places:</span>
-                                <input 
-                                    type="number" 
-                                    className="w-20 border border-slate-300 rounded-md px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 shadow-sm transition-all" 
-                                    value={style.decimalPlaces ?? 2}
-                                    onChange={(e) => onChange('decimalPlaces', parseInt(e.target.value))}
-                                    min={0}
-                                />
-                            </div>
-                            <div className="mt-4 p-4 bg-slate-50 rounded-md text-sm text-slate-600 leading-relaxed border border-slate-100">
-                                Percentage formats multiply the cell value by 100 and display the result with a percent symbol.
-                            </div>
-                        </div>
-                    )}
-
-                    {selectedCat === 'Fraction' && (
-                        <div className="flex flex-col gap-3 h-full animate-in fade-in slide-in-from-right-2 duration-300">
-                            <span className="text-sm text-slate-700">Type:</span>
+                        <div className="flex flex-col gap-2 flex-1">
+                            <span className="text-[12px] text-slate-700">Type:</span>
                             <ScrollableList 
-                                items={FRACTION_TYPES}
+                                items={selectedCat === 'Date' ? DATE_TYPES : TIME_TYPES}
                                 selected={selectedType}
                                 onSelect={setSelectedType}
-                                className="h-48 shadow-inner border-slate-200"
+                                className="flex-1"
                             />
-                        </div>
-                    )}
-
-                    {selectedCat === 'Scientific' && (
-                        <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-right-2 duration-300">
-                             <div className="flex items-center gap-4">
-                                <span className="text-sm text-slate-700 w-28">Decimal places:</span>
-                                <input 
-                                    type="number" 
-                                    className="w-20 border border-slate-300 rounded-md px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 shadow-sm transition-all" 
-                                    value={style.decimalPlaces ?? 2}
-                                    onChange={(e) => onChange('decimalPlaces', parseInt(e.target.value))}
-                                    min={0}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {selectedCat === 'Text' && (
-                        <div className="mt-4 p-4 bg-slate-50 rounded-md text-sm text-slate-600 leading-relaxed border border-slate-100">
-                            Text format cells are treated as text even when a number is in the cell. The cell is displayed exactly as entered.
-                        </div>
-                    )}
-
-                    {selectedCat === 'Special' && (
-                        <div className="flex flex-col gap-5 h-full animate-in fade-in slide-in-from-right-2 duration-300">
-                            <div className="flex flex-col gap-2 flex-1">
-                                <span className="text-sm text-slate-700">Type:</span>
-                                <ScrollableList 
-                                    items={SPECIAL_TYPES}
-                                    selected={selectedType}
-                                    onSelect={setSelectedType}
-                                    className="h-32 shadow-inner border-slate-200"
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <span className="text-sm text-slate-700">Locale (location):</span>
-                                <ModernSelect 
-                                    value="en-US"
-                                    options={LOCALE_OPTIONS}
-                                    onChange={() => {}}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {selectedCat === 'Custom' && (
-                        <div className="flex flex-col gap-4 h-full animate-in fade-in slide-in-from-right-2 duration-300">
-                            <div className="flex flex-col gap-2">
-                                <span className="text-sm text-slate-700">Type:</span>
-                                <input 
-                                    type="text" 
-                                    className="w-full border border-slate-300 rounded-md px-3 py-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" 
-                                    value={selectedType}
-                                    onChange={(e) => setSelectedType(e.target.value)}
-                                    placeholder="General"
-                                />
-                            </div>
-                            <ScrollableList 
-                                items={CUSTOM_TYPES}
-                                selected={selectedType}
-                                onSelect={setSelectedType}
-                                className="h-40 shadow-inner border-slate-200"
-                            />
-                            <div className="mt-auto p-3 bg-slate-50 rounded-md text-xs text-slate-500 border border-slate-100">
-                                Type the number format code, using one of the existing codes as a starting point.
-                            </div>
                         </div>
                     )}
                 </div>
@@ -640,16 +338,14 @@ const NumberTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => 
     );
 };
 
-const AlignmentTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => {
+const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => {
     return (
-        <div className="flex flex-row gap-6 h-full font-sans">
-            {/* Left Column: Alignments and Controls */}
-            <div className="flex-1 flex flex-col gap-1">
-                
+        <div className={cn("grid h-full text-slate-800", isMobile ? "grid-cols-1 gap-4" : "grid-cols-[1fr_200px] gap-6")}>
+            <div className="flex flex-col gap-1">
                 <GroupBox label="Text alignment">
-                    <div className="flex flex-col gap-4 py-1">
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-[13px] text-slate-600 pl-0.5">Horizontal:</span>
+                    <div className="flex flex-col gap-3 py-1">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[12px]">Horizontal:</span>
                             <ModernSelect 
                                 value={style.align || 'general'}
                                 options={HORIZONTAL_ALIGN_OPTIONS}
@@ -658,23 +354,19 @@ const AlignmentTab = ({ style, onChange }: { style: CellStyle, onChange: any }) 
                             />
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <span className="text-[13px] text-slate-600 pl-0.5 min-w-[60px]">Indent:</span>
-                            <div className="flex-1 flex items-center bg-slate-50 border border-slate-300 rounded-[3px] shadow-inner overflow-hidden focus-within:ring-2 focus-within:ring-blue-100 focus-within:border-blue-400 transition-all">
-                                <button onClick={() => onChange('indent', Math.max(0, (style.indent || 0) - 1))} className="p-1 hover:bg-slate-200 text-slate-400 transition-colors"><Minus size={14}/></button>
-                                <input 
-                                    type="number" 
-                                    className="flex-1 bg-transparent text-center text-[13px] py-1 outline-none font-medium"
-                                    value={style.indent || 0}
-                                    onChange={(e) => onChange('indent', parseInt(e.target.value) || 0)}
-                                    min={0}
-                                />
-                                <button onClick={() => onChange('indent', (style.indent || 0) + 1)} className="p-1 hover:bg-slate-200 text-slate-400 transition-colors"><Check size={14}/></button>
-                            </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[12px] w-14">Indent:</span>
+                            <input 
+                                type="number" 
+                                className="w-16 h-7 bg-white border border-slate-400 rounded-sm px-2 text-[12px] outline-none"
+                                value={style.indent || 0}
+                                onChange={(e) => onChange('indent', parseInt(e.target.value) || 0)}
+                                min={0}
+                            />
                         </div>
 
-                        <div className="flex flex-col gap-1.5">
-                            <span className="text-[13px] text-slate-600 pl-0.5">Vertical:</span>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[12px]">Vertical:</span>
                             <ModernSelect 
                                 value={style.verticalAlign || 'bottom'}
                                 options={VERTICAL_ALIGN_OPTIONS}
@@ -686,134 +378,84 @@ const AlignmentTab = ({ style, onChange }: { style: CellStyle, onChange: any }) 
                 </GroupBox>
 
                 <GroupBox label="Text control">
-                    <div className="flex flex-col gap-3 py-1">
-                        <label className="flex items-center gap-3 text-[13px] text-slate-700 select-none cursor-pointer group">
-                            <div className={cn(
-                                "w-4 h-4 rounded border flex items-center justify-center transition-all",
-                                style.wrapText ? "bg-blue-600 border-blue-600 shadow-sm" : "bg-white border-slate-300 group-hover:border-blue-400"
-                            )}>
-                                {style.wrapText && <Check size={12} className="text-white" strokeWidth={3} />}
-                            </div>
-                            <input 
-                                type="checkbox" 
-                                className="sr-only"
-                                checked={style.wrapText || false}
-                                onChange={(e) => onChange('wrapText', e.target.checked)}
-                            />
-                            <span>Wrap text</span>
+                    <div className="flex flex-col gap-2 py-1">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" className="w-3.5 h-3.5" checked={!!style.wrapText} onChange={(e) => onChange('wrapText', e.target.checked)} />
+                            <span className="text-[12px]">Wrap text</span>
                         </label>
-
-                        <label className="flex items-center gap-3 text-[13px] text-slate-700 select-none cursor-pointer group">
-                            <div className={cn(
-                                "w-4 h-4 rounded border flex items-center justify-center transition-all",
-                                style.shrinkToFit ? "bg-blue-600 border-blue-600 shadow-sm" : "bg-white border-slate-300 group-hover:border-blue-400"
-                            )}>
-                                {style.shrinkToFit && <Check size={12} className="text-white" strokeWidth={3} />}
-                            </div>
-                            <input 
-                                type="checkbox"
-                                className="sr-only"
-                                checked={style.shrinkToFit || false}
-                                onChange={(e) => onChange('shrinkToFit', e.target.checked)}
-                            />
-                            <span>Shrink to fit</span>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" className="w-3.5 h-3.5" checked={!!style.shrinkToFit} onChange={(e) => onChange('shrinkToFit', e.target.checked)} />
+                            <span className="text-[12px]">Shrink to fit</span>
                         </label>
-
-                        <label className="flex items-center gap-3 text-[13px] text-slate-700 select-none cursor-pointer group">
-                            <div className={cn(
-                                "w-4 h-4 rounded border flex items-center justify-center transition-all",
-                                false ? "bg-blue-600 border-blue-600 shadow-sm" : "bg-white border-slate-300 group-hover:border-blue-400"
-                            )}>
-                                {false && <Check size={12} className="text-white" strokeWidth={3} />}
-                            </div>
-                            <input type="checkbox" className="sr-only" />
-                            <span>Merge cells</span>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" className="w-3.5 h-3.5" checked={!!style.mergeCells} onChange={(e) => onChange('mergeCells', e.target.checked)} />
+                            <span className="text-[12px]">Merge cells</span>
                         </label>
                     </div>
                 </GroupBox>
 
                 <GroupBox label="Right-to-left">
-                    <div className="flex flex-col gap-1.5 py-1">
-                        <span className="text-[13px] text-slate-600 pl-0.5">Text direction:</span>
+                    <div className="flex flex-col gap-1 py-1">
+                        <span className="text-[12px]">Text direction:</span>
                         <ModernSelect 
-                            value="context"
+                            value={style.textDirection || 'context'}
                             options={TEXT_DIRECTION_OPTIONS}
-                            onChange={() => {}}
+                            onChange={(val) => onChange('textDirection', val)}
                             className="w-full"
                         />
                     </div>
                 </GroupBox>
             </div>
 
-            {/* Right Column: Orientation */}
-            <div className="w-[200px] flex flex-col">
-                <GroupBox label="Orientation" className="h-full flex flex-col items-center">
-                    <div className="relative w-36 h-36 mt-4 select-none">
-                        {/* Dial background (Excel style semi-circle look) */}
-                        <div className="absolute inset-0 rounded-full border border-slate-200 bg-slate-50 shadow-inner overflow-hidden">
-                             {/* Segment markings */}
-                             <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-                                <div className="absolute top-0 left-1/2 -ml-[1px] h-full w-[1px] bg-slate-400"></div>
-                                <div className="absolute left-0 top-1/2 -mt-[1px] w-full h-[1px] bg-slate-400"></div>
-                                <div className="absolute inset-0 rotate-45"><div className="absolute top-0 left-1/2 -ml-[1px] h-full w-[1px] bg-slate-400"></div></div>
-                                <div className="absolute inset-0 -rotate-45"><div className="absolute top-0 left-1/2 -ml-[1px] h-full w-[1px] bg-slate-400"></div></div>
-                             </div>
+            <div className="flex flex-col gap-1">
+                <GroupBox label="Orientation" className="h-full">
+                    <div className="flex flex-col items-center justify-start gap-4 py-2 h-full">
+                        <div className="relative w-28 h-28 border border-slate-300 bg-white shadow-inner flex items-center justify-center">
+                            {/* The Clock Background Quadrant */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                                <div className="w-full h-[1px] bg-slate-400" />
+                                <div className="h-full w-[1px] bg-slate-400" />
+                            </div>
+                            
+                            {/* Vertical "Text" Box */}
+                            <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center border border-slate-300 px-1 py-4 bg-slate-50 text-[10px] uppercase font-bold tracking-tighter text-slate-400 z-0">
+                                <span>T</span><span>e</span><span>x</span><span>t</span>
+                            </div>
+
+                            {/* Clock Hand / Needle */}
+                            <div 
+                                className="absolute h-full w-full pointer-events-none z-10 transition-transform duration-200"
+                                style={{ transform: `rotate(${(style.textRotation || 0) * -1}deg)` }}
+                            >
+                                <div className="absolute top-1/2 left-1/2 w-12 h-[2px] bg-blue-600 origin-left" />
+                                <div className="absolute top-1/2 left-[calc(50%+44px)] w-2.5 h-2.5 bg-blue-600 rounded-full -translate-y-1/2" />
+                            </div>
+
+                            {/* Invisible Interactive Arc (Simplified) */}
+                            <div 
+                                className="absolute inset-0 cursor-crosshair z-20"
+                                onMouseDown={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const centerX = rect.left + rect.width / 2;
+                                    const centerY = rect.top + rect.height / 2;
+                                    const angle = Math.atan2(centerY - e.clientY, e.clientX - centerX) * (180 / Math.PI);
+                                    onChange('textRotation', Math.round(Math.max(-90, Math.min(90, angle))));
+                                }}
+                            />
                         </div>
                         
-                        {/* Half-circle covering background for Excel aesthetic */}
-                        <div className="absolute top-0 bottom-0 left-0 w-1/2 bg-white border-r border-slate-300 shadow-xl z-0 rounded-l-full"></div>
-
-                        {/* Axis Points */}
-                        <div className="absolute top-0 left-1/2 -ml-1 w-2 h-2 rounded-full bg-slate-300 z-20"></div>
-                        <div className="absolute bottom-0 left-1/2 -ml-1 w-2 h-2 rounded-full bg-slate-300 z-20"></div>
-                        <div className="absolute top-1/2 right-0 -mt-1 w-2 h-2 rounded-full bg-slate-300 z-20"></div>
-
-                        {/* Interactive Invisible Dial for Dragging/Clicking */}
-                        <div 
-                            className="absolute inset-0 rounded-full z-30 cursor-pointer"
-                            onMouseDown={(e) => {
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                const cx = rect.left + rect.width / 2;
-                                const cy = rect.top + rect.height / 2;
-                                const angle = Math.atan2(e.clientY - cy, e.clientX - cx);
-                                let deg = Math.round(angle * (180 / Math.PI));
-                                // Excel uses -90 to 90. 0 is far right.
-                                if (deg > 90) deg = 90;
-                                if (deg < -90) deg = -90;
-                                onChange('textRotation', -deg);
-                            }}
-                        />
-
-                        {/* The "Text" Needle - Pivot from left */}
-                        <div 
-                            className="absolute top-1/2 left-1/2 w-28 h-8 flex items-center gap-1 z-40 pointer-events-none transition-transform duration-200"
-                            style={{ 
-                                transform: `translate(0, -50%) rotate(${-(style.textRotation || 0)}deg)`,
-                                transformOrigin: '0 50%'
-                            }}
-                        >
-                            <div className="w-[85px] h-[1px] bg-slate-400 relative">
-                                {/* Red marker at tip */}
-                                <div className="absolute right-0 top-1/2 -mt-1 w-2 h-2 bg-red-600 rounded-sm rotate-45 shadow-sm"></div>
-                            </div>
-                            <span className="text-[12px] font-bold text-slate-800 tracking-wider font-sans uppercase">Text</span>
-                        </div>
-                    </div>
-
-                    <div className="mt-auto mb-6 flex flex-col items-center gap-3 w-full">
-                        <div className="h-[1px] w-full bg-slate-200 shadow-sm"></div>
-                        <div className="flex items-center gap-3">
-                            <div className="flex items-center bg-white border border-slate-300 rounded-[3px] shadow-sm ring-1 ring-black/5">
+                        <div className="flex flex-col items-center gap-1 w-full mt-2">
+                             <div className="flex items-center gap-2">
                                 <input 
                                     type="number" 
-                                    className="w-14 py-1.5 text-center text-[14px] font-bold outline-none text-blue-700 bg-transparent"
+                                    className="w-14 h-7 border border-slate-400 rounded-sm px-1 text-center text-[12px] font-bold text-blue-700 bg-blue-50" 
                                     value={style.textRotation || 0}
-                                    onChange={(e) => onChange('textRotation', Math.max(-90, Math.min(90, parseInt(e.target.value) || 0)))}
+                                    onChange={(e) => onChange('textRotation', parseInt(e.target.value) || 0)}
                                     min={-90}
                                     max={90}
                                 />
-                            </div>
-                            <span className="text-[13px] font-medium text-slate-500 uppercase tracking-tight">Degrees</span>
+                                <span className="text-[12px] font-medium text-slate-700">Degrees</span>
+                             </div>
                         </div>
                     </div>
                 </GroupBox>
@@ -822,382 +464,247 @@ const AlignmentTab = ({ style, onChange }: { style: CellStyle, onChange: any }) 
     );
 };
 
-const FontTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => {
-    return (
-        <div className="flex flex-col gap-4 h-full">
-            <div className="flex gap-4 h-[200px]">
-                {/* Font Family */}
-                <div className="flex-1 flex flex-col gap-1 h-full">
-                    <span className="text-xs text-slate-600">Font:</span>
-                    <input type="text" value={style.fontFamily || 'Inter'} readOnly className="border border-slate-300 border-b-0 px-2 py-1 text-sm bg-white" />
-                    <ScrollableList 
-                        items={['Inter', 'Arial', 'Calibri', 'Times New Roman', 'Verdana', 'Courier New', 'Georgia', 'Comic Sans MS', 'Trebuchet MS']}
-                        selected={style.fontFamily || 'Inter'}
-                        onSelect={(f) => onChange('fontFamily', f)}
-                        className="flex-1"
-                        itemStyle={(item) => ({ fontFamily: item as string })}
-                    />
-                </div>
+const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => {
+    const fontStyles = ['Regular', 'Italic', 'Bold', 'Bold Italic'];
+    const currentStyleStr = style.bold && style.italic ? 'Bold Italic' : style.bold ? 'Bold' : style.italic ? 'Italic' : 'Regular';
 
-                {/* Font Style */}
-                <div className="w-32 flex flex-col gap-1 h-full">
-                    <span className="text-xs text-slate-600">Font style:</span>
-                    <input 
-                        type="text" 
-                        value={style.bold ? (style.italic ? 'Bold Italic' : 'Bold') : (style.italic ? 'Italic' : 'Regular')} 
-                        readOnly 
-                        className="border border-slate-300 border-b-0 px-2 py-1 text-sm bg-white" 
-                    />
-                    <div className="border border-slate-300 bg-white overflow-y-auto flex flex-col h-full shadow-inner">
-                         <div className={`px-2 py-0.5 text-sm cursor-pointer ${!style.bold && !style.italic ? "bg-[#2563eb] text-white" : "hover:bg-slate-100"}`} onClick={() => { onChange('bold', false); onChange('italic', false); }}>Regular</div>
-                         <div className={`px-2 py-0.5 text-sm italic cursor-pointer ${!style.bold && style.italic ? "bg-[#2563eb] text-white" : "hover:bg-slate-100"}`} onClick={() => { onChange('bold', false); onChange('italic', true); }}>Italic</div>
-                         <div className={`px-2 py-0.5 text-sm font-bold cursor-pointer ${style.bold && !style.italic ? "bg-[#2563eb] text-white" : "hover:bg-slate-100"}`} onClick={() => { onChange('bold', true); onChange('italic', false); }}>Bold</div>
-                         <div className={`px-2 py-0.5 text-sm font-bold italic cursor-pointer ${style.bold && style.italic ? "bg-[#2563eb] text-white" : "hover:bg-slate-100"}`} onClick={() => { onChange('bold', true); onChange('italic', true); }}>Bold Italic</div>
-                    </div>
-                </div>
-
-                {/* Size */}
-                <div className="w-20 flex flex-col gap-1 h-full">
-                    <span className="text-xs text-slate-600">Size:</span>
-                    <input type="number" value={style.fontSize || 13} readOnly className="border border-slate-300 border-b-0 px-2 py-1 text-sm bg-white w-full" />
-                    <ScrollableList 
-                        items={[8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]}
-                        selected={style.fontSize || 13}
-                        onSelect={(s) => onChange('fontSize', s)}
-                        className="flex-1"
-                    />
-                </div>
-            </div>
-
-            <div className="flex gap-4">
-                 {/* Underline */}
-                <div className="flex-1">
-                    <span className="text-xs text-slate-600 block mb-1">Underline:</span>
-                    <select 
-                        className="w-full border border-slate-300 rounded-[2px] px-2 py-1 text-sm outline-none"
-                        value={style.underline ? 'single' : 'none'}
-                        onChange={(e) => onChange('underline', e.target.value === 'single')}
-                    >
-                        <option value="none">None</option>
-                        <option value="single">Single</option>
-                    </select>
-                </div>
-                {/* Color */}
-                <div className="flex-1">
-                    <span className="text-xs text-slate-600 block mb-1">Color:</span>
-                    <div className="relative">
-                        <button className="w-full border border-slate-300 rounded-[2px] px-2 py-1 text-left text-sm bg-white flex items-center justify-between">
-                            <span>Automatic</span>
-                            <div className="w-3 h-3 bg-black border border-slate-200" style={{ backgroundColor: style.color || '#000' }}></div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <GroupBox label="Effects">
-                    <div className="flex flex-col gap-1 pl-1">
-                        <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                className="rounded-sm border-slate-300 text-blue-600 focus:ring-blue-500"
-                                checked={style.strikethrough || false} 
-                                onChange={(e) => onChange('strikethrough', e.target.checked)}
-                            />
-                            Strikethrough
-                        </label>
-                         <label className="flex items-center gap-2 text-sm text-slate-400 cursor-not-allowed">
-                            <input type="checkbox" disabled className="rounded-sm border-slate-300" />
-                            Superscript
-                        </label>
-                        <label className="flex items-center gap-2 text-sm text-slate-400 cursor-not-allowed">
-                            <input type="checkbox" disabled className="rounded-sm border-slate-300" />
-                            Subscript
-                        </label>
-                    </div>
-                </GroupBox>
-
-                <GroupBox label="Preview">
-                    <div className="h-[76px] flex items-center justify-center border border-slate-300 bg-white">
-                        <span style={{
-                            fontFamily: style.fontFamily,
-                            fontSize: Math.min(24, Math.max(12, style.fontSize || 13)), // Clamp for preview
-                            fontWeight: style.bold ? 'bold' : 'normal',
-                            fontStyle: style.italic ? 'italic' : 'normal',
-                            textDecoration: [
-                                style.underline ? 'underline' : '',
-                                style.strikethrough ? 'line-through' : ''
-                            ].join(' ').trim(),
-                            color: style.color
-                        }}>
-                            AaBbCcYyZz
-                        </span>
-                    </div>
-                </GroupBox>
-            </div>
-        </div>
-    );
-};
-
-const BorderTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => {
-    const toggleBorder = (side: 'top' | 'bottom' | 'left' | 'right' | 'outline' | 'none') => {
-        const current = style.borders || {};
-        const newBorders = { ...current };
-        const defaultBorder = { style: 'thin', color: '#000' } as const;
-
-        if (side === 'none') {
-            onChange('borders', {});
-            return;
-        }
-        if (side === 'outline') {
-            newBorders.top = defaultBorder;
-            newBorders.bottom = defaultBorder;
-            newBorders.left = defaultBorder;
-            newBorders.right = defaultBorder;
-            onChange('borders', newBorders);
-            return;
-        }
-
-        if (newBorders[side]) {
-            delete newBorders[side];
-        } else {
-            newBorders[side] = defaultBorder;
-        }
-        onChange('borders', newBorders);
+    const handleStyleChange = (s: string) => {
+        onChange('bold', s.includes('Bold'));
+        onChange('italic', s.includes('Italic'));
     };
 
     return (
-        <div className="flex flex-col gap-4 h-full">
-            <div className="flex gap-6 h-full">
-                {/* Left Column: Line Style & Color */}
-                <div className="w-[180px] flex flex-col gap-4">
-                    <div className="flex flex-col gap-1 flex-1">
-                        <span className="text-xs text-slate-600">Line Style:</span>
-                        <div className="border border-slate-300 bg-white p-1 flex flex-col gap-1 h-[140px] overflow-y-auto">
-                            <div className="flex items-center gap-2 px-2 py-1 hover:bg-slate-100 cursor-pointer border border-transparent hover:border-slate-200">
-                                <span className="text-xs text-slate-400">None</span>
-                            </div>
-                            <div className="px-2 py-1 hover:bg-slate-100 cursor-pointer group"><div className="border-b border-black h-2"></div></div>
-                            <div className="px-2 py-1 hover:bg-slate-100 cursor-pointer group"><div className="border-b-[2px] border-black h-2"></div></div>
-                            <div className="px-2 py-1 hover:bg-slate-100 cursor-pointer group"><div className="border-b border-dashed border-black h-2"></div></div>
-                            <div className="px-2 py-1 hover:bg-slate-100 cursor-pointer group"><div className="border-b border-dotted border-black h-2"></div></div>
-                            <div className="px-2 py-1 hover:bg-slate-100 cursor-pointer group"><div className="border-b-[3px] border-double border-black h-2"></div></div>
-                        </div>
-                    </div>
-                    
-                    <div className="flex flex-col gap-1">
-                        <span className="text-xs text-slate-600">Color:</span>
-                        <button className="w-full border border-slate-300 rounded-[2px] px-2 py-1 text-left text-sm bg-white flex items-center justify-between">
-                            <span>Automatic</span>
-                            <div className="w-4 h-4 bg-black border border-slate-200"></div>
-                        </button>
-                    </div>
-                </div>
-
-                {/* Right Column: Presets & Diagram */}
-                <div className="flex-1 flex flex-col gap-4">
-                    <div className="flex flex-col gap-1">
-                        <span className="text-xs text-slate-600">Presets:</span>
-                        <div className="flex gap-2">
-                             <button 
-                                className="flex flex-col items-center justify-center w-16 h-14 border border-slate-300 hover:bg-blue-50 hover:border-blue-300 rounded transition-all bg-white shadow-sm"
-                                onClick={() => toggleBorder('none')}
-                            >
-                                <div className="w-6 h-6 border border-slate-200 flex items-center justify-center text-slate-300"><Minus size={12} /></div>
-                                <span className="text-[10px] text-slate-600 mt-1">None</span>
-                            </button>
-                            <button 
-                                className="flex flex-col items-center justify-center w-16 h-14 border border-slate-300 hover:bg-blue-50 hover:border-blue-300 rounded transition-all bg-white shadow-sm"
-                                onClick={() => toggleBorder('outline')}
-                            >
-                                <div className="w-6 h-6 border-2 border-slate-800"></div>
-                                <span className="text-[10px] text-slate-600 mt-1">Outline</span>
-                            </button>
-                            <button 
-                                className="flex flex-col items-center justify-center w-16 h-14 border border-slate-300 hover:bg-blue-50 hover:border-blue-300 rounded transition-all bg-white shadow-sm"
-                                onClick={() => {}} // Not implemented fully for this demo
-                            >
-                                <div className="w-6 h-6 border border-slate-400 grid grid-cols-2 grid-rows-2">
-                                    <div className="border-r border-b border-slate-800"></div>
-                                    <div className="border-b border-slate-800"></div>
-                                    <div className="border-r border-slate-800"></div>
-                                    <div></div>
-                                </div>
-                                <span className="text-[10px] text-slate-600 mt-1">Inside</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                        <span className="text-xs text-slate-600">Border:</span>
-                        {/* Interactive Border Diagram */}
-                        <div className="w-[180px] h-[180px] relative">
-                            {/* Grid Lines (Guides) */}
-                            <div className="absolute top-4 bottom-4 left-4 right-4 border border-slate-200"></div>
-                            <div className="absolute top-1/2 left-4 right-4 h-[1px] bg-slate-200"></div>
-                            <div className="absolute left-1/2 top-4 bottom-4 w-[1px] bg-slate-200"></div>
-                            
-                            {/* Corner Controls */}
-                            <div className="absolute top-0 left-0 text-[10px] w-4 h-4"></div>
-                            
-                            {/* Text preview */}
-                            <div className="absolute inset-0 flex items-center justify-center select-none pointer-events-none">
-                                <span className="text-slate-300 text-lg">Text</span>
-                                <span className="text-slate-300 text-lg ml-8">Text</span>
-                            </div>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center select-none pointer-events-none pt-8">
-                                <span className="text-slate-300 text-lg">Text</span>
-                                <span className="text-slate-300 text-lg ml-8">Text</span>
-                            </div>
-
-                            {/* Top Border */}
-                            <div 
-                                className={cn("absolute top-4 left-4 right-4 h-2 -mt-1 cursor-pointer flex items-center justify-center hover:bg-blue-50 z-10", style.borders?.top && "z-20")}
-                                onClick={() => toggleBorder('top')}
-                            >
-                                <div className={cn("w-full bg-black transition-all", style.borders?.top ? "h-[2px]" : "h-[1px] bg-slate-300")}></div>
-                                {/* Arrow indicators */}
-                                <div className={cn("absolute -left-3 top-0 text-slate-400 opacity-0 hover:opacity-100", style.borders?.top && "text-blue-600 opacity-100")}>
-                                   <div className="w-1 h-2 bg-current"></div>
-                                </div>
-                            </div>
-                            
-                            {/* Bottom Border */}
-                            <div 
-                                className={cn("absolute bottom-4 left-4 right-4 h-2 -mb-1 cursor-pointer flex items-center justify-center hover:bg-blue-50 z-10", style.borders?.bottom && "z-20")}
-                                onClick={() => toggleBorder('bottom')}
-                            >
-                                <div className={cn("w-full bg-black transition-all", style.borders?.bottom ? "h-[2px]" : "h-[1px] bg-slate-300")}></div>
-                            </div>
-
-                            {/* Left Border */}
-                            <div 
-                                className={cn("absolute top-4 bottom-4 left-4 w-2 -ml-1 cursor-pointer flex items-center justify-center hover:bg-blue-50 z-10", style.borders?.left && "z-20")}
-                                onClick={() => toggleBorder('left')}
-                            >
-                                <div className={cn("h-full bg-black transition-all", style.borders?.left ? "w-[2px]" : "w-[1px] bg-slate-300")}></div>
-                            </div>
-
-                            {/* Right Border */}
-                            <div 
-                                className={cn("absolute top-4 bottom-4 right-4 w-2 -mr-1 cursor-pointer flex items-center justify-center hover:bg-blue-50 z-10", style.borders?.right && "z-20")}
-                                onClick={() => toggleBorder('right')}
-                            >
-                                <div className={cn("h-full bg-black transition-all", style.borders?.right ? "w-[2px]" : "w-[1px] bg-slate-300")}></div>
-                            </div>
-                        </div>
-                         <div className="text-xs text-slate-500 mt-2 max-w-[240px]">
-                            Click on diagram or use buttons to apply borders.
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const FillTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => {
-    return (
-        <div className="flex flex-col gap-4">
-            <GroupBox label="Background Color">
-                <div className="flex flex-col gap-3">
-                    <button 
-                        className={cn("w-full text-left px-3 py-1.5 border rounded-[2px] text-sm mb-1 transition-colors", !style.bg || style.bg === 'transparent' ? "bg-[#e0efff] border-[#69a1e6] text-blue-900" : "bg-white border-slate-300 hover:bg-slate-50")}
-                        onClick={() => onChange('bg', 'transparent')}
-                    >
-                        No Color
-                    </button>
-                    
-                    <div className="grid grid-cols-10 gap-1">
-                        {COLORS.map(c => (
-                            <div 
-                                key={c}
-                                className={cn(
-                                    "w-7 h-7 cursor-pointer border hover:border-orange-400 hover:scale-110 transition-transform shadow-sm",
-                                    style.bg === c ? "border-white ring-2 ring-blue-500 z-10" : "border-slate-300"
-                                )}
-                                style={{ backgroundColor: c }}
-                                onClick={() => onChange('bg', c)}
-                                title={c}
-                            />
-                        ))}
-                    </div>
-                </div>
-            </GroupBox>
-
-            <div className="grid grid-cols-2 gap-4">
-                <GroupBox label="Pattern">
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-600 w-20">Pattern Style:</span>
-                            <select className="flex-1 border border-slate-300 rounded-[2px] text-sm p-1 outline-none">
-                                <option>Solid</option>
-                                <option>75% Gray</option>
-                                <option>50% Gray</option>
-                                <option>25% Gray</option>
-                            </select>
-                        </div>
-                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-600 w-20">Pattern Color:</span>
-                            <button className="flex-1 border border-slate-300 rounded-[2px] text-sm p-1 text-left bg-white flex items-center justify-between">
-                                <span>Automatic</span>
-                                <div className="w-3 h-3 bg-black"></div>
-                            </button>
-                        </div>
-                    </div>
-                </GroupBox>
-
-                <GroupBox label="Sample">
-                    <div className="h-full flex items-center justify-center p-2">
-                         <div 
-                            className="w-full h-12 border border-slate-300 shadow-inner flex items-center justify-center text-slate-800"
-                            style={{ backgroundColor: style.bg || 'white' }}
-                        >
-                            {style.bg ? '' : 'No Background'}
-                        </div>
-                    </div>
-                </GroupBox>
-            </div>
-        </div>
-    );
-};
-
-const ProtectionTab = ({ style, onChange }: { style: CellStyle, onChange: any }) => {
-    return (
-        <div className="flex flex-col gap-6 pt-2 px-1">
-            <div className="flex items-start gap-3">
-                <input 
-                    type="checkbox" 
-                    id="locked"
-                    className="mt-1 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    checked={style.protection?.locked !== false} // Default true
-                    onChange={(e) => onChange('protection', { ...style.protection, locked: e.target.checked })}
-                />
+        <div className={cn("flex flex-col gap-4", isMobile ? "h-auto" : "h-full")}>
+            <div className={cn("grid gap-3", isMobile ? "grid-cols-1" : "grid-cols-[1fr_120px_60px]")}>
                 <div className="flex flex-col gap-1">
-                    <label htmlFor="locked" className="text-sm font-semibold text-slate-800 cursor-pointer">Locked</label>
-                    <span className="text-xs text-slate-600 leading-relaxed max-w-md">
-                        Locking cells or hiding formulas has no effect until you protect the worksheet (Review tab, Protect Sheet button).
-                    </span>
+                    <span className="text-[12px] font-medium">Font:</span>
+                    <ScrollableList 
+                        items={['Aptos Display', 'Aptos Narrow', 'Arial', 'Calibri', 'Times New Roman', 'Verdana']}
+                        selected={style.fontFamily || 'Aptos Narrow'}
+                        onSelect={(val) => onChange('fontFamily', val)}
+                        className="h-32"
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-[12px] font-medium">Font style:</span>
+                    <ScrollableList 
+                        items={fontStyles}
+                        selected={currentStyleStr}
+                        onSelect={handleStyleChange}
+                        className="h-32"
+                    />
+                </div>
+                <div className="flex flex-col gap-1">
+                    <span className="text-[12px] font-medium">Size:</span>
+                    <ScrollableList 
+                        items={[8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48, 72]}
+                        selected={style.fontSize || 11}
+                        onSelect={(val) => onChange('fontSize', val)}
+                        className="h-32"
+                    />
                 </div>
             </div>
-
-            <div className="flex items-start gap-3">
-                <input 
-                    type="checkbox" 
-                    id="hidden"
-                    className="mt-1 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                    checked={style.protection?.hidden || false}
-                    onChange={(e) => onChange('protection', { ...style.protection, hidden: e.target.checked })}
-                />
-                 <div className="flex flex-col gap-1">
-                    <label htmlFor="hidden" className="text-sm font-semibold text-slate-800 cursor-pointer">Hidden</label>
-                    <span className="text-xs text-slate-600 leading-relaxed max-w-md">
-                        Hiding formulas prevents them from being visible in the formula bar, but the result is still displayed in the cell.
-                    </span>
+            
+            <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                    <GroupBox label="Effects">
+                        <div className="flex flex-col gap-1 py-1">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" className="w-3.5 h-3.5" checked={!!style.strikethrough} onChange={(e) => onChange('strikethrough', e.target.checked)} />
+                                <span className="text-[12px]">Strikethrough</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" className="w-3.5 h-3.5" checked={!!style.underline} onChange={(e) => onChange('underline', e.target.checked)} />
+                                <span className="text-[12px]">Underline</span>
+                            </label>
+                        </div>
+                    </GroupBox>
+                </div>
+                <div className="w-full md:w-48 flex flex-col gap-1">
+                    <span className="text-[12px] font-medium mb-1">Color:</span>
+                    <ModernSelect 
+                        value={style.color || '#000000'}
+                        options={COLORS.map(c => ({ value: c, label: c }))}
+                        onChange={(val) => onChange('color', val)}
+                    />
                 </div>
             </div>
         </div>
     );
+};
+
+const BorderTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => {
+    return (
+        <div className="text-[12px] text-slate-500 italic flex items-center justify-center h-full">
+            Border settings simplified for this version.
+        </div>
+    );
+};
+
+const FillTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => {
+    return (
+        <div className="flex flex-col gap-4 h-full">
+            <span className="text-[12px] font-medium">Background Color:</span>
+            <div className="grid grid-cols-5 md:grid-cols-10 gap-1.5 p-3 border border-slate-300 rounded-sm bg-slate-50">
+                {COLORS.map(c => (
+                    <button
+                        key={c}
+                        className={cn(
+                            "w-6 h-6 rounded-sm border border-slate-400 hover:border-slate-600 transition-all",
+                            style.bg === c && "ring-2 ring-blue-500 ring-offset-1"
+                        )}
+                        style={{ backgroundColor: c }}
+                        onClick={() => onChange('bg', c)}
+                    />
+                ))}
+            </div>
+            <div className="flex justify-between items-center px-1">
+                <button onClick={() => onChange('bg', 'transparent')} className="text-[12px] text-blue-600 hover:underline">No Color</button>
+                <button className="text-[12px] text-slate-800 border border-slate-300 px-3 py-1 rounded-sm hover:bg-slate-100">More Colors...</button>
+            </div>
+        </div>
+    );
+};
+
+const ProtectionTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => {
+    return (
+        <div className="flex flex-col gap-4 h-full py-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                    type="checkbox" 
+                    className="w-4 h-4"
+                    checked={style.protection?.locked !== false} 
+                    onChange={(e) => onChange('protection', { ...(style.protection || {}), locked: e.target.checked })} 
+                />
+                <span className="text-[13px] text-slate-800">Locked</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                    type="checkbox" 
+                    className="w-4 h-4"
+                    checked={!!style.protection?.hidden} 
+                    onChange={(e) => onChange('protection', { ...(style.protection || {}), hidden: e.target.checked })} 
+                />
+                <span className="text-[13px] text-slate-800">Hidden</span>
+            </label>
+            <div className="text-[12px] text-slate-500 leading-relaxed mt-2 border-t border-slate-200 pt-4">
+                Locking cells or hiding formulas has no effect until you protect the worksheet (Review tab, Protect Sheet button).
+            </div>
+        </div>
+    );
+};
+
+const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, initialStyle, onApply }) => {
+  const [activeTab, setActiveTab] = useState('Alignment');
+  const [style, setStyle] = useState<CellStyle>(initialStyle);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const dragRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => { setIsMobile(window.innerWidth < 768); };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+      if (isOpen) {
+          setStyle(JSON.parse(JSON.stringify(initialStyle)));
+          if (!isMobile) {
+            setPosition({ 
+                x: Math.max(0, (window.innerWidth - 480) / 2), 
+                y: Math.max(0, (window.innerHeight - 520) / 2) 
+            });
+          }
+      }
+  }, [isOpen, initialStyle, isMobile]);
+
+  useEffect(() => {
+      const handleMouseMove = (e: MouseEvent) => {
+          if (!isDragging || isMobile) return;
+          setPosition(prev => ({ x: prev.x + e.movementX, y: prev.y + e.movementY }));
+      };
+      const handleMouseUp = () => setIsDragging(false);
+      if (isDragging) {
+          window.addEventListener('mousemove', handleMouseMove);
+          window.addEventListener('mouseup', handleMouseUp);
+      }
+      return () => {
+          window.removeEventListener('mousemove', handleMouseMove);
+          window.removeEventListener('mouseup', handleMouseUp);
+      };
+  }, [isDragging, isMobile]);
+
+  const updateStyle = (key: keyof CellStyle, value: any) => {
+      setStyle(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleApply = () => {
+      onApply(style);
+      onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center pointer-events-none bg-black/10">
+        <div 
+            className={cn(
+                "bg-[#fdfdfd] flex flex-col pointer-events-auto border border-slate-300 shadow-2xl font-sans",
+                isMobile ? "w-full h-full" : "rounded-sm w-[480px] h-[520px]"
+            )}
+            style={!isMobile ? { transform: `translate(${position.x}px, ${position.y}px)`, position: 'absolute' } : {}}
+        >
+            <div 
+                ref={dragRef}
+                className="h-8 bg-white border-b border-slate-200 flex items-center justify-between px-3 select-none"
+                onMouseDown={(e) => {
+                    if (!isMobile && (e.target === dragRef.current || (e.target as HTMLElement).tagName === 'SPAN')) {
+                        setIsDragging(true);
+                    }
+                }}
+            >
+                <span className="text-[12px] text-slate-700">Format Cells</span>
+                <button onClick={onClose} className="text-slate-500 hover:bg-red-500 hover:text-white p-1 rounded-sm transition-colors">
+                    <X size={14} />
+                </button>
+            </div>
+
+            <div className="flex bg-[#f3f3f3] border-b border-slate-300 px-3 pt-1 gap-1">
+                {TABS.map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={cn(
+                            "px-4 py-1 text-[12px] relative top-[1px] transition-all font-normal",
+                            activeTab === tab 
+                                ? "bg-white border-t border-l border-r border-slate-300 text-slate-900 font-medium z-10 h-7" 
+                                : "bg-transparent text-slate-600 hover:bg-slate-200 h-6 mt-1"
+                        )}
+                    >
+                        {tab}
+                    </button>
+                ))}
+            </div>
+
+            <div className="flex-1 bg-white p-5 overflow-y-auto">
+                {activeTab === 'Number' && <NumberTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                {activeTab === 'Alignment' && <AlignmentTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                {activeTab === 'Font' && <FontTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                {activeTab === 'Border' && <BorderTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                {activeTab === 'Fill' && <FillTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                {activeTab === 'Protection' && <ProtectionTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+            </div>
+
+            <div className="h-12 border-t border-slate-200 bg-[#f3f3f3] flex items-center justify-end px-4 gap-2">
+                <button onClick={handleApply} className="px-6 py-1 bg-white border border-slate-400 rounded-sm text-[12px] text-slate-800 hover:bg-blue-50 hover:border-blue-500 shadow-sm transition-all min-w-[75px]">OK</button>
+                <button onClick={onClose} className="px-6 py-1 bg-white border border-slate-400 rounded-sm text-[12px] text-slate-800 hover:bg-slate-50 transition-all min-w-[75px]">Cancel</button>
+            </div>
+        </div>
+    </div>
+  );
 };
 
 export default FormatCellsDialog;

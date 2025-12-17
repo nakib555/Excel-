@@ -1,13 +1,12 @@
+
 import React, { useState, memo, lazy, Suspense } from 'react';
-import { 
-  Sparkles 
-} from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { DraggableScrollContainer, TabProps } from './tabs/shared';
 import { cn } from '../utils';
 import { RibbonSkeleton } from './Skeletons';
 
-// Lazy imports for Tabs using relative paths to avoid alias resolution issues
+// Lazy imports for Tabs
 const HomeTab = lazy(() => import('./tabs/Home/HomeTab'));
 const InsertTab = lazy(() => import('./tabs/Insert/InsertTab'));
 const DrawTab = lazy(() => import('./tabs/Draw/DrawTab'));
@@ -31,8 +30,6 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
 
   return (
     <div className="flex flex-col bg-[#0f172a] z-40 select-none shadow-soft transition-all">
-      
-      {/* 2. Tab Navigation */}
       <div className="bg-[#0f172a] px-2 md:px-4 flex items-end justify-between pt-2">
         <DraggableScrollContainer className="flex items-end gap-1">
             {TABS.map(tab => {
@@ -63,62 +60,61 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
         </button>
       </div>
 
-      {/* 3. The Ribbon */}
       <div className="bg-[#f8fafc] border-b border-slate-200 shadow-sm z-0 relative">
-      <DraggableScrollContainer className="h-[100px] flex items-stretch px-2 md:px-4 w-full">
+        <DraggableScrollContainer className="h-[100px] flex items-stretch px-2 md:px-4 w-full">
           <AnimatePresence mode='wait'>
                 {activeTab === 'Home' && (
                     <Suspense key="home-suspense" fallback={<RibbonSkeleton />}>
-                        <HomeTab {...tabProps} key="home" />
+                        <HomeTab {...tabProps} />
                     </Suspense>
                 )}
                 {activeTab === 'Insert' && (
                     <Suspense key="insert-suspense" fallback={<RibbonSkeleton />}>
-                        <InsertTab {...tabProps} key="insert" />
+                        <InsertTab {...tabProps} />
                     </Suspense>
                 )}
                 {activeTab === 'Draw' && (
                     <Suspense key="draw-suspense" fallback={<RibbonSkeleton />}>
-                        <DrawTab {...tabProps} key="draw" />
+                        <DrawTab {...tabProps} />
                     </Suspense>
                 )}
                 {activeTab === 'Page Layout' && (
                     <Suspense key="page-layout-suspense" fallback={<RibbonSkeleton />}>
-                        <PageLayoutTab {...tabProps} key="page-layout" />
+                        <PageLayoutTab {...tabProps} />
                     </Suspense>
                 )}
                 {activeTab === 'Formulas' && (
                     <Suspense key="formulas-suspense" fallback={<RibbonSkeleton />}>
-                        <FormulasTab {...tabProps} key="formulas" />
+                        <FormulasTab {...tabProps} />
                     </Suspense>
                 )}
                 {activeTab === 'Data' && (
                     <Suspense key="data-suspense" fallback={<RibbonSkeleton />}>
-                        <DataTab {...tabProps} key="data" />
+                        <DataTab {...tabProps} />
                     </Suspense>
                 )}
                 {activeTab === 'Review' && (
                     <Suspense key="review-suspense" fallback={<RibbonSkeleton />}>
-                        <ReviewTab {...tabProps} key="review" />
+                        <ReviewTab {...tabProps} />
                     </Suspense>
                 )}
                 {activeTab === 'View' && (
                     <Suspense key="view-suspense" fallback={<RibbonSkeleton />}>
-                        <ViewTab {...tabProps} key="view" />
+                        <ViewTab {...tabProps} />
                     </Suspense>
                 )}
                 {activeTab === 'Automate' && (
                     <Suspense key="automate-suspense" fallback={<RibbonSkeleton />}>
-                        <AutomateTab {...tabProps} key="automate" />
+                        <AutomateTab {...tabProps} />
                     </Suspense>
                 )}
                 {activeTab === 'File' && (
                     <Suspense key="file-suspense" fallback={<RibbonSkeleton />}>
-                        <FileTab {...tabProps} key="file" />
+                        <FileTab {...tabProps} />
                     </Suspense>
                 )}
           </AnimatePresence>
-      </DraggableScrollContainer>
+        </DraggableScrollContainer>
       </div>
     </div>
   );
