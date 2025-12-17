@@ -4,7 +4,6 @@ import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types'
 import { numToChar, charToNum, getCellId, parseCellId, cn, getRange, getMergeRangeDimensions } from '../utils';
 import { NavigationDirection } from './Cell';
 import { Loader2 } from 'lucide-react';
-// Fix: RowSkeleton does not exist in Skeletons.tsx, using GroupSkeleton or specific component loaders instead
 import { GroupSkeleton } from './Skeletons';
 
 import GridRow from './GridRow';
@@ -83,8 +82,8 @@ const Grid: React.FC<GridProps> = ({
   const [scrollState, setScrollState] = useState({ 
     scrollTop: 0, 
     scrollLeft: 0, 
-    clientHeight: 800, 
-    clientWidth: 1200,
+    clientHeight: window.innerHeight - 300, 
+    clientWidth: window.innerWidth,
     velocityFactor: 0 
   });
   
@@ -101,6 +100,16 @@ const Grid: React.FC<GridProps> = ({
      return baseW * scale;
   }, [size.rows, scale]);
 
+  useLayoutEffect(() => {
+      if (containerRef.current) {
+          setScrollState(prev => ({
+              ...prev,
+              clientHeight: containerRef.current!.clientHeight,
+              clientWidth: containerRef.current!.clientWidth
+          }));
+      }
+  }, []);
+
   // --- PRE-CALCULATE MERGED CELL SET (Optimization) ---
   const mergedCellsSet = useMemo(() => {
       const set = new Set<string>();
@@ -115,8 +124,6 @@ const Grid: React.FC<GridProps> = ({
   const getCellPosition = useCallback((col: number, row: number) => {
       let top = 0;
       let left = 0;
-      // Note: This is O(N). In production usually cached in a cumulative array.
-      // For this demo with virtualization it is acceptable as we only call it for visible merges.
       for (let r = 0; r < row; r++) top += (rowHeights[r] ?? DEFAULT_ROW_HEIGHT);
       for (let c = 0; c < col; c++) left += (columnWidths[numToChar(c)] ?? DEFAULT_COL_WIDTH);
       return { top: top * scale, left: left * scale };
@@ -185,15 +192,11 @@ const Grid: React.FC<GridProps> = ({
     };
   }, [scrollState, size, scale, isIdle, isMobile]); 
 
-  // --- MERGE OVERLAY CALCULATION ---
   const visibleMerges = useMemo(() => {
-      // Filter merges that intersect with the rendered area
       return merges.filter(range => {
           const s = parseCellId(range.split(':')[0]);
           const e = parseCellId(range.split(':')[1] || range.split(':')[0]);
           if (!s || !e) return false;
-          
-          // Intersection check with View Buffer
           return !(
               e.row < viewStartRow || 
               s.row > viewEndRow || 
@@ -413,13 +416,14 @@ const Grid: React.FC<GridProps> = ({
     if (dy < updateThreshold && dx < updateThreshold) return;
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
-        setScrollState({ 
+        setScrollState(prev => ({ 
+            ...prev,
             scrollTop: currentTop, 
             scrollLeft: currentLeft, 
             clientHeight: element.clientHeight, 
             clientWidth: element.clientWidth,
             velocityFactor: Math.max(vy, vx)
-        });
+        }));
     });
   }, [checkExpansion, isIdle, isMobile]);
 
@@ -473,7 +477,9 @@ const Grid: React.FC<GridProps> = ({
       }
       if (e.altKey && activeCell) {
           e.preventDefault();
-          const { row, col } = parseCellId(activeCell)!;
+          const parsed = parseCellId(activeCell);
+          if (!parsed) return;
+          const { row, col } = parsed;
           if (e.deltaY !== 0) {
               const currentH = rowHeights[row] || DEFAULT_ROW_HEIGHT;
               const change = e.deltaY > 0 ? -5 : 5; 
@@ -590,7 +596,6 @@ const Grid: React.FC<GridProps> = ({
             
             <div style={{ height: spacerBottom, width: '100%', ...bgPatternStyle }} />
 
-            {/* MERGED CELL OVERLAY - Rendered absolutely on top of grid */}
             {visibleMerges.map(range => {
                 const s = parseCellId(range.split(':')[0]);
                 if (!s) return null;
@@ -610,7 +615,7 @@ const Grid: React.FC<GridProps> = ({
                         className="absolute z-20"
                         style={{
                             top: top,
-                            left: left + headerColW, // Offset by row header width
+                            left: left + headerColW,
                             width: width * scale,
                             height: height * scale
                         }}
@@ -621,7 +626,7 @@ const Grid: React.FC<GridProps> = ({
                             style={cellStyle}
                             isSelected={isSelected}
                             isActive={isSelected} 
-                            isInRange={false} // Merged cells handle their own range style usually
+                            isInRange={false}
                             width={width * scale}
                             height={height * scale}
                             scale={scale}

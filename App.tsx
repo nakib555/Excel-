@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 
 // --- 1. Imports from sibling files ---
@@ -641,39 +642,43 @@ const App: React.FC = () => {
   }, [activeCell, activeSheetId, handleCellChange]);
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-slate-50 overflow-hidden font-sans text-slate-900">
-      <Suspense fallback={<ToolbarSkeleton />}>
-        <Toolbar 
-          currentStyle={activeStyle}
-          onToggleStyle={handleStyleChange}
-          onExport={handleExport}
-          onClear={handleClear}
-          onResetLayout={handleResetLayout}
-          onCopy={handleCopy}
-          onCut={handleCut}
-          onPaste={handlePaste}
-          onAutoSum={handleAutoSum}
-          onInsertRow={handleInsertRow}
-          onDeleteRow={handleDeleteRow}
-          onSort={handleSort}
-          onMergeCenter={handleMergeCenter}
-          onDataValidation={handleDataValidation}
-          onToggleAI={() => setShowAI(true)}
-          onOpenFormatDialog={() => setShowFormatCells(true)}
-        />
-      </Suspense>
+    <div className="flex flex-col h-[100dvh] w-screen bg-slate-50 overflow-hidden font-sans text-slate-900 relative">
+      <div className="flex-shrink-0 z-[60]">
+        <Suspense fallback={<ToolbarSkeleton />}>
+          <Toolbar 
+            currentStyle={activeStyle}
+            onToggleStyle={handleStyleChange}
+            onExport={handleExport}
+            onClear={handleClear}
+            onResetLayout={handleResetLayout}
+            onCopy={handleCopy}
+            onCut={handleCut}
+            onPaste={handlePaste}
+            onAutoSum={handleAutoSum}
+            onInsertRow={handleInsertRow}
+            onDeleteRow={handleDeleteRow}
+            onSort={handleSort}
+            onMergeCenter={handleMergeCenter}
+            onDataValidation={handleDataValidation}
+            onToggleAI={() => setShowAI(true)}
+            onOpenFormatDialog={() => setShowFormatCells(true)}
+          />
+        </Suspense>
+      </div>
       
-      <Suspense fallback={<FormulaBarSkeleton />}>
-        <FormulaBar 
-          value={activeCell && cells[activeCell] ? cells[activeCell].raw : ''}
-          onChange={handleFormulaChange}
-          onSubmit={handleFormulaSubmit}
-          selectedCell={activeCell}
-          onNameBoxSubmit={handleNameBoxSubmit}
-        />
-      </Suspense>
+      <div className="flex-shrink-0 z-50">
+        <Suspense fallback={<FormulaBarSkeleton />}>
+          <FormulaBar 
+            value={activeCell && cells[activeCell] ? cells[activeCell].raw : ''}
+            onChange={handleFormulaChange}
+            onSubmit={handleFormulaSubmit}
+            selectedCell={activeCell}
+            onNameBoxSubmit={handleNameBoxSubmit}
+          />
+        </Suspense>
+      </div>
 
-      <div className="flex-1 overflow-hidden relative z-0">
+      <main className="flex-1 overflow-hidden relative z-0">
         <Suspense fallback={<GridSkeleton />}>
             <Grid
               size={gridSize}
@@ -697,26 +702,30 @@ const App: React.FC = () => {
               onZoom={handleZoomWheel}
             />
         </Suspense>
+      </main>
+
+      <div className="flex-shrink-0 z-40">
+        <Suspense fallback={<SheetTabsSkeleton />}>
+          <SheetTabs 
+            sheets={sheets}
+            activeSheetId={activeSheetId}
+            onSwitch={setActiveSheetId}
+            onAdd={handleAddSheet}
+          />
+        </Suspense>
       </div>
 
-      <Suspense fallback={<SheetTabsSkeleton />}>
-        <SheetTabs 
-          sheets={sheets}
-          activeSheetId={activeSheetId}
-          onSwitch={setActiveSheetId}
-          onAdd={handleAddSheet}
-        />
-      </Suspense>
-
-      <Suspense fallback={<StatusBarSkeleton />}>
-        <StatusBar 
-          selectionCount={selectionRange ? selectionRange.length : 0}
-          stats={selectionStats}
-          zoom={zoom}
-          onZoomChange={setZoom}
-          onToggleMobileResize={() => setShowMobileResize(!showMobileResize)}
-        />
-      </Suspense>
+      <div className="flex-shrink-0 z-40">
+        <Suspense fallback={<StatusBarSkeleton />}>
+          <StatusBar 
+            selectionCount={selectionRange ? selectionRange.length : 0}
+            stats={selectionStats}
+            zoom={zoom}
+            onZoomChange={setZoom}
+            onToggleMobileResize={() => setShowMobileResize(!showMobileResize)}
+          />
+        </Suspense>
+      </div>
 
       <Suspense fallback={null}>
          <MobileResizeTool 
