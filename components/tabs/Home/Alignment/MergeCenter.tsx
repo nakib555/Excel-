@@ -11,6 +11,7 @@ const MergeCenter = () => (
         hasDropdown
         onClick={() => {}}
         title="Merge & Center"
+        className="w-auto px-2"
     />
 );
 

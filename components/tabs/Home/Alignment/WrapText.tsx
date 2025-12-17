@@ -13,6 +13,7 @@ const WrapText: React.FC<WrapTextProps> = ({ currentStyle, onToggleStyle }) => (
         active={currentStyle.wrapText}
         onClick={() => onToggleStyle('wrapText', !currentStyle.wrapText)}
         title="Wrap Text"
+        className="w-auto px-2"
     />
 );
 

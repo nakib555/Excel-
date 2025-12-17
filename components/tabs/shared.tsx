@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useLayoutEffect, memo } from 'react
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
 import { CellStyle } from '../../types';
+import { cn } from '../../utils';
 
 export interface TabProps {
   currentStyle: CellStyle;
@@ -122,7 +123,7 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
     active 
       ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-200' 
       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200'
-  } ${disabled ? 'opacity-40 cursor-default pointer-events-none' : 'cursor-pointer'} ${className}`;
+  } ${disabled ? 'opacity-40 cursor-default pointer-events-none' : 'cursor-pointer'}`;
 
   // Icon sizing logic optimized for 100px toolbar
   const getIconConfig = () => {
@@ -142,7 +143,7 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
 
   if (variant === 'large') {
     return (
-      <button onClick={onClick} title={title} disabled={disabled} className={`${baseClass} flex-col px-1 py-1 h-full min-w-[52px] md:min-w-[60px] gap-0.5 justify-center`}>
+      <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} flex-col px-1 py-1 h-full min-w-[52px] md:min-w-[60px] gap-0.5 justify-center`, className)}>
         <div className="p-1">{styledIcon}</div>
         <div className="text-[11px] font-medium leading-[1.1] text-center flex flex-col items-center text-slate-700">
             {label}
@@ -155,7 +156,7 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
 
   if (variant === 'small') {
     return (
-      <button onClick={onClick} title={title} disabled={disabled} className={`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`}>
+      <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`, className)}>
         <div className="transform flex-shrink-0 text-slate-700 flex items-center">{styledIcon}</div>
         {label && <span className="text-[12px] text-slate-700 font-medium whitespace-nowrap leading-none pt-0.5">{label}</span>}
         {hasDropdown && <ChevronDown size={10} className="ml-auto opacity-50 stroke-[3]" />}
@@ -165,7 +166,7 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
 
   // Icon only
   return (
-    <button onClick={onClick} title={title} disabled={disabled} className={`${baseClass} p-1 w-7 h-7 relative`}>
+    <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}>
       {styledIcon}
       {hasDropdown && <ChevronDown size={8} className="absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]" />}
     </button>
