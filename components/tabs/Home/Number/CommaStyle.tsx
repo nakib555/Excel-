@@ -7,7 +7,7 @@ interface CommaProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle'> {}
 const CommaStyle: React.FC<CommaProps> = ({ currentStyle, onToggleStyle }) => (
     <RibbonButton 
         variant="icon-only" 
-        icon={<span className="font-bold text-[11px] text-slate-600">,</span>} 
+        icon={<span className="font-bold text-[14px] text-slate-600 leading-none pb-1">,</span>} 
         active={currentStyle.format === 'comma'}
         onClick={() => onToggleStyle('format', currentStyle.format === 'comma' ? 'general' : 'comma')} 
         title="Comma Style" 

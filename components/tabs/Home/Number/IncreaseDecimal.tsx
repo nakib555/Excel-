@@ -10,8 +10,14 @@ const IncreaseDecimal: React.FC<IncreaseDecimalProps> = ({ currentStyle, onToggl
     return (
         <RibbonButton 
             variant="icon-only" 
-            icon={<div className="flex items-center text-[9px]"><span className="text-blue-500">.0</span><MoveLeft size={8} /></div>} 
-            onClick={() => onToggleStyle('decimalPlaces', decimals + 1)} 
+            icon={<div className="flex items-center text-[10px] text-slate-600"><span className="text-blue-500 font-bold mr-0.5">.00</span><MoveLeft size={10} /></div>} 
+            onClick={() => {
+                onToggleStyle('decimalPlaces', decimals + 1);
+                // If format is general, switch to number so decimals show up
+                if (!currentStyle.format || currentStyle.format === 'general') {
+                    onToggleStyle('format', 'number');
+                }
+            }} 
             title="Increase Decimal" 
         />
     );

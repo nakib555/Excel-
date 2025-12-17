@@ -8,7 +8,7 @@ interface PercentProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle'> 
 const PercentStyle: React.FC<PercentProps> = ({ currentStyle, onToggleStyle }) => (
     <RibbonButton 
         variant="icon-only" 
-        icon={<PercentIcon size={14} className="text-blue-600" />} 
+        icon={<PercentIcon size={14} className="text-slate-600" />} 
         active={currentStyle.format === 'percent'}
         onClick={() => onToggleStyle('format', currentStyle.format === 'percent' ? 'general' : 'percent')} 
         title="Percent Style" 

@@ -90,20 +90,26 @@ export const getNextCellId = (currentId: string, dRow: number, dCol: number, max
  * drastically reduces garbage collection during scrolling by reusing Intl objects
  */
 const formatterCache = new Map<string, Intl.NumberFormat>();
+const dateTimeFormatterCache = new Map<string, Intl.DateTimeFormat>();
 
-const getFormatter = (type: 'currency' | 'percent' | 'comma', decimals: number): Intl.NumberFormat => {
-    const key = `${type}:${decimals}`;
+const getFormatter = (type: string, decimals: number, currency: string = 'USD'): Intl.NumberFormat => {
+    const key = `${type}:${decimals}:${currency}`;
     if (!formatterCache.has(key)) {
         const options: Intl.NumberFormatOptions = {
             minimumFractionDigits: decimals,
             maximumFractionDigits: decimals
         };
         
-        if (type === 'currency') {
+        if (type === 'currency' || type === 'accounting') {
             options.style = 'currency';
-            options.currency = 'USD';
+            options.currency = currency;
+            if (type === 'accounting') {
+                options.currencySign = 'accounting';
+            }
         } else if (type === 'percent') {
             options.style = 'percent';
+        } else if (type === 'scientific') {
+            options.notation = 'scientific';
         }
         // 'comma' uses default decimal formatting
 
@@ -112,27 +118,92 @@ const getFormatter = (type: 'currency' | 'percent' | 'comma', decimals: number):
     return formatterCache.get(key)!;
 };
 
+const getDateFormatter = (type: 'shortDate' | 'longDate' | 'time'): Intl.DateTimeFormat => {
+    const key = type;
+    if (!dateTimeFormatterCache.has(key)) {
+        const options: Intl.DateTimeFormatOptions = {};
+        if (type === 'shortDate') {
+            options.month = 'numeric';
+            options.day = 'numeric';
+            options.year = 'numeric';
+        } else if (type === 'longDate') {
+            options.weekday = 'long';
+            options.month = 'long';
+            options.day = 'numeric';
+            options.year = 'numeric';
+        } else if (type === 'time') {
+            options.hour = 'numeric';
+            options.minute = 'numeric';
+            options.second = 'numeric';
+        }
+        dateTimeFormatterCache.set(key, new Intl.DateTimeFormat('en-US', options));
+    }
+    return dateTimeFormatterCache.get(key)!;
+};
+
+// Excel Serial Date Conversion (1 = 1900-01-01)
+// JS uses 1970-01-01. The diff is roughly 25569 days.
+const excelDateToJSDate = (serial: number) => {
+   // Adjust for Excel leap year bug and timezone (simplistic approach for visual parity)
+   const utc_days  = Math.floor(serial - 25569);
+   const utc_value = utc_days * 86400;
+   const date_info = new Date(utc_value * 1000);
+   // Adding timezone offset to force "local" appearance matching input usually
+   return new Date(date_info.getTime() + date_info.getTimezoneOffset() * 60 * 1000);
+};
+
 /**
  * Formats a cell value based on its style configuration
  */
 export const formatCellValue = (value: string, style: CellStyle = {}): string => {
   if (!value || value === '#ERR') return value;
   
-  // Quick check for simple text to avoid parseFloat overhead
+  if (style.format === 'text') return value;
+  
+  // Quick check for simple text to avoid parseFloat overhead unless we are doing numeric formatting
   if (!style.format && /^[a-zA-Z\s]+$/.test(value)) return value;
 
   const num = parseFloat(value);
   if (isNaN(num)) return value;
 
   const decimals = style.decimalPlaces ?? 2;
+  const currency = style.currencySymbol || 'USD';
 
   switch (style.format) {
     case 'currency':
-      return getFormatter('currency', decimals).format(num);
-    case 'percent':
-      return getFormatter('percent', decimals).format(num);
+      return getFormatter('currency', decimals, currency).format(num);
+    case 'accounting':
+      return getFormatter('accounting', decimals, currency).format(num);
     case 'comma':
       return getFormatter('comma', decimals).format(num);
+    case 'percent':
+      return getFormatter('percent', decimals).format(num);
+    case 'scientific':
+      return getFormatter('scientific', decimals).format(num);
+    case 'number':
+        // Standard number format with separators
+      return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(num);
+    case 'shortDate':
+    case 'longDate':
+    case 'time':
+        // Heuristic: If number is > 59 (post-1900 bug), treat as date serial
+        // If it's small, it might just be a number, but if user forces Date format, we try to date-ify it.
+        const date = excelDateToJSDate(num);
+        if (date.toString() === 'Invalid Date') return value;
+        return getDateFormatter(style.format).format(date);
+    case 'fraction':
+        // Simple fraction approximation (e.g. 0.25 -> 1/4)
+        // For MVP, just showing decimal or simple logic
+        const gcd = (a: number, b: number): number => b ? gcd(b, a % b) : a;
+        const len = num.toString().length - 2;
+        let denominator = Math.pow(10, len);
+        let numerator = num * denominator;
+        const divisor = gcd(numerator, denominator);
+        numerator /= divisor;
+        denominator /= divisor;
+        if (denominator === 1) return String(numerator);
+        if (denominator > 1000) return num.toFixed(decimals); // fallback if too complex
+        return `${Math.floor(numerator)}/${Math.floor(denominator)}`; 
     default:
       return value;
   }

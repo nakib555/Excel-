@@ -11,15 +11,17 @@ import DecreaseDecimal from './DecreaseDecimal';
 const NumberGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle }) => {
   return (
     <RibbonGroup label="Number">
-        <div className="flex flex-col gap-1 justify-center h-full py-0.5">
-            <NumberFormatSelector />
-            <div className="flex items-center gap-1 justify-between px-1">
-                <div className="flex gap-0.5">
+        <div className="flex flex-col gap-1.5 justify-center h-full py-1 px-1">
+            <div className="flex justify-center w-full">
+                <NumberFormatSelector currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+            </div>
+            <div className="flex items-center justify-between w-full px-1 gap-3">
+                <div className="flex items-center gap-0.5">
                     <Currency currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                     <PercentStyle currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                     <CommaStyle currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 </div>
-                <div className="flex gap-0.5">
+                <div className="flex items-center gap-0.5">
                     <IncreaseDecimal currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                     <DecreaseDecimal currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 </div>

@@ -14,7 +14,8 @@ export interface CellStyle {
   fontSize?: number;
   wrapText?: boolean;
   shrinkToFit?: boolean; // Scales text down to fit cell width
-  format?: 'general' | 'currency' | 'percent' | 'comma' | 'number';
+  format?: 'general' | 'number' | 'currency' | 'accounting' | 'shortDate' | 'longDate' | 'time' | 'percent' | 'fraction' | 'scientific' | 'text' | 'comma';
+  currencySymbol?: string; // 'USD', 'EUR', 'GBP', 'CNY', etc.
   decimalPlaces?: number;
   textRotation?: number; // 0 to 180 (or -90 to 90). Excel usually uses -90 to 90.
   verticalText?: boolean;
