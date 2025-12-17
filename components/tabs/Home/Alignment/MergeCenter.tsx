@@ -6,11 +6,11 @@ import { RibbonButton } from '../../shared';
 const MergeCenter = () => (
     <RibbonButton
         variant="small"
-        icon={<Merge size={16} className="text-emerald-500" />}
+        icon={<Merge size={16} className="text-slate-600" />}
         label="Merge & Center"
         hasDropdown
         onClick={() => {}}
-        className="w-full justify-start px-2"
+        title="Merge & Center"
     />
 );
 

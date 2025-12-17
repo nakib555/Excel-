@@ -15,31 +15,38 @@ import MergeCenter from './MergeCenter';
 
 const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle }) => {
   return (
-    <RibbonGroup label="Alignment" className="px-1">
-        <div className="flex gap-1 h-full py-0.5">
-            {/* Left Block: Alignment Icons */}
-            <div className="flex flex-col justify-between h-full gap-0.5 pr-2 border-r border-slate-200/50">
-                {/* Row 1: Vertical Align + Orientation */}
-                <div className="flex gap-0.5 items-center">
+    <RibbonGroup label="Alignment">
+        <div className="flex h-full py-0.5 gap-2 px-1">
+            {/* 1. Alignment Grid */}
+            <div className="flex flex-col justify-center h-full gap-1">
+                <div className="flex gap-0.5">
                     <TopAlign />
                     <MiddleAlign />
                     <BottomAlign />
-                    <div className="w-1.5" /> 
-                    <Orientation />
                 </div>
-                {/* Row 2: Horizontal Align + Indent */}
-                <div className="flex gap-0.5 items-center">
+                <div className="flex gap-0.5">
                     <AlignLeft currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                     <Center currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                     <AlignRight currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
-                    <div className="w-1.5" />
+                </div>
+            </div>
+
+            {/* Separator */}
+            <div className="h-4/5 w-[1px] bg-slate-200 my-auto mx-0.5" />
+
+            {/* 2. Indentation & Orientation */}
+             <div className="flex flex-col justify-center h-full gap-1">
+                <div className="flex gap-0.5 pl-0.5">
+                     <Orientation />
+                </div>
+                <div className="flex gap-0.5">
                     <DecreaseIndent />
                     <IncreaseIndent />
                 </div>
             </div>
 
-            {/* Right Block: Wrap & Merge */}
-            <div className="flex flex-col gap-0.5 justify-center min-w-[120px]">
+            {/* 3. Text Control */}
+            <div className="flex flex-col justify-center h-full gap-1 w-[120px]">
                 <WrapText currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 <MergeCenter />
             </div>

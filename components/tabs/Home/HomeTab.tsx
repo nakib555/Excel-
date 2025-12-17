@@ -23,7 +23,7 @@ const HomeTab: React.FC<TabProps> = (props) => {
     >
         <Suspense fallback={<GroupSkeleton width={80} />}><ClipboardGroup {...props} /></Suspense>
         <Suspense fallback={<GroupSkeleton width={260} />}><FontGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton width={220} />}><AlignmentGroup {...props} /></Suspense>
+        <Suspense fallback={<GroupSkeleton width={250} />}><AlignmentGroup {...props} /></Suspense>
         <Suspense fallback={<GroupSkeleton width={160} />}><NumberGroup {...props} /></Suspense>
         <Suspense fallback={<GroupSkeleton width={180} />}><StylesGroup {...props} /></Suspense>
         <Suspense fallback={<GroupSkeleton width={120} />}><CellsGroup {...props} /></Suspense>
