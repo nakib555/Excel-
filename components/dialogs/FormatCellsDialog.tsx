@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Lock, Info, ChevronDown, Check, MousePointer2, RotateCw } from 'lucide-react';
@@ -601,7 +602,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
   if (!isOpen) return null;
 
   const floatingClass = isMobile 
-    ? "fixed inset-0 z-[2001] bg-white flex flex-col overflow-hidden" 
+    ? "fixed bottom-4 left-4 right-4 z-[2001] bg-white flex flex-col overflow-hidden rounded-[32px] shadow-2xl border border-slate-200" 
     : "fixed w-[680px] h-[680px] rounded-[40px] shadow-2xl z-[2001] bg-white border border-slate-200 overflow-hidden flex flex-col";
 
   return (
@@ -609,12 +610,14 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
         <AnimatePresence>
             {isOpen && (
                 <motion.div 
-                    initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
-                    animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1, x: position.x, y: position.y }}
-                    exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                    initial={isMobile ? { y: '100%', opacity: 0 } : { scale: 0.9, opacity: 0 }}
+                    animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1, x: position.x, y: position.y }}
+                    exit={isMobile ? { y: '100%', opacity: 0 } : { scale: 0.9, opacity: 0 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                     className={cn(floatingClass, !isMobile && "fixed m-0")}
-                    style={!isMobile ? { left: 0, top: 0 } : {}}
+                    style={{
+                        ...( !isMobile ? { left: 0, top: 0 } : { height: '80vh' })
+                    }}
                 >
                     <div 
                         ref={dragRef}
