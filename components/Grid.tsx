@@ -402,7 +402,9 @@ const Grid: React.FC<GridProps> = ({
     offloadTimerRef.current = setTimeout(() => {
         setIsScrolling(false);
         setIsIdle(true); 
-    }, 800); 
+        // Force velocity to 0 when scrolling stops so we exit fast-scrolling mode
+        setScrollState(prev => ({ ...prev, velocityFactor: 0 }));
+    }, 150); 
 
     checkExpansion(vy, vx);
 

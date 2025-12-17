@@ -1,6 +1,6 @@
 
 import React, { memo } from 'react';
-import { RibbonGroup, Separator, TabProps } from '../../shared';
+import { RibbonGroup, TabProps } from '../../shared';
 import TopAlign from './TopAlign';
 import MiddleAlign from './MiddleAlign';
 import BottomAlign from './BottomAlign';
@@ -15,29 +15,34 @@ import MergeCenter from './MergeCenter';
 
 const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle }) => {
   return (
-    <RibbonGroup label="Alignment">
-        <div className="flex gap-2 h-full py-0.5">
-                <div className="flex flex-col justify-between h-full py-0.5 gap-0.5">
-                    <div className="flex gap-0.5">
-                        <TopAlign />
-                        <MiddleAlign />
-                        <BottomAlign />
-                        <Separator />
-                        <Orientation />
-                    </div>
-                    <div className="flex gap-0.5">
-                        <AlignLeft currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
-                        <Center currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
-                        <AlignRight currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
-                        <Separator />
-                        <DecreaseIndent />
-                        <IncreaseIndent />
-                    </div>
+    <RibbonGroup label="Alignment" className="px-1">
+        <div className="flex gap-1 h-full py-0.5">
+            {/* Left Block: Alignment Icons */}
+            <div className="flex flex-col justify-between h-full gap-0.5 pr-2 border-r border-slate-200/50">
+                {/* Row 1: Vertical Align + Orientation */}
+                <div className="flex gap-0.5 items-center">
+                    <TopAlign />
+                    <MiddleAlign />
+                    <BottomAlign />
+                    <div className="w-1.5" /> 
+                    <Orientation />
                 </div>
-                <div className="flex flex-col gap-0.5 justify-center min-w-[100px]">
-                    <WrapText currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
-                    <MergeCenter />
+                {/* Row 2: Horizontal Align + Indent */}
+                <div className="flex gap-0.5 items-center">
+                    <AlignLeft currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                    <Center currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                    <AlignRight currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                    <div className="w-1.5" />
+                    <DecreaseIndent />
+                    <IncreaseIndent />
                 </div>
+            </div>
+
+            {/* Right Block: Wrap & Merge */}
+            <div className="flex flex-col gap-0.5 justify-center min-w-[120px]">
+                <WrapText currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                <MergeCenter />
+            </div>
         </div>
     </RibbonGroup>
   );

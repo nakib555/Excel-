@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { getCellId, parseCellId, cn, formatCellValue } from '../utils';
 import { NavigationDirection } from './Cell';
@@ -47,7 +46,8 @@ const EmptyCell = memo(({ width, height, id, onMouseDown, onMouseEnter, onDouble
 ), (prev, next) => prev.width === next.width && prev.height === next.height);
 
 // High-Performance Cell for Fast Scrolling (Pure rendering, no interactive overhead)
-const FastCell = memo(({ width, height, data, style }: any) => {
+// Now accepts onMouseDown for UX catch-ability
+const FastCell = memo(({ width, height, data, style, onMouseDown }: any) => {
     const displayValue = formatCellValue(data.value, style);
     
     return (
@@ -66,6 +66,7 @@ const FastCell = memo(({ width, height, data, style }: any) => {
                 textAlign: style.align || 'left',
                 fontSize: `${(style.fontSize || 13)}px`,
             }}
+            onMouseDown={(e) => onMouseDown && onMouseDown(data.id, e.shiftKey)}
         >
              <span className={cn("w-full block", !style.wrapText && "truncate")}>
                 {displayValue}
@@ -163,6 +164,7 @@ const GridRow = memo(({
                                 height={height}
                                 data={safeData}
                                 style={cellStyle}
+                                onMouseDown={handleMouseDown}
                              />
                         );
                     }
