@@ -675,9 +675,9 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                         </button>
                     </div>
 
-                    {/* Modern Navigation - Updated with Horizontal Scroll Support */}
+                    {/* Modern Navigation - Scrollable if needed */}
                     <div className="px-6 md:px-10 py-1 flex-shrink-0">
-                        <div className="flex bg-slate-50/50 p-1.5 rounded-[22px] gap-1 overflow-x-auto no-scrollbar border border-slate-100 shadow-inner snap-x scroll-smooth">
+                        <div className="flex bg-slate-50/50 p-1.5 rounded-[22px] gap-1 overflow-x-auto no-scrollbar border border-slate-100 shadow-inner snap-x scroll-smooth items-center">
                             {TABS.map(tab => {
                                 const active = activeTab === tab;
                                 return (
@@ -685,7 +685,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
                                         className={cn(
-                                            "flex-1 px-4 md:px-5 py-2.5 md:py-3 text-[12px] md:text-[13px] font-black rounded-[18px] transition-all whitespace-nowrap flex-shrink-0 snap-center",
+                                            "px-4 md:px-6 py-2.5 md:py-3 text-[12px] md:text-[13px] font-black rounded-[18px] transition-all whitespace-nowrap flex-shrink-0 snap-center min-w-max",
                                             active 
                                                 ? "bg-white text-primary-700 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-100 scale-[1.02]" 
                                                 : "text-slate-400 hover:text-slate-600 hover:bg-white/40"
