@@ -1,5 +1,5 @@
-// Corrected the malformed import statement
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Lock, Info, ChevronDown, Check, MousePointer2, RotateCw } from 'lucide-react';
 import { CellStyle } from '../../types';
 import { cn } from '../../utils';
@@ -59,7 +59,105 @@ const CURRENCY_SYMBOL_OPTIONS = [
     { value: 'CNY', label: '¥ Chinese' },
 ];
 
-// Reusable components for the dialog
+// Ported dropdown to prevent clipping by overflow-y-auto parents
+const ModernSelect = ({ 
+    value, 
+    options, 
+    onChange, 
+    className 
+}: { 
+    value: string, 
+    options: { value: string, label: string }[], 
+    onChange: (val: string) => void, 
+    className?: string 
+}) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+
+    const updateCoords = () => {
+        if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            setCoords({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX,
+                width: rect.width
+            });
+        }
+    };
+
+    useLayoutEffect(() => {
+        if (isOpen) {
+            updateCoords();
+            window.addEventListener('scroll', updateCoords, true);
+            window.addEventListener('resize', updateCoords);
+        }
+        return () => {
+            window.removeEventListener('scroll', updateCoords, true);
+            window.removeEventListener('resize', updateCoords);
+        };
+    }, [isOpen]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                triggerRef.current && !triggerRef.current.contains(event.target as Node) &&
+                dropdownRef.current && !dropdownRef.current.contains(event.target as Node)
+            ) {
+                setIsOpen(false);
+            }
+        };
+        if (isOpen) document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [isOpen]);
+
+    const selectedLabel = options.find(o => o.value === value)?.label || value;
+
+    return (
+        <div className={cn("relative", className)}>
+            <button
+                ref={triggerRef}
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full h-10 bg-white border border-slate-200 rounded-xl px-4 text-[13px] text-slate-800 flex items-center justify-between hover:border-primary-400 hover:shadow-sm transition-all focus:ring-4 focus:ring-primary-500/10 outline-none"
+            >
+                <span className="truncate font-medium">{selectedLabel}</span>
+                <ChevronDown size={16} className={cn("text-slate-400 transition-transform duration-300", isOpen && "rotate-180")} />
+            </button>
+            
+            {isOpen && coords && createPortal(
+                <div 
+                    ref={dropdownRef}
+                    className="fixed z-[9999] bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5"
+                    style={{ 
+                        top: coords.top + 4, 
+                        left: coords.left, 
+                        width: coords.width,
+                        maxHeight: '300px'
+                    }}
+                >
+                    <div className="overflow-y-auto max-h-[290px] py-1.5 scrollbar-thin">
+                        {options.map(option => (
+                            <div
+                                key={option.value}
+                                onClick={() => { onChange(option.value); setIsOpen(false); }}
+                                className={cn(
+                                    "px-4 py-2.5 text-[13px] cursor-pointer hover:bg-slate-50 text-slate-700 transition-colors flex items-center justify-between mx-1 rounded-lg",
+                                    option.value === value && "bg-primary-50 text-primary-700 font-bold hover:bg-primary-50"
+                                )}
+                            >
+                                <span>{option.label}</span>
+                                {option.value === value && <Check size={14} className="text-primary-600" />}
+                            </div>
+                        ))}
+                    </div>
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+};
+
 const ScrollableList = ({ 
     items, 
     selected, 
@@ -100,62 +198,6 @@ const ScrollableList = ({
                     </div>
                 );
             })}
-        </div>
-    );
-};
-
-const ModernSelect = ({ 
-    value, 
-    options, 
-    onChange, 
-    className 
-}: { 
-    value: string, 
-    options: { value: string, label: string }[], 
-    onChange: (val: string) => void, 
-    className?: string 
-}) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-
-    const selectedLabel = options.find(o => o.value === value)?.label || value;
-
-    return (
-        <div ref={containerRef} className={cn("relative", className)}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full h-10 bg-white border border-slate-200 rounded-xl px-4 text-[13px] text-slate-800 flex items-center justify-between hover:border-primary-400 hover:shadow-sm transition-all focus:ring-4 focus:ring-primary-500/10 outline-none"
-            >
-                <span className="truncate font-medium">{selectedLabel}</span>
-                <ChevronDown size={16} className={cn("text-slate-400 transition-transform duration-300", isOpen && "rotate-180")} />
-            </button>
-            {isOpen && (
-                <div className="absolute top-full left-0 w-full mt-2 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl z-[1100] max-h-64 overflow-auto py-1.5 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
-                    {options.map(option => (
-                        <div
-                            key={option.value}
-                            onClick={() => { onChange(option.value); setIsOpen(false); }}
-                            className={cn(
-                                "px-4 py-2.5 text-[13px] cursor-pointer hover:bg-slate-50 text-slate-700 transition-colors flex items-center justify-between mx-1 rounded-lg",
-                                option.value === value && "bg-primary-50 text-primary-700 font-bold hover:bg-primary-50"
-                            )}
-                        >
-                            <span>{option.label}</span>
-                            {option.value === value && <Check size={14} className="text-primary-600" />}
-                        </div>
-                    ))}
-                </div>
-            )}
         </div>
     );
 };
@@ -232,8 +274,6 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
 
         const angleRad = Math.atan2(centerY - clientY, clientX - centerX);
         let angleDeg = Math.round(angleRad * (180 / Math.PI));
-        
-        // Clamp to Excel range -90 to 90
         angleDeg = Math.max(-90, Math.min(90, angleDeg));
         
         onChange('textRotation', angleDeg);
@@ -241,21 +281,19 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
     };
 
     return (
-        <div className={cn("grid h-full", isMobile ? "grid-cols-1 gap-6" : "grid-cols-[1fr_260px] gap-10")}>
+        <div className={cn("grid h-full", isMobile ? "grid-cols-1 gap-6 pb-20" : "grid-cols-[1fr_260px] gap-10")}>
             <div className="flex flex-col gap-6">
-                {/* 1. Text Alignment */}
                 <GroupBox label="Text alignment">
                     <div className="flex flex-col gap-6">
-                        {/* Horizontal */}
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between px-1">
                                 <span className="text-[12px] text-slate-500 font-semibold uppercase tracking-wider">Horizontal</span>
                                 {indentEnabled && (
-                                    <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-2 duration-300">
+                                    <div className="flex items-center gap-3">
                                         <span className="text-[11px] text-slate-400 font-bold">INDENT</span>
                                         <input 
                                             type="number" 
-                                            className="w-16 h-8 bg-slate-50 border border-slate-200 rounded-lg px-2 text-[13px] font-mono font-bold text-slate-700 outline-none shadow-sm focus:ring-4 focus:ring-primary-500/10 focus:border-primary-400 transition-all"
+                                            className="w-16 h-8 bg-slate-50 border border-slate-200 rounded-lg px-2 text-[13px] font-mono font-bold text-slate-700 outline-none"
                                             value={style.indent || 0}
                                             onChange={(e) => onChange('indent', Math.max(0, parseInt(e.target.value) || 0))}
                                             min={0}
@@ -269,8 +307,6 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
                                 onChange={(val) => onChange('align', val)}
                             />
                         </div>
-                        
-                        {/* Vertical */}
                         <div className="flex flex-col gap-2">
                             <span className="text-[12px] text-slate-500 font-semibold uppercase tracking-wider px-1">Vertical</span>
                             <ModernSelect 
@@ -282,7 +318,6 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
                     </div>
                 </GroupBox>
 
-                {/* 2. Text Control */}
                 <GroupBox label="Text control">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8 py-1">
                         {[
@@ -293,7 +328,7 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
                             <label key={item.key} className="flex items-center gap-4 cursor-pointer group">
                                 <div className={cn(
                                     "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300",
-                                    !!(style as any)[item.key] ? "bg-primary-600 border-primary-600 shadow-[0_2px_10px_-2px_rgba(16,185,129,0.5)]" : "bg-white border-slate-200 group-hover:border-primary-400"
+                                    !!(style as any)[item.key] ? "bg-primary-600 border-primary-600 shadow-md" : "bg-white border-slate-200"
                                 )}>
                                     {!!(style as any)[item.key] && <Check size={14} className="text-white stroke-[3]" />}
                                     <input 
@@ -308,92 +343,54 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
                                     />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[14px] font-bold text-slate-700 group-hover:text-slate-900 transition-colors">{item.label}</span>
+                                    <span className="text-[14px] font-bold text-slate-700">{item.label}</span>
                                     <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">{item.desc}</span>
                                 </div>
                             </label>
                         ))}
                     </div>
                 </GroupBox>
-
-                {/* 3. Direction (Desktop) */}
-                {!isMobile && (
-                    <GroupBox label="Right-to-left">
-                        <div className="flex flex-col gap-2">
-                            <span className="text-[12px] text-slate-500 font-semibold uppercase tracking-wider px-1">Text direction</span>
-                            <ModernSelect 
-                                value={style.textDirection || 'context'}
-                                options={TEXT_DIRECTION_OPTIONS}
-                                onChange={(val) => onChange('textDirection', val)}
-                            />
-                        </div>
-                    </GroupBox>
-                )}
             </div>
 
-            {/* 4. Orientation Column */}
-            <div className="flex flex-col gap-6 h-full">
+            <div className="flex flex-col gap-6">
                 <GroupBox label="Orientation" className="flex-1 flex flex-col min-h-[360px]">
                     <div className="flex-1 flex flex-col items-center justify-between py-2 gap-8">
-                        {/* Clock Visualization */}
                         <div 
                             ref={clockRef}
                             onMouseDown={handleClockInteraction}
                             onTouchStart={handleClockInteraction}
-                            className="relative w-44 h-44 rounded-full border-4 border-slate-100 bg-white shadow-[inset_0_4px_12px_rgba(0,0,0,0.05),0_10px_25px_-5px_rgba(0,0,0,0.05)] flex items-center justify-center group/orient cursor-crosshair"
+                            className="relative w-40 h-40 md:w-44 md:h-44 rounded-full border-4 border-slate-100 bg-white shadow-soft flex items-center justify-center cursor-crosshair"
                         >
-                            {/* Inner Circle Mesh */}
-                            <div className="absolute inset-2 rounded-full border border-slate-50 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.02)_0%,transparent_100%)] pointer-events-none" />
-
-                            {/* Tick Marks */}
                             {[...Array(12)].map((_, i) => (
                                 <div key={i} className="absolute h-full w-[1.5px] pointer-events-none" style={{ transform: `rotate(${i * 30}deg)` }}>
                                     <div className={cn(
-                                        "w-full rounded-full transition-all duration-300", 
-                                        i % 3 === 0 ? "h-3 bg-slate-300" : "h-1.5 bg-slate-100 group-hover/orient:bg-slate-200"
+                                        "w-full rounded-full transition-all", 
+                                        i % 3 === 0 ? "h-3 bg-slate-300" : "h-1.5 bg-slate-100"
                                     )} />
                                 </div>
                             ))}
-                            
-                            {/* Vertical "TEXT" Marker */}
                             <div className={cn(
                                 "absolute inset-0 flex items-center justify-center transition-all duration-500 pointer-events-none",
-                                style.verticalText ? "opacity-100 scale-100" : "opacity-5 scale-90"
+                                style.verticalText ? "opacity-100 scale-100" : "opacity-10 scale-90"
                             )}>
                                 <div className={cn(
-                                    "w-10 h-[70%] border-2 rounded-xl flex flex-col items-center justify-center gap-1.5 font-mono text-[9px] font-black tracking-widest transition-all",
-                                    style.verticalText ? "border-primary-500 text-primary-600 bg-primary-50 shadow-lg" : "border-slate-300 text-slate-400"
+                                    "w-10 h-[70%] border-2 rounded-xl flex flex-col items-center justify-center gap-1.5 font-mono text-[9px] font-black tracking-widest",
+                                    style.verticalText ? "border-primary-500 text-primary-600 bg-primary-50" : "border-slate-300 text-slate-400"
                                 )}>
                                     <span>T</span><span>E</span><span>X</span><span>T</span>
                                 </div>
                             </div>
-
-                            {/* Pointer Shadow */}
                             <div 
-                                className="absolute h-[3px] w-[45%] bg-slate-100 origin-left top-1/2 left-1/2 pointer-events-none blur-[2px] transition-transform duration-500"
-                                style={{ transform: `rotate(${(style.textRotation || 0) * -1}deg)` }}
-                            />
-
-                            {/* Active Pointer */}
-                            <div 
-                                className="absolute h-[4px] w-[46%] bg-gradient-to-r from-primary-400 to-primary-600 origin-left top-1/2 left-1/2 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) shadow-[0_4px_10px_-2px_rgba(16,185,129,0.3)] rounded-full z-20 pointer-events-none"
+                                className="absolute h-[4px] w-[46%] bg-gradient-to-r from-primary-400 to-primary-600 origin-left top-1/2 left-1/2 transition-transform duration-500 shadow-md rounded-full z-20 pointer-events-none"
                                 style={{ transform: `rotate(${(style.textRotation || 0) * -1}deg)` }}
                             >
-                                <div className="absolute -right-3 -top-2.5 w-6 h-6 bg-white border-4 border-primary-600 rounded-full shadow-xl ring-8 ring-primary-500/10 transition-transform" />
+                                <div className="absolute -right-3 -top-2.5 w-6 h-6 bg-white border-4 border-primary-600 rounded-full shadow-xl" />
                             </div>
-
-                            {/* Axis Point */}
-                            <div className="w-4 h-4 bg-white rounded-full z-30 border-4 border-slate-300 shadow-sm pointer-events-none" />
-
-                            {/* Legend Tags */}
-                            <div className="absolute left-1/2 top-2 -translate-x-1/2 text-[10px] font-black text-slate-300 tracking-tighter pointer-events-none">90°</div>
-                            <div className="absolute left-1/2 bottom-2 -translate-x-1/2 text-[10px] font-black text-slate-300 tracking-tighter pointer-events-none">-90°</div>
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 tracking-tighter pointer-events-none">0°</div>
+                            <div className="w-4 h-4 bg-white rounded-full z-30 border-4 border-slate-300 pointer-events-none" />
                         </div>
 
-                        {/* Controls Container */}
-                        <div className="w-full flex flex-col gap-4 mt-2">
-                             <div className="flex items-center gap-4 bg-slate-900 rounded-2xl p-2 pl-5 shadow-2xl border border-slate-800">
+                        <div className="w-full flex flex-col gap-4">
+                             <div className="flex items-center gap-4 bg-slate-900 rounded-2xl p-2 pl-5 border border-slate-800">
                                 <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] flex-1">Degrees</span>
                                 <div className="flex items-center gap-1 bg-slate-800 rounded-xl p-1 pr-3">
                                     <input 
@@ -407,31 +404,8 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
                                         }}
                                         min={-90} max={90}
                                     />
-                                    <div className="flex flex-col gap-1">
-                                        <button 
-                                            onClick={() => {
-                                                const deg = Math.min(90, (style.textRotation || 0) + 1);
-                                                onChange('textRotation', deg);
-                                                onChange('verticalText', false);
-                                            }}
-                                            className="p-1 hover:text-primary-400 text-slate-500 transition-colors"
-                                        >
-                                            <ChevronDown size={14} className="rotate-180 stroke-[3]" />
-                                        </button>
-                                        <button 
-                                            onClick={() => {
-                                                const deg = Math.max(-90, (style.textRotation || 0) - 1);
-                                                onChange('textRotation', deg);
-                                                onChange('verticalText', false);
-                                            }}
-                                            className="p-1 hover:text-primary-400 text-slate-500 transition-colors"
-                                        >
-                                            <ChevronDown size={14} className="stroke-[3]" />
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
-                            
                             <div className="flex gap-2">
                                 <button 
                                     onClick={() => { 
@@ -441,20 +415,14 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
                                     }}
                                     className={cn(
                                         "flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-[12px] font-bold transition-all border-2",
-                                        style.verticalText 
-                                            ? "bg-primary-600 border-primary-600 text-white shadow-lg" 
-                                            : "bg-white border-slate-100 text-slate-500 hover:border-slate-200"
+                                        style.verticalText ? "bg-primary-600 border-primary-600 text-white shadow-lg" : "bg-white border-slate-100 text-slate-500"
                                     )}
                                 >
-                                    <div className="flex flex-col leading-[0.6] text-[8px] font-black">
-                                        <span>V</span><span>E</span><span>R</span>
-                                    </div>
-                                    <span>Vertical</span>
+                                    <span className="font-black">Vertical</span>
                                 </button>
                                 <button 
                                     onClick={() => { onChange('textRotation', 0); onChange('verticalText', false); }}
-                                    className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all"
-                                    title="Reset Alignment"
+                                    className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
                                 >
                                     <RotateCw size={18} />
                                 </button>
@@ -468,7 +436,7 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
 };
 
 const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => (
-    <div className="flex flex-col gap-6 h-full">
+    <div className="flex flex-col gap-6 h-full pb-20">
         <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-[1fr_140px_80px]")}>
             <div className="flex flex-col gap-2">
                 <span className="text-[11px] text-slate-400 font-bold uppercase px-1">Font</span>
@@ -503,7 +471,7 @@ const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: an
                 <div className="flex flex-col gap-2">
                     <span className="text-[12px] text-slate-500 font-medium">Text Color:</span>
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg border border-slate-200 shadow-sm" style={{ backgroundColor: style.color || '#000' }} />
+                        <div className="w-8 h-8 rounded-lg border border-slate-200" style={{ backgroundColor: style.color || '#000' }} />
                         <ModernSelect 
                             value={style.color || '#000000'}
                             options={COLORS.map(c => ({ value: c, label: c }))}
@@ -517,6 +485,20 @@ const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: an
     </div>
 );
 
+const BorderTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => (
+    <div className="flex flex-col gap-6 h-full justify-center items-center text-center px-4 md:px-6">
+        <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center text-slate-200 border-2 border-dashed border-slate-100">
+             <Info size={40} strokeWidth={1} />
+        </div>
+        <div>
+            <h3 className="text-[17px] font-black text-slate-800 tracking-tight">Style Borders</h3>
+            <p className="text-[12px] text-slate-500 mt-2 leading-relaxed font-medium">
+                Advanced border customizer is in development.<br/>Use Home tab for rapid borders.
+            </p>
+        </div>
+    </div>
+);
+
 const FillTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => (
     <div className="flex flex-col gap-6 h-full">
         <GroupBox label="Background Color">
@@ -525,7 +507,7 @@ const FillTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: an
                     <button
                         key={c}
                         className={cn(
-                            "w-8 h-8 rounded-lg border border-slate-200 transition-all hover:scale-110 active:scale-95 shadow-sm",
+                            "w-8 h-8 rounded-lg border border-slate-200 transition-all hover:scale-110",
                             style.bg === c && "ring-2 ring-primary-500 ring-offset-2 scale-110"
                         )}
                         style={{ backgroundColor: c }}
@@ -542,7 +524,7 @@ const ProtectionTab = ({ style, onChange, isMobile }: { style: CellStyle, onChan
     <div className="flex flex-col gap-6 h-full py-4">
         <div className="grid gap-6">
             <label className="flex items-start gap-4 p-5 rounded-[24px] bg-slate-50 border border-slate-100 cursor-pointer group hover:bg-white hover:shadow-xl transition-all">
-                <div className="w-6 h-6 rounded-lg border-2 border-slate-200 flex items-center justify-center bg-white mt-1 group-hover:border-primary-500 transition-all">
+                <div className="w-6 h-6 rounded-lg border-2 border-slate-200 flex items-center justify-center bg-white mt-1 group-hover:border-primary-500">
                     <input 
                         type="checkbox" 
                         className="w-4 h-4 accent-primary-600"
@@ -558,26 +540,12 @@ const ProtectionTab = ({ style, onChange, isMobile }: { style: CellStyle, onChan
                     <span className="text-[13px] text-slate-500 mt-1 font-medium">Prevents cells from being edited when sheet protection is active.</span>
                 </div>
             </label>
-            <label className="flex items-start gap-4 p-5 rounded-[24px] bg-slate-50 border border-slate-100 cursor-pointer group hover:bg-white hover:shadow-xl transition-all">
-                <div className="w-6 h-6 rounded-lg border-2 border-slate-200 flex items-center justify-center bg-white mt-1 group-hover:border-primary-500 transition-all">
-                    <input 
-                        type="checkbox" 
-                        className="w-4 h-4 accent-primary-600"
-                        checked={!!style.protection?.hidden} 
-                        onChange={(e) => onChange('protection', { ...(style.protection || {}), hidden: e.target.checked })} 
-                    />
-                </div>
-                <div className="flex flex-col">
-                    <span className="text-base font-black text-slate-800">Hidden</span>
-                    <span className="text-[13px] text-slate-500 mt-1 font-medium">Hides formulas from the formula bar in protected sheets.</span>
-                </div>
-            </label>
         </div>
     </div>
 );
 
 const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, initialStyle, onApply }) => {
-  const [activeTab, setActiveTab] = useState('Number');
+  const [activeTab, setActiveTab] = useState('Alignment');
   const [style, setStyle] = useState<CellStyle>(initialStyle);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -595,12 +563,13 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
       if (isOpen) {
           setStyle(JSON.parse(JSON.stringify(initialStyle)));
           if (!isMobile) {
+            const width = 680;
+            const height = 680;
             setPosition({ 
-                x: Math.max(0, (window.innerWidth - 680) / 2), 
-                y: Math.max(0, (window.innerHeight - 680) / 2) 
+                x: (window.innerWidth - width) / 2, 
+                y: (window.innerHeight - height) / 2 
             });
           }
-          setActiveTab('Alignment'); // Default to Alignment for this specific task
       }
   }, [isOpen, initialStyle, isMobile]);
 
@@ -632,28 +601,24 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
   if (!isOpen) return null;
 
   const floatingClass = isMobile 
-    ? "fixed inset-x-4 top-[12.5vh] h-[75vh] max-h-[75vh] rounded-[40px] shadow-[0_40px_100px_-10px_rgba(0,0,0,0.5)] z-[2001] bg-white flex flex-col overflow-hidden" 
-    : "fixed w-[680px] h-[680px] rounded-[40px] shadow-[0_30px_100px_-20px_rgba(15,23,42,0.4)] z-[2001] bg-white border border-slate-200 overflow-hidden flex flex-col";
+    ? "fixed inset-0 z-[2001] bg-white flex flex-col overflow-hidden" 
+    : "fixed w-[680px] h-[680px] rounded-[40px] shadow-2xl z-[2001] bg-white border border-slate-200 overflow-hidden flex flex-col";
 
   return (
-    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md pointer-events-auto">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md">
         <AnimatePresence>
             {isOpen && (
                 <motion.div 
-                    initial={isMobile ? { y: '50%', opacity: 0, scale: 0.95 } : { scale: 0.9, opacity: 0 }}
-                    animate={isMobile ? { y: 0, opacity: 1, scale: 1 } : { scale: 1, opacity: 1, x: position.x, y: position.y }}
-                    exit={isMobile ? { y: '50%', opacity: 0, scale: 0.95 } : { scale: 0.9, opacity: 0 }}
+                    initial={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
+                    animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1, x: position.x, y: position.y }}
+                    exit={isMobile ? { y: '100%' } : { scale: 0.9, opacity: 0 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                     className={cn(floatingClass, !isMobile && "fixed m-0")}
-                    style={!isMobile ? { left: 0, top: 0, position: 'fixed' } : {}}
+                    style={!isMobile ? { left: 0, top: 0 } : {}}
                 >
-                    {/* Floating Title Bar */}
                     <div 
                         ref={dragRef}
-                        className={cn(
-                            "h-20 flex items-center justify-between px-8 md:px-10 select-none flex-shrink-0 relative",
-                            !isMobile ? "cursor-move" : ""
-                        )}
+                        className={cn("h-20 flex items-center justify-between px-8 select-none flex-shrink-0 relative", !isMobile && "cursor-move")}
                         onMouseDown={(e) => {
                             if (!isMobile && (e.target === dragRef.current || (e.target as HTMLElement).tagName === 'SPAN')) {
                                 setIsDragging(true);
@@ -662,20 +627,19 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                     >
                         {isMobile && <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-slate-200 rounded-full opacity-50" />}
                         <div className="flex items-center gap-4 mt-2">
-                             <div className="w-9 h-9 md:w-10 md:h-10 rounded-2xl bg-primary-600 flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
-                                <MousePointer2 size={isMobile ? 18 : 20} className="fill-white" />
+                             <div className="w-10 h-10 rounded-2xl bg-primary-600 flex items-center justify-center text-white shadow-lg">
+                                <MousePointer2 size={20} className="fill-white" />
                              </div>
                              <div className="flex flex-col">
-                                <span className="text-[16px] md:text-[17px] font-black text-slate-900 tracking-tight">Format Cells</span>
-                                <span className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Properties & Styles</span>
+                                <span className="text-[17px] font-black text-slate-900 tracking-tight">Format Cells</span>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Properties</span>
                              </div>
                         </div>
-                        <button onClick={onClose} className="mt-2 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-2xl transition-all active:scale-90">
+                        <button onClick={onClose} className="mt-2 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-2xl transition-all">
                             <X size={24} />
                         </button>
                     </div>
 
-                    {/* Modern Navigation - Scrollable if needed */}
                     <div className="px-6 md:px-10 py-1 flex-shrink-0">
                         <div className="flex bg-slate-50/50 p-1.5 rounded-[22px] gap-1 overflow-x-auto no-scrollbar border border-slate-100 shadow-inner snap-x scroll-smooth items-center">
                             {TABS.map(tab => {
@@ -687,7 +651,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                                         className={cn(
                                             "px-4 md:px-6 py-2.5 md:py-3 text-[12px] md:text-[13px] font-black rounded-[18px] transition-all whitespace-nowrap flex-shrink-0 snap-center min-w-max",
                                             active 
-                                                ? "bg-white text-primary-700 shadow-[0_4px_12px_rgba(0,0,0,0.05)] border border-slate-100 scale-[1.02]" 
+                                                ? "bg-white text-primary-700 shadow-sm border border-slate-100 scale-[1.02]" 
                                                 : "text-slate-400 hover:text-slate-600 hover:bg-white/40"
                                         )}
                                     >
@@ -698,15 +662,14 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                         </div>
                     </div>
 
-                    {/* Main Content Area */}
                     <div className="flex-1 bg-white px-6 md:px-10 py-6 md:py-10 overflow-y-auto scrollbar-thin">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeTab}
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -15 }}
-                                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                                initial={{ opacity: 0, x: 10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -10 }}
+                                transition={{ duration: 0.2 }}
                                 className="h-full"
                             >
                                 {activeTab === 'Number' && <NumberTab style={style} onChange={updateStyle} isMobile={isMobile} />}
@@ -719,17 +682,16 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                         </AnimatePresence>
                     </div>
 
-                    {/* High-Fidelity Footer */}
-                    <div className="h-24 md:h-28 border-t border-slate-100 bg-slate-50/50 backdrop-blur-xl flex items-center justify-end px-6 md:px-10 gap-3 md:gap-5 flex-shrink-0 pb-2 md:pb-4">
+                    <div className="h-24 md:h-28 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end px-6 md:px-10 gap-3 md:gap-5 flex-shrink-0 pb-2 md:pb-4">
                         <button 
                             onClick={onClose} 
-                            className="px-6 md:px-8 py-3 rounded-2xl text-[13px] md:text-[14px] font-black text-slate-400 hover:text-slate-900 transition-all active:scale-95"
+                            className="px-6 md:px-8 py-3 rounded-2xl text-[13px] font-black text-slate-400 hover:text-slate-900"
                         >
                             Discard
                         </button>
                         <button 
                             onClick={handleApply} 
-                            className="px-10 md:px-14 py-3 bg-slate-900 rounded-[22px] text-[13px] md:text-[14px] font-black text-white hover:bg-slate-800 shadow-2xl shadow-slate-900/20 active:scale-95 transition-all"
+                            className="px-10 md:px-14 py-3 bg-slate-900 rounded-[22px] text-[14px] font-black text-white hover:bg-slate-800 shadow-xl active:scale-95 transition-all"
                         >
                             Save Changes
                         </button>
@@ -740,19 +702,5 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
     </div>
   );
 };
-
-const BorderTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => (
-    <div className="flex flex-col gap-6 h-full justify-center items-center text-center px-4 md:px-6">
-        <div className="w-20 h-20 md:w-24 md:h-24 bg-slate-50 rounded-[32px] flex items-center justify-center text-slate-200 border-2 border-dashed border-slate-100">
-             <Info size={isMobile ? 40 : 48} strokeWidth={1} />
-        </div>
-        <div>
-            <h3 className="text-[17px] md:text-[19px] font-black text-slate-800 tracking-tight">Style Borders</h3>
-            <p className="text-[12px] md:text-[14px] text-slate-500 mt-2 leading-relaxed font-medium">
-                Advanced border customizer is in development.<br/>Use Home tab for rapid borders.
-            </p>
-        </div>
-    </div>
-);
 
 export default FormatCellsDialog;
