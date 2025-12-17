@@ -1,7 +1,5 @@
-
-// Corrected the malformed import statement
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Lock, Info, ChevronDown, Check, MousePointer2, RotateCw } from 'lucide-react';
+import React, { useState, useEffect, useRef, memo } from 'react';
+import { X, Lock, Info, ChevronDown, Check, MousePointer2, RotateCw, Type, Palette, AlignLeft, LayoutGrid, Hash } from 'lucide-react';
 import { CellStyle } from '../../types';
 import { cn } from '../../utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,16 +13,27 @@ interface FormatCellsDialogProps {
 
 const TABS = ['Number', 'Alignment', 'Font', 'Border', 'Fill', 'Protection'];
 
-const CATEGORIES = [
-  'General', 'Number', 'Currency', 'Accounting', 'Date', 'Time', 
-  'Percentage', 'Fraction', 'Scientific', 'Text', 'Special', 'Custom'
+const FONTS = ['Inter', 'Arial', 'Calibri', 'Times New Roman', 'Courier New', 'Verdana', 'JetBrains Mono', 'Segoe UI', 'Impact', 'Georgia'];
+const FONT_STYLES = ['Regular', 'Italic', 'Bold', 'Bold Italic'];
+const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72];
+const UNDERLINE_OPTIONS = [
+    { value: 'none', label: 'None' },
+    { value: 'single', label: 'Single' },
+    { value: 'double', label: 'Double' },
+    { value: 'singleAccounting', label: 'Single Accounting' },
+    { value: 'doubleAccounting', label: 'Double Accounting' },
 ];
 
 const COLORS = [
     '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#00FFFF', '#FF00FF',
-    '#800000', '#008000', '#000080', '#808000', '#800080', '#008080', '#C0C0C0', '#808080',
-    '#9999FF', '#993366', '#FFFFCC', '#CCFFFF', '#660066', '#FF8080', '#0066CC', '#CCCCFF',
-    '#0f172a', '#1e293b', '#334155', '#475569', '#64748b', '#94a3b8', '#cbd5e1', '#e2e8f0', '#f1f5f9', '#f8fafc'
+    '#4472C4', '#ED7D31', '#A5A5A5', '#FFC000', '#5B9BD5', '#70AD47', '#264478', '#9E480E',
+    '#636363', '#997300', '#255E91', '#43682B', '#0f172a', '#1e293b', '#334155', '#475569',
+    '#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6', '#ec4899'
+];
+
+const CATEGORIES = [
+  'General', 'Number', 'Currency', 'Accounting', 'Date', 'Time', 
+  'Percentage', 'Fraction', 'Scientific', 'Text', 'Special', 'Custom'
 ];
 
 const HORIZONTAL_ALIGN_OPTIONS = [
@@ -52,15 +61,8 @@ const TEXT_DIRECTION_OPTIONS = [
     { value: 'rtl', label: 'Right-to-Left' },
 ];
 
-const CURRENCY_SYMBOL_OPTIONS = [
-    { value: 'USD', label: '$ English (United States)' },
-    { value: 'None', label: 'None' },
-    { value: 'GBP', label: '£ English (United Kingdom)' },
-    { value: 'EUR', label: '€ Euro' },
-    { value: 'CNY', label: '¥ Chinese' },
-];
+// --- SHARED UI COMPONENTS ---
 
-// Reusable components for the dialog
 const ScrollableList = ({ 
     items, 
     selected, 
@@ -83,16 +85,16 @@ const ScrollableList = ({
     }, [selected]);
 
     return (
-        <div className={cn("border border-slate-200 bg-white/50 overflow-y-auto flex flex-col h-full shadow-inner select-none rounded-lg scrollbar-thin", className)}>
+        <div className={cn("border border-slate-200 bg-white overflow-y-auto flex flex-col h-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] select-none rounded-lg scrollbar-thin", className)}>
             {items.map(item => {
-                const isSelected = selected === item;
+                const isSelected = String(selected) === String(item);
                 return (
                     <div 
                         key={item} 
                         ref={isSelected ? selectedRef : null}
                         className={cn(
-                            "px-4 py-2 text-[12px] cursor-pointer whitespace-nowrap transition-all",
-                            isSelected ? "bg-primary-600 text-white font-semibold shadow-md z-10 scale-[1.02]" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                            "px-3 py-1.5 text-[12px] cursor-pointer whitespace-nowrap transition-all",
+                            isSelected ? "bg-primary-600 text-white font-semibold z-10" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                         )}
                         style={itemStyle ? itemStyle(item) : {}}
                         onClick={() => onSelect(item)}
@@ -109,12 +111,14 @@ const ModernSelect = ({
     value, 
     options, 
     onChange, 
-    className 
+    className,
+    label
 }: { 
     value: string, 
     options: { value: string, label: string }[], 
     onChange: (val: string) => void, 
-    className?: string 
+    className?: string,
+    label?: string
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -132,31 +136,41 @@ const ModernSelect = ({
     const selectedLabel = options.find(o => o.value === value)?.label || value;
 
     return (
-        <div ref={containerRef} className={cn("relative", className)}>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full h-10 bg-white border border-slate-200 rounded-xl px-4 text-[13px] text-slate-800 flex items-center justify-between hover:border-primary-400 hover:shadow-sm transition-all focus:ring-4 focus:ring-primary-500/10 outline-none"
-            >
-                <span className="truncate font-medium">{selectedLabel}</span>
-                <ChevronDown size={16} className={cn("text-slate-400 transition-transform duration-300", isOpen && "rotate-180")} />
-            </button>
-            {isOpen && (
-                <div className="absolute top-full left-0 w-full mt-2 bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl z-[1100] max-h-64 overflow-auto py-1.5 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
-                    {options.map(option => (
-                        <div
-                            key={option.value}
-                            onClick={() => { onChange(option.value); setIsOpen(false); }}
-                            className={cn(
-                                "px-4 py-2.5 text-[13px] cursor-pointer hover:bg-slate-50 text-slate-700 transition-colors flex items-center justify-between mx-1 rounded-lg",
-                                option.value === value && "bg-primary-50 text-primary-700 font-bold hover:bg-primary-50"
-                            )}
+        <div ref={containerRef} className={cn("flex flex-col gap-1.5", className)}>
+            {label && <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider px-1">{label}</span>}
+            <div className="relative">
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="w-full h-9 bg-white border border-slate-200 rounded-lg px-3 text-[12px] text-slate-800 flex items-center justify-between hover:border-primary-400 hover:shadow-sm transition-all focus:ring-4 focus:ring-primary-500/5 outline-none"
+                >
+                    <span className="truncate font-medium">{selectedLabel}</span>
+                    <ChevronDown size={14} className={cn("text-slate-400 transition-transform duration-300", isOpen && "rotate-180")} />
+                </button>
+                <AnimatePresence>
+                    {isOpen && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 4, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+                            className="absolute top-full left-0 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-[1100] max-h-48 overflow-auto py-1 animate-in ring-1 ring-black/5"
                         >
-                            <span>{option.label}</span>
-                            {option.value === value && <Check size={14} className="text-primary-600" />}
-                        </div>
-                    ))}
-                </div>
-            )}
+                            {options.map(option => (
+                                <div
+                                    key={option.value}
+                                    onClick={() => { onChange(option.value); setIsOpen(false); }}
+                                    className={cn(
+                                        "px-3 py-2 text-[12px] cursor-pointer hover:bg-slate-50 text-slate-700 transition-colors flex items-center justify-between mx-1 rounded-md",
+                                        option.value === value && "bg-primary-50 text-primary-700 font-bold"
+                                    )}
+                                >
+                                    <span>{option.label}</span>
+                                    {option.value === value && <Check size={12} className="text-primary-600" />}
+                                </div>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
     );
 };
@@ -167,6 +181,8 @@ const GroupBox = ({ label, children, className }: { label: string, children?: Re
         {children}
     </div>
 );
+
+// --- TAB COMPONENTS ---
 
 const NumberTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => {
     const getCategoryFromFormat = () => {
@@ -233,10 +249,7 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
 
         const angleRad = Math.atan2(centerY - clientY, clientX - centerX);
         let angleDeg = Math.round(angleRad * (180 / Math.PI));
-        
-        // Clamp to Excel range -90 to 90
         angleDeg = Math.max(-90, Math.min(90, angleDeg));
-        
         onChange('textRotation', angleDeg);
         onChange('verticalText', false);
     };
@@ -244,15 +257,13 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
     return (
         <div className={cn("grid h-full", isMobile ? "grid-cols-1 gap-6" : "grid-cols-[1fr_260px] gap-10")}>
             <div className="flex flex-col gap-6">
-                {/* 1. Text Alignment */}
                 <GroupBox label="Text alignment">
                     <div className="flex flex-col gap-6">
-                        {/* Horizontal */}
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center justify-between px-1">
                                 <span className="text-[12px] text-slate-500 font-semibold uppercase tracking-wider">Horizontal</span>
                                 {indentEnabled && (
-                                    <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-2 duration-300">
+                                    <div className="flex items-center gap-3">
                                         <span className="text-[11px] text-slate-400 font-bold">INDENT</span>
                                         <input 
                                             type="number" 
@@ -270,8 +281,6 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
                                 onChange={(val) => onChange('align', val)}
                             />
                         </div>
-                        
-                        {/* Vertical */}
                         <div className="flex flex-col gap-2">
                             <span className="text-[12px] text-slate-500 font-semibold uppercase tracking-wider px-1">Vertical</span>
                             <ModernSelect 
@@ -282,184 +291,73 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
                         </div>
                     </div>
                 </GroupBox>
-
-                {/* 2. Text Control */}
                 <GroupBox label="Text control">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8 py-1">
                         {[
-                            { key: 'wrapText', label: 'Wrap text', desc: 'Auto-adjust row height' },
-                            { key: 'shrinkToFit', label: 'Shrink to fit', desc: 'Downscale text size' },
-                            { key: 'mergeCells', label: 'Merge cells', desc: 'Combine selected' }
+                            { key: 'wrapText', label: 'Wrap text' },
+                            { key: 'shrinkToFit', label: 'Shrink to fit' },
+                            { key: 'mergeCells', label: 'Merge cells' }
                         ].map(item => (
                             <label key={item.key} className="flex items-center gap-4 cursor-pointer group">
                                 <div className={cn(
-                                    "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300",
-                                    !!(style as any)[item.key] ? "bg-primary-600 border-primary-600 shadow-[0_2px_10px_-2px_rgba(16,185,129,0.5)]" : "bg-white border-slate-200 group-hover:border-primary-400"
+                                    "w-5 h-5 rounded border flex items-center justify-center transition-all",
+                                    !!(style as any)[item.key] ? "bg-primary-600 border-primary-600" : "bg-white border-slate-300 group-hover:border-primary-400"
                                 )}>
-                                    {!!(style as any)[item.key] && <Check size={14} className="text-white stroke-[3]" />}
+                                    {!!(style as any)[item.key] && <Check size={12} className="text-white stroke-[3]" />}
                                     <input 
                                         type="checkbox" 
                                         className="sr-only" 
                                         checked={!!(style as any)[item.key]} 
-                                        onChange={(e) => {
-                                            if (item.key === 'wrapText' && e.target.checked) onChange('shrinkToFit', false);
-                                            if (item.key === 'shrinkToFit' && e.target.checked) onChange('wrapText', false);
-                                            onChange(item.key as any, e.target.checked);
-                                        }} 
+                                        onChange={(e) => onChange(item.key as any, e.target.checked)} 
                                     />
                                 </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[14px] font-bold text-slate-700 group-hover:text-slate-900 transition-colors">{item.label}</span>
-                                    <span className="text-[10px] text-slate-400 font-medium uppercase tracking-tighter">{item.desc}</span>
-                                </div>
+                                <span className="text-[13px] font-medium text-slate-700 group-hover:text-slate-900 transition-colors">{item.label}</span>
                             </label>
                         ))}
                     </div>
                 </GroupBox>
-
-                {/* 3. Direction (Desktop) */}
-                {!isMobile && (
-                    <GroupBox label="Right-to-left">
-                        <div className="flex flex-col gap-2">
-                            <span className="text-[12px] text-slate-500 font-semibold uppercase tracking-wider px-1">Text direction</span>
-                            <ModernSelect 
-                                value={style.textDirection || 'context'}
-                                options={TEXT_DIRECTION_OPTIONS}
-                                onChange={(val) => onChange('textDirection', val)}
-                            />
-                        </div>
-                    </GroupBox>
-                )}
             </div>
-
-            {/* 4. Orientation Column */}
             <div className="flex flex-col gap-6 h-full">
                 <GroupBox label="Orientation" className="flex-1 flex flex-col min-h-[360px]">
                     <div className="flex-1 flex flex-col items-center justify-between py-2 gap-8">
-                        {/* Clock Visualization */}
                         <div 
                             ref={clockRef}
                             onMouseDown={handleClockInteraction}
-                            onTouchStart={handleClockInteraction}
-                            className="relative w-44 h-44 rounded-full border-4 border-slate-100 bg-white shadow-[inset_0_4px_12px_rgba(0,0,0,0.05),0_10px_25px_-5px_rgba(0,0,0,0.05)] flex items-center justify-center group/orient cursor-crosshair"
+                            className="relative w-40 h-40 rounded-full border-2 border-slate-100 bg-white shadow-inner flex items-center justify-center cursor-crosshair"
                         >
-                            {/* Inner Circle Mesh */}
-                            <div className="absolute inset-2 rounded-full border border-slate-50 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.02)_0%,transparent_100%)] pointer-events-none" />
-
-                            {/* Tick Marks */}
                             {[...Array(12)].map((_, i) => (
-                                <div key={i} className="absolute h-full w-[1.5px] pointer-events-none" style={{ transform: `rotate(${i * 30}deg)` }}>
-                                    <div className={cn(
-                                        "w-full rounded-full transition-all duration-300", 
-                                        i % 3 === 0 ? "h-3 bg-slate-300" : "h-1.5 bg-slate-100 group-hover/orient:bg-slate-200"
-                                    )} />
+                                <div key={i} className="absolute h-full w-[1px]" style={{ transform: `rotate(${i * 30}deg)` }}>
+                                    <div className={cn("w-full h-2 rounded-full", i % 3 === 0 ? "bg-slate-300" : "bg-slate-100")} />
                                 </div>
                             ))}
-                            
-                            {/* Vertical "TEXT" Marker */}
-                            <div className={cn(
-                                "absolute inset-0 flex items-center justify-center transition-all duration-500 pointer-events-none",
-                                style.verticalText ? "opacity-100 scale-100" : "opacity-5 scale-90"
-                            )}>
-                                <div className={cn(
-                                    "w-10 h-[70%] border-2 rounded-xl flex flex-col items-center justify-center gap-1.5 font-mono text-[9px] font-black tracking-widest transition-all",
-                                    style.verticalText ? "border-primary-500 text-primary-600 bg-primary-50 shadow-lg" : "border-slate-300 text-slate-400"
-                                )}>
-                                    <span>T</span><span>E</span><span>X</span><span>T</span>
-                                </div>
-                            </div>
-
-                            {/* Pointer Shadow */}
                             <div 
-                                className="absolute h-[3px] w-[45%] bg-slate-100 origin-left top-1/2 left-1/2 pointer-events-none blur-[2px] transition-transform duration-500"
-                                style={{ transform: `rotate(${(style.textRotation || 0) * -1}deg)` }}
-                            />
-
-                            {/* Active Pointer */}
-                            <div 
-                                className="absolute h-[4px] w-[46%] bg-gradient-to-r from-primary-400 to-primary-600 origin-left top-1/2 left-1/2 transition-transform duration-500 cubic-bezier(0.34, 1.56, 0.64, 1) shadow-[0_4px_10px_-2px_rgba(16,185,129,0.3)] rounded-full z-20 pointer-events-none"
+                                className="absolute h-[2px] w-[45%] bg-primary-600 origin-left top-1/2 left-1/2 transition-transform duration-300 shadow-lg"
                                 style={{ transform: `rotate(${(style.textRotation || 0) * -1}deg)` }}
                             >
-                                <div className="absolute -right-3 -top-2.5 w-6 h-6 bg-white border-4 border-primary-600 rounded-full shadow-xl ring-8 ring-primary-500/10 transition-transform" />
+                                <div className="absolute -right-2 -top-1.5 w-4 h-4 bg-white border-2 border-primary-600 rounded-full shadow-md" />
                             </div>
-
-                            {/* Axis Point */}
-                            <div className="w-4 h-4 bg-white rounded-full z-30 border-4 border-slate-300 shadow-sm pointer-events-none" />
-
-                            {/* Legend Tags */}
-                            <div className="absolute left-1/2 top-2 -translate-x-1/2 text-[10px] font-black text-slate-300 tracking-tighter pointer-events-none">90°</div>
-                            <div className="absolute left-1/2 bottom-2 -translate-x-1/2 text-[10px] font-black text-slate-300 tracking-tighter pointer-events-none">-90°</div>
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 tracking-tighter pointer-events-none">0°</div>
+                            <div className="w-2 h-2 bg-slate-300 rounded-full z-10" />
                         </div>
-
-                        {/* Controls Container */}
-                        <div className="w-full flex flex-col gap-4 mt-2">
-                             <div className="flex items-center gap-4 bg-slate-900 rounded-2xl p-2 pl-5 shadow-2xl border border-slate-800">
-                                <span className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] flex-1">Degrees</span>
-                                <div className="flex items-center gap-1 bg-slate-800 rounded-xl p-1 pr-3">
-                                    <input 
-                                        type="number" 
-                                        className="w-12 h-10 bg-transparent text-center text-lg font-mono font-black text-white outline-none"
-                                        value={style.textRotation || 0}
-                                        onChange={(e) => {
-                                            const deg = Math.max(-90, Math.min(90, parseInt(e.target.value) || 0));
-                                            onChange('textRotation', deg);
-                                            onChange('verticalText', false);
-                                        }}
-                                        min={-90} max={90}
-                                    />
-                                    <div className="flex flex-col gap-1">
-                                        <button 
-                                            onClick={() => {
-                                                const deg = Math.min(90, (style.textRotation || 0) + 1);
-                                                onChange('textRotation', deg);
-                                                onChange('verticalText', false);
-                                            }}
-                                            className="p-1 hover:text-primary-400 text-slate-500 transition-colors"
-                                        >
-                                            <ChevronDown size={14} className="rotate-180 stroke-[3]" />
-                                        </button>
-                                        <button 
-                                            onClick={() => {
-                                                const deg = Math.max(-90, (style.textRotation || 0) - 1);
-                                                onChange('textRotation', deg);
-                                                onChange('verticalText', false);
-                                            }}
-                                            className="p-1 hover:text-primary-400 text-slate-500 transition-colors"
-                                        >
-                                            <ChevronDown size={14} className="stroke-[3]" />
-                                        </button>
-                                    </div>
-                                </div>
+                        <div className="w-full flex flex-col gap-3">
+                             <div className="flex items-center gap-3 bg-slate-50 rounded-xl p-2 border border-slate-200">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex-1 px-1">Degrees</span>
+                                <input 
+                                    type="number" 
+                                    className="w-14 h-8 bg-white border border-slate-200 rounded-lg text-center text-sm font-mono font-bold text-slate-700 outline-none"
+                                    value={style.textRotation || 0}
+                                    onChange={(e) => onChange('textRotation', Math.max(-90, Math.min(90, parseInt(e.target.value) || 0)))}
+                                    min={-90} max={90}
+                                />
                             </div>
-                            
-                            <div className="flex gap-2">
-                                <button 
-                                    onClick={() => { 
-                                        const isVertical = !style.verticalText;
-                                        onChange('verticalText', isVertical); 
-                                        if(isVertical) onChange('textRotation', 0); 
-                                    }}
-                                    className={cn(
-                                        "flex-1 h-12 rounded-xl flex items-center justify-center gap-2 text-[12px] font-bold transition-all border-2",
-                                        style.verticalText 
-                                            ? "bg-primary-600 border-primary-600 text-white shadow-lg" 
-                                            : "bg-white border-slate-100 text-slate-500 hover:border-slate-200"
-                                    )}
-                                >
-                                    <div className="flex flex-col leading-[0.6] text-[8px] font-black">
-                                        <span>V</span><span>E</span><span>R</span>
-                                    </div>
-                                    <span>Vertical</span>
-                                </button>
-                                <button 
-                                    onClick={() => { onChange('textRotation', 0); onChange('verticalText', false); }}
-                                    className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-all"
-                                    title="Reset Alignment"
-                                >
-                                    <RotateCw size={18} />
-                                </button>
-                            </div>
+                            <button 
+                                onClick={() => onChange('verticalText', !style.verticalText)}
+                                className={cn(
+                                    "w-full h-10 rounded-xl flex items-center justify-center gap-2 text-[12px] font-bold transition-all border",
+                                    style.verticalText ? "bg-primary-600 border-primary-600 text-white" : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                                )}
+                            >
+                                <span>Vertical Text</span>
+                            </button>
                         </div>
                     </div>
                 </GroupBox>
@@ -468,55 +366,181 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
     );
 };
 
-const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => (
-    <div className="flex flex-col gap-6 h-full">
-        <div className={cn("grid gap-4", isMobile ? "grid-cols-1" : "grid-cols-[1fr_140px_80px]")}>
-            <div className="flex flex-col gap-2">
-                <span className="text-[11px] text-slate-400 font-bold uppercase px-1">Font</span>
-                <ScrollableList 
-                    items={['Inter', 'Calibri', 'Arial', 'Times New Roman', 'JetBrains Mono', 'Segoe UI', 'Verdana']}
-                    selected={style.fontFamily || 'Inter'}
-                    onSelect={(val) => onChange('fontFamily', val)}
-                    className={isMobile ? "h-28" : "h-36"}
-                />
-            </div>
-            <div className="flex flex-col gap-2">
-                <span className="text-[11px] text-slate-400 font-bold uppercase px-1">Style</span>
-                <ScrollableList 
-                    items={['Regular', 'Italic', 'Bold', 'Bold Italic']}
-                    selected={style.bold && style.italic ? 'Bold Italic' : style.bold ? 'Bold' : style.italic ? 'Italic' : 'Regular'}
-                    onSelect={(s) => { onChange('bold', s.includes('Bold')); onChange('italic', s.includes('Italic')); }}
-                    className={isMobile ? "h-28" : "h-36"}
-                />
-            </div>
-            <div className="flex flex-col gap-2">
-                <span className="text-[11px] text-slate-400 font-bold uppercase px-1">Size</span>
-                <ScrollableList 
-                    items={[8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48, 72]}
-                    selected={style.fontSize || 11}
-                    onSelect={(val) => onChange('fontSize', val)}
-                    className={isMobile ? "h-28" : "h-36"}
-                />
-            </div>
-        </div>
-        <GroupBox label="Appearance">
-            <div className="flex flex-wrap items-center gap-8 py-1">
+// --- FONT TAB IMPLEMENTATION ---
+
+const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => {
+    const [fontInput, setFontInput] = useState(style.fontFamily || 'Inter');
+    const [styleInput, setStyleInput] = useState(style.bold && style.italic ? 'Bold Italic' : style.bold ? 'Bold' : style.italic ? 'Italic' : 'Regular');
+    const [sizeInput, setSizeInput] = useState(String(style.fontSize || 11));
+
+    // Sync internal inputs when global style changes
+    useEffect(() => {
+        setFontInput(style.fontFamily || 'Inter');
+        setSizeInput(String(style.fontSize || 11));
+        setStyleInput(style.bold && style.italic ? 'Bold Italic' : style.bold ? 'Bold' : style.italic ? 'Italic' : 'Regular');
+    }, [style]);
+
+    const handleStyleSelect = (s: string) => {
+        setStyleInput(s);
+        onChange('bold', s.includes('Bold'));
+        onChange('italic', s.includes('Italic'));
+    };
+
+    return (
+        <div className="flex flex-col gap-6 h-full overflow-hidden">
+            {/* Top: 3-Column List Pickers */}
+            <div className={cn("grid gap-4 flex-shrink-0", isMobile ? "grid-cols-1" : "grid-cols-[1.5fr_1fr_0.6fr]")}>
+                {/* Font Family */}
                 <div className="flex flex-col gap-2">
-                    <span className="text-[12px] text-slate-500 font-medium">Text Color:</span>
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg border border-slate-200 shadow-sm" style={{ backgroundColor: style.color || '#000' }} />
-                        <ModernSelect 
-                            value={style.color || '#000000'}
-                            options={COLORS.map(c => ({ value: c, label: c }))}
-                            onChange={(val) => onChange('color', val)}
-                            className="w-40"
+                    <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider px-1">Font:</span>
+                    <div className="flex flex-col h-40 md:h-48 border border-slate-200 rounded-xl bg-white overflow-hidden shadow-soft">
+                        <input 
+                            type="text" 
+                            className="w-full h-9 px-3 border-b border-slate-100 text-[13px] font-medium text-slate-800 outline-none focus:bg-slate-50"
+                            value={fontInput}
+                            onChange={(e) => { setFontInput(e.target.value); onChange('fontFamily', e.target.value); }}
+                        />
+                        <ScrollableList 
+                            items={FONTS}
+                            selected={style.fontFamily || 'Inter'}
+                            onSelect={(val) => { setFontInput(val); onChange('fontFamily', val); }}
+                            className="border-none"
+                            itemStyle={(font) => ({ fontFamily: font })}
+                        />
+                    </div>
+                </div>
+
+                {/* Font Style */}
+                <div className="flex flex-col gap-2">
+                    <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider px-1">Font style:</span>
+                    <div className="flex flex-col h-40 md:h-48 border border-slate-200 rounded-xl bg-white overflow-hidden shadow-soft">
+                        <input 
+                            type="text" 
+                            className="w-full h-9 px-3 border-b border-slate-100 text-[13px] font-medium text-slate-800 outline-none focus:bg-slate-50"
+                            value={styleInput}
+                            readOnly
+                        />
+                        <ScrollableList 
+                            items={FONT_STYLES}
+                            selected={styleInput}
+                            onSelect={handleStyleSelect}
+                            className="border-none"
+                        />
+                    </div>
+                </div>
+
+                {/* Font Size */}
+                <div className="flex flex-col gap-2">
+                    <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider px-1">Size:</span>
+                    <div className="flex flex-col h-40 md:h-48 border border-slate-200 rounded-xl bg-white overflow-hidden shadow-soft">
+                        <input 
+                            type="text" 
+                            className="w-full h-9 px-3 border-b border-slate-100 text-[13px] font-medium text-slate-800 outline-none focus:bg-slate-50 text-center"
+                            value={sizeInput}
+                            onChange={(e) => { setSizeInput(e.target.value); onChange('fontSize', parseInt(e.target.value) || 11); }}
+                        />
+                        <ScrollableList 
+                            items={FONT_SIZES}
+                            selected={style.fontSize || 11}
+                            onSelect={(val) => { setSizeInput(String(val)); onChange('fontSize', val); }}
+                            className="border-none text-center"
                         />
                     </div>
                 </div>
             </div>
-        </GroupBox>
-    </div>
-);
+
+            {/* Middle: Selectors and Effects */}
+            <div className={cn("grid gap-8 items-start", isMobile ? "grid-cols-1" : "grid-cols-[1fr_1.2fr]")}>
+                <div className="flex flex-col gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <ModernSelect 
+                            label="Underline:"
+                            value={style.underline ? 'single' : 'none'}
+                            options={UNDERLINE_OPTIONS}
+                            onChange={(val) => onChange('underline', val !== 'none')}
+                        />
+                        <div className="flex flex-col gap-1.5">
+                            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider px-1">Color:</span>
+                            <div className="flex gap-1.5 p-1 bg-white border border-slate-200 rounded-lg h-9 items-center justify-center">
+                                <div className="w-5 h-5 rounded-md border border-slate-100 shadow-sm flex-shrink-0" style={{ backgroundColor: style.color || '#000000' }} />
+                                <div className="w-[1px] h-4 bg-slate-100" />
+                                <div className="flex-1 flex gap-1 overflow-x-auto no-scrollbar justify-center">
+                                    {COLORS.slice(0, 8).map(c => (
+                                        <button 
+                                            key={c}
+                                            onClick={() => onChange('color', c)}
+                                            className={cn(
+                                                "w-4 h-4 rounded-full border border-slate-200 hover:scale-125 transition-transform",
+                                                style.color === c && "ring-1 ring-primary-500 ring-offset-1"
+                                            )}
+                                            style={{ backgroundColor: c }}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <GroupBox label="Effects">
+                        <div className="grid grid-cols-1 gap-4">
+                            {[
+                                { key: 'strikethrough', label: 'Strikethrough' },
+                                { key: 'superscript', label: 'Superscript', disabled: true },
+                                { key: 'subscript', label: 'Subscript', disabled: true }
+                            ].map(effect => (
+                                <label key={effect.key} className={cn("flex items-center gap-3 cursor-pointer group", effect.disabled && "opacity-40 cursor-default")}>
+                                    <div className={cn(
+                                        "w-5 h-5 rounded border flex items-center justify-center transition-all",
+                                        !!(style as any)[effect.key] ? "bg-primary-600 border-primary-600 shadow-sm" : "bg-white border-slate-300 group-hover:border-primary-400"
+                                    )}>
+                                        {!!(style as any)[effect.key] && <Check size={12} className="text-white stroke-[3]" />}
+                                        <input 
+                                            type="checkbox" 
+                                            className="sr-only" 
+                                            checked={!!(style as any)[effect.key]} 
+                                            onChange={(e) => !effect.disabled && onChange(effect.key as any, e.target.checked)} 
+                                        />
+                                    </div>
+                                    <span className="text-[13px] font-medium text-slate-700 group-hover:text-slate-900">{effect.label}</span>
+                                </label>
+                            ))}
+                        </div>
+                    </GroupBox>
+                </div>
+
+                {/* Preview Panel */}
+                <div className="flex flex-col gap-2 h-full">
+                    <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider px-1">Preview:</span>
+                    <div className="flex-1 min-h-[140px] bg-slate-50 border border-slate-200 rounded-[24px] p-8 flex items-center justify-center text-center relative overflow-hidden shadow-inner group">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.03),transparent_70%)]" />
+                        <span 
+                            style={{ 
+                                fontFamily: style.fontFamily || 'Inter',
+                                fontSize: `${Math.min(32, (style.fontSize || 11) * 1.5)}px`,
+                                fontWeight: style.bold ? 'bold' : 'normal',
+                                fontStyle: style.italic ? 'italic' : 'normal',
+                                textDecoration: style.underline ? 'underline' : 'none',
+                                color: style.color || '#000000',
+                                textDecorationLine: style.strikethrough ? 'line-through' : (style.underline ? 'underline' : 'none'),
+                                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                            }}
+                            className="relative z-10 break-all leading-tight"
+                        >
+                            AaBbCcYyZz
+                        </span>
+                        <div className="absolute bottom-3 right-6 text-[10px] text-slate-300 font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Visual Engine 3.0</div>
+                    </div>
+                    <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3 mt-1">
+                        <Info size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                        <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
+                            This is a TrueType font. The same font will be used on both your printer and your screen.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const FillTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => (
     <div className="flex flex-col gap-6 h-full">
@@ -597,11 +621,11 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
           setStyle(JSON.parse(JSON.stringify(initialStyle)));
           if (!isMobile) {
             setPosition({ 
-                x: Math.max(0, (window.innerWidth - 680) / 2), 
-                y: Math.max(0, (window.innerHeight - 680) / 2) 
+                x: Math.max(0, (window.innerWidth - 720) / 2), 
+                y: Math.max(0, (window.innerHeight - 740) / 2) 
             });
           }
-          setActiveTab('Alignment'); // Default to Alignment for this specific task
+          setActiveTab('Font'); 
       }
   }, [isOpen, initialStyle, isMobile]);
 
@@ -633,8 +657,8 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
   if (!isOpen) return null;
 
   const floatingClass = isMobile 
-    ? "fixed inset-x-4 top-[12.5vh] h-[75vh] max-h-[75vh] rounded-[40px] shadow-[0_40px_100px_-10px_rgba(0,0,0,0.5)] z-[2001] bg-white flex flex-col overflow-hidden" 
-    : "fixed w-[680px] h-[680px] rounded-[40px] shadow-[0_30px_100px_-20px_rgba(15,23,42,0.4)] z-[2001] bg-white border border-slate-200 overflow-hidden flex flex-col";
+    ? "fixed inset-x-4 top-[10vh] h-[80vh] max-h-[80vh] rounded-[32px] shadow-[0_40px_100px_-10px_rgba(0,0,0,0.5)] z-[2001] bg-white flex flex-col overflow-hidden border border-slate-100" 
+    : "fixed w-[720px] h-[740px] rounded-[40px] shadow-[0_30px_100px_-20px_rgba(15,23,42,0.4)] z-[2001] bg-white border border-slate-200 overflow-hidden flex flex-col";
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md pointer-events-auto">
@@ -656,19 +680,19 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                             !isMobile ? "cursor-move" : ""
                         )}
                         onMouseDown={(e) => {
-                            if (!isMobile && (e.target === dragRef.current || (e.target as HTMLElement).tagName === 'SPAN')) {
+                            if (!isMobile && (e.target === dragRef.current || (e.target as HTMLElement).tagName === 'SPAN' || (e.target as HTMLElement).tagName === 'DIV')) {
                                 setIsDragging(true);
                             }
                         }}
                     >
                         {isMobile && <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-slate-200 rounded-full opacity-50" />}
                         <div className="flex items-center gap-4 mt-2">
-                             <div className="w-9 h-9 md:w-10 md:h-10 rounded-2xl bg-primary-600 flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
-                                <MousePointer2 size={isMobile ? 18 : 20} className="fill-white" />
+                             <div className="w-10 h-10 rounded-2xl bg-primary-600 flex items-center justify-center text-white shadow-lg shadow-primary-500/30">
+                                <Type size={20} className="stroke-[2.5]" />
                              </div>
                              <div className="flex flex-col">
-                                <span className="text-[16px] md:text-[17px] font-black text-slate-900 tracking-tight">Format Cells</span>
-                                <span className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Properties & Styles</span>
+                                <span className="text-[17px] font-black text-slate-900 tracking-tight">Format Cells</span>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em]">Cell Identity & Styles</span>
                              </div>
                         </div>
                         <button onClick={onClose} className="mt-2 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-2xl transition-all active:scale-90">
@@ -700,7 +724,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                     </div>
 
                     {/* Main Content Area */}
-                    <div className="flex-1 bg-white px-6 md:px-10 py-6 md:py-10 overflow-y-auto scrollbar-thin">
+                    <div className="flex-1 bg-white px-6 md:px-10 py-6 md:py-8 overflow-y-auto scrollbar-thin">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeTab}
@@ -724,7 +748,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                     <div className="h-24 md:h-28 border-t border-slate-100 bg-slate-50/50 backdrop-blur-xl flex items-center justify-end px-6 md:px-10 gap-3 md:gap-5 flex-shrink-0 pb-2 md:pb-4">
                         <button 
                             onClick={onClose} 
-                            className="px-6 md:px-8 py-3 rounded-2xl text-[13px] md:text-[14px] font-black text-slate-400 hover:text-slate-900 transition-all active:scale-95"
+                            className="px-6 md:px-8 py-3 rounded-2xl text-[13px] md:text-[14px] font-bold text-slate-400 hover:text-slate-900 transition-all active:scale-95"
                         >
                             Discard
                         </button>
