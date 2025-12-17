@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Lock, Info, ChevronDown, Check, MousePointer2 } from 'lucide-react';
 import { CellStyle } from '../../types';
@@ -275,7 +274,7 @@ const NumberTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: 
                     items={CATEGORIES}
                     selected={selectedCat}
                     onSelect={handleCatChange}
-                    className="flex-1 min-h-[300px] border-slate-100"
+                    className={cn("flex-1 border-slate-100", isMobile ? "min-h-[140px]" : "min-h-[300px]")}
                 />
             </div>
             
@@ -435,16 +434,18 @@ const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChang
                     </div>
                 </GroupBox>
 
-                <GroupBox label="Right-to-left">
-                    <div className="flex flex-col gap-2">
-                        <span className="text-[12px] text-slate-500 font-medium">Text direction:</span>
-                        <ModernSelect 
-                            value={style.textDirection || 'context'}
-                            options={TEXT_DIRECTION_OPTIONS}
-                            onChange={(val) => onChange('textDirection', val)}
-                        />
-                    </div>
-                </GroupBox>
+                {!isMobile && (
+                    <GroupBox label="Right-to-left">
+                        <div className="flex flex-col gap-2">
+                            <span className="text-[12px] text-slate-500 font-medium">Text direction:</span>
+                            <ModernSelect 
+                                value={style.textDirection || 'context'}
+                                options={TEXT_DIRECTION_OPTIONS}
+                                onChange={(val) => onChange('textDirection', val)}
+                            />
+                        </div>
+                    </GroupBox>
+                )}
             </div>
 
             <GroupBox label="Orientation" className="flex flex-col">
@@ -542,7 +543,7 @@ const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: an
                     items={['Inter', 'Calibri', 'Arial', 'Times New Roman', 'JetBrains Mono', 'Segoe UI', 'Verdana']}
                     selected={style.fontFamily || 'Inter'}
                     onSelect={(val) => onChange('fontFamily', val)}
-                    className="h-36"
+                    className={isMobile ? "h-28" : "h-36"}
                 />
             </div>
             <div className="flex flex-col gap-2">
@@ -551,7 +552,7 @@ const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: an
                     items={['Regular', 'Italic', 'Bold', 'Bold Italic']}
                     selected={style.bold && style.italic ? 'Bold Italic' : style.bold ? 'Bold' : style.italic ? 'Italic' : 'Regular'}
                     onSelect={(s) => { onChange('bold', s.includes('Bold')); onChange('italic', s.includes('Italic')); }}
-                    className="h-36"
+                    className={isMobile ? "h-28" : "h-36"}
                 />
             </div>
             <div className="flex flex-col gap-2">
@@ -560,7 +561,7 @@ const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: an
                     items={[8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48, 72]}
                     selected={style.fontSize || 11}
                     onSelect={(val) => onChange('fontSize', val)}
-                    className="h-36"
+                    className={isMobile ? "h-28" : "h-36"}
                 />
             </div>
         </div>
@@ -596,7 +597,7 @@ const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: an
 const FillTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => (
     <div className="flex flex-col gap-6 h-full">
         <GroupBox label="Background Color">
-            <div className="grid grid-cols-6 md:grid-cols-10 gap-2 p-2">
+            <div className={cn("grid gap-2 p-2", isMobile ? "grid-cols-5" : "grid-cols-10")}>
                 {COLORS.map(c => (
                     <button
                         key={c}
@@ -618,7 +619,7 @@ const FillTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: an
             >
                 No Color
             </button>
-            <div className="text-[11px] text-slate-400 italic">Select a color to apply as a fill background to your selection.</div>
+            <div className="text-[11px] text-slate-400 italic">Select a color to apply as a fill background.</div>
         </div>
     </div>
 );
@@ -661,7 +662,7 @@ const ProtectionTab = ({ style, onChange, isMobile }: { style: CellStyle, onChan
         <div className="mt-auto bg-amber-50 rounded-2xl p-5 border border-amber-100 flex gap-4 items-start">
             <Info size={20} className="text-amber-500 mt-1 flex-shrink-0" />
             <p className="text-[12px] text-amber-700 leading-relaxed font-medium">
-                Note: Protection features (Locking/Hiding) will only take effect after you protect the worksheet using the "Protect Sheet" button in the Review tab.
+                Note: Protection features will only take effect after you protect the worksheet in the Review tab.
             </p>
         </div>
     </div>
@@ -722,7 +723,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
   if (!isOpen) return null;
 
   const floatingClass = isMobile 
-    ? "fixed bottom-0 left-0 right-0 h-[85vh] w-full rounded-t-3xl shadow-2xl z-[2001] bg-white border-t border-slate-200 animate-in slide-in-from-bottom-full duration-500 flex flex-col" 
+    ? "fixed bottom-0 left-0 right-0 h-[75vh] w-full rounded-t-[32px] shadow-[0_-20px_50px_rgba(0,0,0,0.15)] z-[2001] bg-white border-t border-slate-100 flex flex-col" 
     : "fixed w-[640px] h-[640px] rounded-3xl shadow-2xl z-[2001] bg-white border border-slate-200 overflow-hidden flex flex-col";
 
   return (
@@ -733,15 +734,23 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                     initial={isMobile ? { y: '100%' } : { scale: 0.95, opacity: 0 }}
                     animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1, x: position.x, y: position.y }}
                     exit={isMobile ? { y: '100%' } : { scale: 0.95, opacity: 0 }}
+                    transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                     className={cn(floatingClass, !isMobile && "fixed m-0")}
                     style={!isMobile ? { left: 0, top: 0, position: 'fixed' } : {}}
                 >
+                    {/* Mobile Handle Indicator */}
+                    {isMobile && (
+                        <div className="w-full flex justify-center pt-3 pb-1">
+                            <div className="w-10 h-1 bg-slate-300 rounded-full opacity-50" />
+                        </div>
+                    )}
+
                     {/* Floating Title Bar */}
                     <div 
                         ref={dragRef}
                         className={cn(
-                            "h-14 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-6 select-none flex-shrink-0",
-                            !isMobile && "cursor-move"
+                            "h-14 bg-white/80 backdrop-blur-md flex items-center justify-between px-6 select-none flex-shrink-0",
+                            !isMobile ? "cursor-move border-b border-slate-100" : ""
                         )}
                         onMouseDown={(e) => {
                             if (!isMobile && (e.target === dragRef.current || (e.target as HTMLElement).tagName === 'SPAN')) {
@@ -814,7 +823,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                             onClick={handleApply} 
                             className="px-10 py-2.5 bg-primary-600 rounded-xl text-[13px] font-bold text-white hover:bg-primary-700 hover:shadow-glow shadow-md active:scale-95 transition-all"
                         >
-                            Apply Formatting
+                            Apply
                         </button>
                     </div>
                 </motion.div>
@@ -830,14 +839,11 @@ const BorderTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: 
              <Info size={40} />
         </div>
         <div>
-            <h3 className="text-[17px] font-bold text-slate-800">Advanced Borders Coming Soon</h3>
+            <h3 className="text-[17px] font-bold text-slate-800">Advanced Borders</h3>
             <p className="text-[13px] text-slate-500 mt-2 leading-relaxed">
-                We're currently refining the advanced border system to match Excel's high standards. For now, use the grid border settings in the Home tab.
+                Advanced border settings are coming soon. Please use the quick border options in the Home tab for now.
             </p>
         </div>
-        <button className="px-6 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold shadow-lg hover:bg-slate-800 transition-all">
-            Understood
-        </button>
     </div>
 );
 
