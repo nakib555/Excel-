@@ -13,6 +13,7 @@ import DecreaseIndent from './DecreaseIndent';
 import IncreaseIndent from './IncreaseIndent';
 import WrapText from './WrapText';
 import MergeCenter from './MergeCenter';
+import ShrinkToFit from './ShrinkToFit';
 
 const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onMergeCenter }) => {
   return (
@@ -41,6 +42,7 @@ const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, 
                 <div className="flex gap-1">
                      <Orientation currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                      <WrapText currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                     <ShrinkToFit currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 </div>
                 {/* Row 2 */}
                 <div className="flex gap-1">

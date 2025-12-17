@@ -1,6 +1,6 @@
 
 
-import React, { memo, useState, useRef, useEffect } from 'react';
+import React, { memo, useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
 import { cn, formatCellValue } from '../utils';
 import { CellSkeleton } from './Skeletons';
@@ -31,7 +31,7 @@ interface CellProps {
 const Cell = memo(({ 
   id, 
   data, 
-  style: resolvedStyle, // Renamed to avoid confusion
+  style: resolvedStyle,
   isSelected, 
   isActive, 
   isInRange,
@@ -50,8 +50,10 @@ const Cell = memo(({
   const [editValue, setEditValue] = useState(data.raw);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const spanRef = useRef<HTMLSpanElement>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [scaleFactor, setScaleFactor] = useState(1);
 
   useEffect(() => { setEditValue(data.raw); }, [data.raw]);
 
@@ -63,8 +65,25 @@ const Cell = memo(({
     if (isActive && editing) inputRef.current?.focus();
   }, [isActive, editing]);
 
+  // Shrink to Fit Implementation (Excel Feature)
+  useLayoutEffect(() => {
+    if (resolvedStyle.shrinkToFit && !resolvedStyle.wrapText && spanRef.current && !editing) {
+       const span = spanRef.current;
+       // approximate padding calculation based on indent
+       const paddingX = (resolvedStyle.indent || 0) * 10 + 8; 
+       const avail = width - paddingX;
+       const actual = span.scrollWidth;
+       if (actual > avail && avail > 0) {
+           setScaleFactor(avail / actual);
+       } else {
+           setScaleFactor(1);
+       }
+    } else {
+        setScaleFactor(1);
+    }
+  }, [data.value, resolvedStyle, width, height, editing]);
+
   const handleBlur = () => {
-    // Delay to allow dropdown click
     setTimeout(() => {
         setEditing(false);
         if (editValue !== data.raw) onChange(id, editValue);
@@ -87,39 +106,45 @@ const Cell = memo(({
   const isMicroView = scale < 0.25; 
   const fontSize = Math.max(scale < 0.6 ? 7 : 9, (resolvedStyle.fontSize || 13) * scale);
 
-  // Style Calculation 
-  const containerStyle: React.CSSProperties = {
-    width: width,
-    height: height,
-    minWidth: width,
-    minHeight: height,
-  };
-  
-  // Ghost Mode - Use shared skeleton for consistency with lazy loading
+  // Ghost Mode - Return optimized skeleton if scrolling fast
   if (isGhost) {
       return <CellSkeleton width={width} height={height} />;
   }
 
-  const textAlign = resolvedStyle.align || 'left';
-  const verticalAlign = resolvedStyle.verticalAlign || 'bottom';
+  // --- ALIGNMENT ENGINE ---
+  // Mapping Excel alignment to CSS Flexbox
+  const align = resolvedStyle.align || 'left'; // horizontal
+  const verticalAlign = resolvedStyle.verticalAlign || 'bottom'; // vertical (Excel default is bottom for data)
   const indent = resolvedStyle.indent || 0;
+  
+  // X-Axis
+  const justifyContent = align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
+  
+  // Y-Axis
+  const alignItems = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
 
+  // Indentation Logic (Padding)
+  const indentPx = indent * 10 * scale; // Scale indent visually
+  // Apply indent as padding based on alignment direction
+  const paddingLeft = align === 'right' ? '4px' : `${4 + indentPx}px`;
+  const paddingRight = align === 'right' ? `${4 + indentPx}px` : '4px';
+
+  // Font Styles
   const fontWeight = resolvedStyle.bold ? '600' : '400';
   const fontStyle = resolvedStyle.italic ? 'italic' : 'normal';
   const textDecoration = resolvedStyle.underline ? 'underline' : 'none';
   const color = resolvedStyle.color || '#0f172a';
   const backgroundColor = resolvedStyle.bg || (isInRange ? 'rgba(16, 185, 129, 0.1)' : '#fff');
   
-  // Orientation logic
+  // Orientation / Rotation Logic
   const verticalText = resolvedStyle.verticalText;
   const rotation = resolvedStyle.textRotation || 0;
-  
-  // Apply rotation logic
   const cssRotation = rotation ? -rotation : 0; 
   const hasRotation = rotation !== 0;
-  const isVertical = verticalText;
   
-  const whiteSpace = resolvedStyle.wrapText ? 'normal' : 'nowrap';
+  // Wrapping
+  // 'pre-wrap' preserves newlines but wraps long text, matching Excel behavior
+  const whiteSpace = resolvedStyle.wrapText ? 'pre-wrap' : 'nowrap';
   const displayValue = formatCellValue(data.value, resolvedStyle);
 
   const handleDropdownSelect = (val: string) => {
@@ -128,39 +153,58 @@ const Cell = memo(({
       setEditing(false);
   };
 
-  // Map vertical align to flex align
-  const alignItems = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
-  
-  // Calculate padding based on indentation
-  const indentPx = indent * 10;
-  // If right aligned, indent usually means padding from right. If left, padding from left.
-  const paddingLeft = textAlign === 'right' ? '4px' : `${4 + indentPx}px`;
-  const paddingRight = textAlign === 'right' ? `${4 + indentPx}px` : '4px';
+  const containerStyle: React.CSSProperties = {
+    width: width,
+    height: height,
+    minWidth: width,
+    minHeight: height,
+    display: 'flex',
+    justifyContent,
+    alignItems,
+    paddingLeft: verticalText ? 0 : paddingLeft,
+    paddingRight: verticalText ? 0 : paddingRight,
+    backgroundColor,
+    borderRight: '1px solid #e2e8f0',
+    borderBottom: '1px solid #e2e8f0',
+    overflow: (hasRotation || verticalText) ? 'visible' : 'hidden', // Rotated text usually bleeds in Excel
+  };
+
+  const textStyle: React.CSSProperties = {
+      fontFamily: 'inherit',
+      fontSize: isMicroView ? 0 : `${fontSize}px`,
+      fontWeight,
+      fontStyle,
+      textDecoration,
+      color,
+      whiteSpace,
+      // Handle vertical text (stacking)
+      ...(verticalText ? { 
+          writingMode: 'vertical-rl', 
+          textOrientation: 'upright', 
+          letterSpacing: '1px'
+      } : {}),
+      // Handle rotation
+      ...(hasRotation ? {
+          transform: `rotate(${cssRotation}deg)`,
+          transformOrigin: align === 'center' ? 'center' : align === 'right' ? 'center right' : 'center left',
+      } : {
+          // Shrink to fit logic
+          transform: scaleFactor < 1 ? `scale(${scaleFactor})` : undefined,
+          transformOrigin: align === 'right' ? 'right' : align === 'center' ? 'center' : 'left',
+          width: resolvedStyle.wrapText ? '100%' : 'auto' // Allow wrap to fill width
+      }),
+      lineHeight: 1.2
+  };
 
   return (
     <div
       ref={containerRef}
       className={cn(
-        "relative box-border flex px-[4px] select-none outline-none flex-shrink-0 border-r border-b border-slate-200",
+        "relative box-border select-none outline-none flex-shrink-0",
         isActive && "z-30",
         isSelected && !isActive && "z-10",
-        (hasRotation || isVertical) ? "overflow-visible z-[20]" : "overflow-hidden"
       )}
-      style={{
-          ...containerStyle,
-          textAlign,
-          fontWeight,
-          fontStyle,
-          textDecoration,
-          color,
-          backgroundColor,
-          alignItems, // Flex alignment for vertical
-          paddingLeft: isVertical ? '0px' : paddingLeft, // Vertical text handles its own layout
-          paddingRight: isVertical ? '0px' : paddingRight,
-          fontSize: isMicroView ? 0 : `${fontSize}px`,
-          lineHeight: 1, 
-          whiteSpace
-      }}
+      style={containerStyle}
       onMouseDown={(e) => onMouseDown(id, e.shiftKey)}
       onMouseEnter={() => onMouseEnter(id)}
       onDoubleClick={() => { setEditing(true); onDoubleClick(id); }}
@@ -173,7 +217,7 @@ const Cell = memo(({
           style={{ 
             fontSize: `${fontSize}px`, 
             fontFamily: 'inherit',
-            textAlign
+            textAlign: align // Match cell alignment while editing
           }}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
@@ -182,32 +226,13 @@ const Cell = memo(({
         />
       ) : (
         !isMicroView && displayValue && (
-            <span 
-                className={cn("pointer-events-none block origin-left", !resolvedStyle.wrapText && !hasRotation && !isVertical && "truncate")}
-                style={{
-                    ...(isVertical ? { 
-                        writingMode: 'vertical-rl', 
-                        textOrientation: 'upright', 
-                        width: '100%', 
-                        display: 'flex', 
-                        alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start' 
-                    } : {}),
-                    ...(hasRotation ? { 
-                        transform: `rotate(${cssRotation}deg)`, 
-                        width: 'max-content',
-                        transformOrigin: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'center right' : 'center left',
-                        marginLeft: textAlign === 'center' ? 'auto' : undefined,
-                        marginRight: textAlign === 'center' ? 'auto' : undefined,
-                        display: 'inline-block'
-                    } : { width: '100%' })
-                }}
-            >
+            <span ref={spanRef} style={textStyle}>
                 {displayValue}
             </span>
         )
       )}
 
-      {/* Validation Dropdown Trigger */}
+      {/* Data Validation Dropdown Arrow */}
       {isActive && validation && validation.type === 'list' && !isGhost && (
           <>
             <div 

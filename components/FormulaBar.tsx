@@ -1,6 +1,6 @@
 import React, { useRef, memo, useState, useEffect } from 'react';
-import { FunctionSquare, X, Check } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { FunctionSquare, X, Check, ChevronDown, ListFilter } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface FormulaBarProps {
   value: string;
@@ -10,10 +10,15 @@ interface FormulaBarProps {
   onNameBoxSubmit: (cellId: string) => void;
 }
 
+const RECENT_FUNCTIONS = [
+    'SUM', 'AVERAGE', 'COUNT', 'MAX', 'MIN', 'IF', 'VLOOKUP', 'CONCATENATE', 'TODAY', 'PMT'
+];
+
 const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, selectedCell, onNameBoxSubmit }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const nameBoxRef = useRef<HTMLInputElement>(null);
   const [nameBoxValue, setNameBoxValue] = useState(selectedCell || '');
+  const [showFunctionMenu, setShowFunctionMenu] = useState(false);
 
   // Sync name box with selected cell when selection changes externally
   useEffect(() => {
@@ -21,6 +26,13 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
         setNameBoxValue(selectedCell);
     }
   }, [selectedCell]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+      const close = () => setShowFunctionMenu(false);
+      if (showFunctionMenu) window.addEventListener('click', close);
+      return () => window.removeEventListener('click', close);
+  }, [showFunctionMenu]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -37,6 +49,33 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
             onNameBoxSubmit(nameBoxValue.toUpperCase());
         }
     }
+  };
+
+  const handleFunctionClick = (e: React.MouseEvent, fn: string) => {
+      e.stopPropagation();
+      let newValue = value;
+      const fnStr = `${fn}()`;
+      
+      if (!newValue || newValue === '=') {
+          newValue = `=${fnStr}`;
+      } else {
+          // If simply appending, ensure we have an operator or it's the start
+          // For simplicity in this demo, we just append or set.
+          newValue = newValue + fnStr;
+      }
+      
+      onChange(newValue);
+      setShowFunctionMenu(false);
+      
+      // Focus input
+      setTimeout(() => {
+          if (inputRef.current) {
+              inputRef.current.focus();
+              // Try to place cursor inside parentheses
+              const len = inputRef.current.value.length;
+              inputRef.current.setSelectionRange(len - 1, len - 1);
+          }
+      }, 0);
   };
 
   return (
@@ -62,17 +101,64 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
         <button className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors" title="Cancel">
              <X size={14} />
         </button>
-        <button className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-green-600 transition-colors" title="Enter">
+        <button 
+            className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-green-600 transition-colors" 
+            title="Enter"
+            onClick={onSubmit}
+        >
              <Check size={14} />
         </button>
-        <button className="p-1 hover:bg-slate-100 rounded text-slate-500 transition-colors ml-1" title="Insert Function">
-             <FunctionSquare size={16} />
-        </button>
+        
+        {/* Function Dropdown */}
+        <div className="relative">
+            <button 
+                onClick={(e) => { e.stopPropagation(); setShowFunctionMenu(!showFunctionMenu); }}
+                className={`p-1 hover:bg-slate-100 rounded transition-colors ml-1 flex items-center gap-0.5 ${showFunctionMenu ? 'bg-slate-100 text-slate-700' : 'text-slate-500'}`} 
+                title="Insert Function"
+            >
+                <span className="font-serif italic font-bold text-sm px-0.5">fx</span>
+                <ChevronDown size={10} className="opacity-50" />
+            </button>
+
+            <AnimatePresence>
+                {showFunctionMenu && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                        transition={{ duration: 0.1 }}
+                        className="absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 shadow-xl rounded-md z-50 flex flex-col py-1 overflow-hidden origin-top-left ring-1 ring-black/5"
+                    >
+                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100 mb-1 flex items-center justify-between">
+                            <span>Most Recently Used</span>
+                            <ListFilter size={10} />
+                        </div>
+                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                            {RECENT_FUNCTIONS.map(fn => (
+                                <button
+                                    key={fn}
+                                    className="w-full text-left px-4 py-2 hover:bg-emerald-50 text-xs text-slate-700 hover:text-emerald-700 font-medium font-mono flex items-center gap-2 group transition-colors"
+                                    onClick={(e) => handleFunctionClick(e, fn)}
+                                >
+                                    <FunctionSquare size={12} className="opacity-30 group-hover:opacity-100 group-hover:text-emerald-500 transition-opacity" />
+                                    {fn}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="border-t border-slate-100 mt-1 pt-1">
+                            <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-xs text-slate-500 italic transition-colors">
+                                More functions...
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
       </div>
       
       {/* Function Icon - Mobile placeholder */}
       <div className="md:hidden text-slate-400">
-          <FunctionSquare size={16} />
+          <span className="font-serif italic font-bold text-sm px-0.5">fx</span>
       </div>
 
       {/* Input Field */}
@@ -87,6 +173,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
             onKeyDown={handleKeyDown}
             placeholder={selectedCell ? "Enter value or formula..." : ""}
             disabled={!selectedCell}
+            spellCheck={false}
           />
           {/* Bottom active indicator */}
           <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-transparent group-focus-within:bg-primary-500 transition-colors" />

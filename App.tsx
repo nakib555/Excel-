@@ -4,6 +4,7 @@ import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffec
 import { CellId, CellData, CellStyle, GridSize, Sheet, ValidationRule } from './types';
 import { evaluateFormula, getRange, getNextCellId, parseCellId, getCellId, extractDependencies, getStyleId, numToChar, checkIntersect } from './utils';
 import { NavigationDirection } from './components';
+import AIAssistant from './components/AIAssistant';
 
 // Import Skeletons
 import { 
@@ -42,24 +43,24 @@ const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap:
     
     // The "UsedRange" data
     const dataset = [
-      { id: "A1", val: "Item", style: { bold: true, bg: '#f1f5f9', color: '#475569' } },
-      { id: "B1", val: "Cost", style: { bold: true, bg: '#f1f5f9', color: '#475569', format: 'currency' as const } },
-      { id: "C1", val: "Qty", style: { bold: true, bg: '#f1f5f9', color: '#475569' } },
-      { id: "D1", val: "Total", style: { bold: true, bg: '#f1f5f9', color: '#475569', format: 'currency' as const } },
+      { id: "A1", val: "Item", style: { bold: true, bg: '#f1f5f9', color: '#475569', align: 'center' as const, verticalAlign: 'middle' as const } },
+      { id: "B1", val: "Cost", style: { bold: true, bg: '#f1f5f9', color: '#475569', format: 'currency' as const, align: 'center' as const } },
+      { id: "C1", val: "Qty", style: { bold: true, bg: '#f1f5f9', color: '#475569', align: 'center' as const } },
+      { id: "D1", val: "Total", style: { bold: true, bg: '#f1f5f9', color: '#475569', format: 'currency' as const, align: 'center' as const } },
       
       { id: "A2", val: "MacBook Pro" }, 
       { id: "B2", val: "2400", style: { format: 'currency' as const, decimalPlaces: 0 } }, 
-      { id: "C2", val: "2" }, 
+      { id: "C2", val: "2", style: { align: 'center' as const } }, 
       { id: "D2", val: "=B2*C2", style: { format: 'currency' as const, decimalPlaces: 0 } },
       
       { id: "A3", val: "Monitor" }, 
       { id: "B3", val: "500", style: { format: 'currency' as const, decimalPlaces: 0 } }, 
-      { id: "C3", val: "4" }, 
+      { id: "C3", val: "4", style: { align: 'center' as const } }, 
       { id: "D3", val: "=B3*C3", style: { format: 'currency' as const, decimalPlaces: 0 } },
       
       { id: "A4", val: "Keyboard" }, 
       { id: "B4", val: "150", style: { format: 'currency' as const, decimalPlaces: 0 } }, 
-      { id: "C4", val: "5" }, 
+      { id: "C4", val: "5", style: { align: 'center' as const } }, 
       { id: "D4", val: "=B4*C4", style: { format: 'currency' as const, decimalPlaces: 0 } },
       
       { id: "C5", val: "Grand Total", style: { bold: true, align: 'right' as const } }, 
@@ -119,6 +120,7 @@ const App: React.FC = () => {
   const [gridSize, setGridSize] = useState<GridSize>({ rows: INITIAL_ROWS, cols: INITIAL_COLS });
   const [zoom, setZoom] = useState<number>(1);
   const [showMobileResize, setShowMobileResize] = useState(false);
+  const [showAI, setShowAI] = useState(false);
   const clipboardRef = useRef<{ cells: Record<CellId, CellData>; baseRow: number; baseCol: number } | null>(null);
   
   const activeSheet = useMemo(() => 
@@ -503,8 +505,8 @@ const App: React.FC = () => {
 
   const handleAutoSum = useCallback(() => {}, []);
 
-  // --- NEW FEATURES ---
-
+  // --- MERGE & CENTER FEATURE ---
+  // Follows Excel standard: Combines cells, keeps upper-left data, sets alignment to Center/Middle
   const handleMergeCenter = useCallback(() => {
       setSheets(prev => prev.map(sheet => {
           if (sheet.id !== activeSheetId || !sheet.selectionRange || sheet.selectionRange.length < 2) return sheet;
@@ -528,8 +530,11 @@ const App: React.FC = () => {
           let nextStyles = { ...sheet.styles };
           const cell = nextCells[start] || { id: start, raw: '', value: '' };
           const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
-          // UPDATED: Set vertical align to middle as well for better "Merge & Center" behavior
+          
+          // CRITICAL ALIGNMENT UPDATE:
+          // Excel's "Merge & Center" explicitly sets Horizontal=Center AND Vertical=Middle
           const newStyle = { ...currentStyle, align: 'center', verticalAlign: 'middle' };
+          
           const res = getStyleId(nextStyles, newStyle as CellStyle);
           nextStyles = res.registry;
           nextCells[start] = { ...cell, styleId: res.id };
@@ -559,6 +564,34 @@ const App: React.FC = () => {
       }
   }, [activeCell, activeSheetId]);
 
+  const handleAIApply = useCallback((result: { type: 'data' | 'formula', data?: string[][], formula?: string }) => {
+    if (!activeCell) return;
+    const start = parseCellId(activeCell);
+    if (!start) return;
+
+    if (result.type === 'formula' && result.formula) {
+        handleCellChange(activeCell, result.formula);
+    } else if (result.type === 'data' && result.data) {
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells = { ...sheet.cells };
+            
+            result.data!.forEach((row, rIdx) => {
+                row.forEach((val, cIdx) => {
+                    const cellId = getCellId(start.col + cIdx, start.row + rIdx);
+                    nextCells[cellId] = {
+                        id: cellId,
+                        raw: String(val),
+                        value: String(val)
+                    };
+                });
+            });
+            return { ...sheet, cells: nextCells };
+        }));
+    }
+    setShowAI(false);
+  }, [activeCell, activeSheetId, handleCellChange]);
+
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-50 font-sans text-slate-900 overflow-hidden">
         <Suspense fallback={<ToolbarSkeleton />}>
@@ -577,6 +610,7 @@ const App: React.FC = () => {
               onSort={handleSort}
               onMergeCenter={handleMergeCenter}
               onDataValidation={handleDataValidation}
+              onToggleAI={() => setShowAI(true)}
             />
         </Suspense>
         
@@ -625,6 +659,12 @@ const App: React.FC = () => {
                    onReset={handleResetActiveResize}
                />
           </Suspense>
+
+          <AIAssistant 
+            isOpen={showAI} 
+            onClose={() => setShowAI(false)} 
+            onApply={handleAIApply}
+          />
         </div>
 
         <Suspense fallback={<SheetTabsSkeleton />}>

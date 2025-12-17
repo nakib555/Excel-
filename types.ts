@@ -13,6 +13,7 @@ export interface CellStyle {
   bg?: string;
   fontSize?: number;
   wrapText?: boolean;
+  shrinkToFit?: boolean; // Scales text down to fit cell width
   format?: 'general' | 'currency' | 'percent' | 'comma' | 'number';
   decimalPlaces?: number;
   textRotation?: number; // 0 to 180 (or -90 to 90). Excel usually uses -90 to 90.
