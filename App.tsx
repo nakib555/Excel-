@@ -34,6 +34,7 @@ const Grid = lazy(() => import('./components/Grid'));
 const SheetTabs = lazy(() => import('./components/SheetTabs'));
 const StatusBar = lazy(() => import('./components/StatusBar'));
 const MobileResizeTool = lazy(() => import('./components/MobileResizeTool'));
+const FormatCellsDialog = lazy(() => import('./components/dialogs/FormatCellsDialog'));
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -149,6 +150,7 @@ const App: React.FC = () => {
   const [zoom, setZoom] = useState<number>(1);
   const [showMobileResize, setShowMobileResize] = useState(false);
   const [showAI, setShowAI] = useState(false);
+  const [showFormatCells, setShowFormatCells] = useState(false);
   const clipboardRef = useRef<{ cells: Record<CellId, CellData>; baseRow: number; baseCol: number } | null>(null);
   
   const apiKey = getApiKey();
@@ -301,6 +303,28 @@ const App: React.FC = () => {
       
       return { ...sheet, cells: nextCells, styles: nextStyles };
     }));
+  }, [activeSheetId]);
+
+  const handleApplyFullStyle = useCallback((newStyle: CellStyle) => {
+      // Merge new properties into selection
+      setSheets(prevSheets => prevSheets.map(sheet => {
+          if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
+          
+          const nextCells = { ...sheet.cells };
+          let nextStyles = { ...sheet.styles };
+          
+          sheet.selectionRange.forEach(id => {
+              const cell = nextCells[id] || { id, raw: '', value: '' };
+              const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
+              // Merge full style
+              const mergedStyle = { ...currentStyle, ...newStyle };
+              
+              const res = getStyleId(nextStyles, mergedStyle);
+              nextStyles = res.registry;
+              nextCells[id] = { ...cell, styleId: res.id };
+          });
+          return { ...sheet, cells: nextCells, styles: nextStyles };
+      }));
   }, [activeSheetId]);
 
   const handleNavigate = useCallback((direction: NavigationDirection, isShift: boolean) => {
@@ -635,6 +659,7 @@ const App: React.FC = () => {
           onMergeCenter={handleMergeCenter}
           onDataValidation={handleDataValidation}
           onToggleAI={() => setShowAI(true)}
+          onOpenFormatDialog={() => setShowFormatCells(true)}
         />
       </Suspense>
       
@@ -710,6 +735,15 @@ const App: React.FC = () => {
             onClose={() => setShowAI(false)}
             onApply={handleAIApply}
             apiKey={apiKey}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <FormatCellsDialog 
+            isOpen={showFormatCells}
+            onClose={() => setShowFormatCells(false)}
+            initialStyle={activeStyle}
+            onApply={handleApplyFullStyle}
         />
       </Suspense>
     </div>

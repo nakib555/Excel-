@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { DollarSign, ChevronDown } from 'lucide-react';
 import { RibbonButton, SmartDropdown, TabProps } from '../../shared';
 
-interface CurrencyProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle'> {}
+interface CurrencyProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle' | 'onOpenFormatDialog'> {}
 
 const CURRENCY_OPTIONS = [
     { code: 'USD', symbol: '$', label: 'English (United States)' },
@@ -13,7 +12,7 @@ const CURRENCY_OPTIONS = [
     { code: 'CHF', symbol: 'fr.', label: 'French (Switzerland)' },
 ];
 
-const Currency: React.FC<CurrencyProps> = ({ currentStyle, onToggleStyle }) => {
+const Currency: React.FC<CurrencyProps> = ({ currentStyle, onToggleStyle, onOpenFormatDialog }) => {
     const [open, setOpen] = useState(false);
 
     const handleSelect = (code: string) => {
@@ -77,7 +76,10 @@ const Currency: React.FC<CurrencyProps> = ({ currentStyle, onToggleStyle }) => {
                          </button>
                      ))}
                      <div className="border-t border-slate-100 mt-1 pt-1">
-                         <button className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100">
+                         <button 
+                            className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100"
+                            onClick={() => { setOpen(false); onOpenFormatDialog?.(); }}
+                         >
                              More Accounting Formats...
                          </button>
                      </div>

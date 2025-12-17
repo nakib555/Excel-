@@ -3,7 +3,7 @@ import { ChevronDown, Calculator, Calendar, Clock, Percent, Type, Hash, Coins } 
 import { SmartDropdown, TabProps } from '../../shared';
 import { CellStyle } from '../../../types';
 
-interface NumberFormatSelectorProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle'> {}
+interface NumberFormatSelectorProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle' | 'onOpenFormatDialog'> {}
 
 const FORMAT_OPTIONS: { id: CellStyle['format'], label: string, example: string, icon: React.ReactNode }[] = [
     { id: 'general', label: 'General', example: 'No specific format', icon: <Hash size={14} className="text-slate-400" /> },
@@ -19,7 +19,7 @@ const FORMAT_OPTIONS: { id: CellStyle['format'], label: string, example: string,
     { id: 'text', label: 'Text', example: 'abc', icon: <Type size={14} className="text-slate-400" /> },
 ];
 
-const NumberFormatSelector: React.FC<NumberFormatSelectorProps> = ({ currentStyle, onToggleStyle }) => {
+const NumberFormatSelector: React.FC<NumberFormatSelectorProps> = ({ currentStyle, onToggleStyle, onOpenFormatDialog }) => {
     const [open, setOpen] = useState(false);
     const currentFormat = currentStyle.format || 'general';
     const currentLabel = FORMAT_OPTIONS.find(f => f.id === currentFormat)?.label || 'General';
@@ -59,7 +59,10 @@ const NumberFormatSelector: React.FC<NumberFormatSelectorProps> = ({ currentStyl
                      </div>
                  ))}
                  <div className="border-t border-slate-100 mt-1 pt-1">
-                     <div className="px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 cursor-pointer flex items-center gap-3">
+                     <div 
+                        className="px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 cursor-pointer flex items-center gap-3"
+                        onClick={() => { setOpen(false); onOpenFormatDialog?.(); }}
+                     >
                         <Calculator size={14} className="text-slate-400" />
                         <span>More Number Formats...</span>
                      </div>

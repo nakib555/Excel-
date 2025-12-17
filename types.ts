@@ -2,23 +2,43 @@
 
 export type CellId = string; // e.g., "A1", "B2"
 
+export interface CellBorder {
+  style: 'thin' | 'medium' | 'thick' | 'dashed' | 'dotted' | 'double' | 'none';
+  color: string;
+}
+
 export interface CellStyle {
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
-  align?: 'left' | 'center' | 'right';
-  verticalAlign?: 'top' | 'middle' | 'bottom';
+  strikethrough?: boolean;
+  align?: 'left' | 'center' | 'right' | 'justify';
+  verticalAlign?: 'top' | 'middle' | 'bottom' | 'distributed';
   indent?: number; // Indentation level (0, 1, 2...)
   color?: string;
   bg?: string;
+  fontFamily?: string;
   fontSize?: number;
   wrapText?: boolean;
   shrinkToFit?: boolean; // Scales text down to fit cell width
-  format?: 'general' | 'number' | 'currency' | 'accounting' | 'shortDate' | 'longDate' | 'time' | 'percent' | 'fraction' | 'scientific' | 'text' | 'comma';
+  format?: 'general' | 'number' | 'currency' | 'accounting' | 'shortDate' | 'longDate' | 'time' | 'percent' | 'fraction' | 'scientific' | 'text' | 'comma' | 'custom';
+  formatString?: string; // For custom formats
   currencySymbol?: string; // 'USD', 'EUR', 'GBP', 'CNY', etc.
   decimalPlaces?: number;
   textRotation?: number; // 0 to 180 (or -90 to 90). Excel usually uses -90 to 90.
   verticalText?: boolean;
+  borders?: {
+    top?: CellBorder;
+    bottom?: CellBorder;
+    left?: CellBorder;
+    right?: CellBorder;
+    diagonalDown?: CellBorder;
+    diagonalUp?: CellBorder;
+  };
+  protection?: {
+    locked?: boolean;
+    hidden?: boolean;
+  };
 }
 
 export interface CellData {
