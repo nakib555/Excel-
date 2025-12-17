@@ -1,9 +1,22 @@
-
-
 import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
-import { CellId, CellData, CellStyle, GridSize, Sheet, ValidationRule } from './types';
-import { evaluateFormula, getRange, getNextCellId, parseCellId, getCellId, extractDependencies, getStyleId, numToChar, checkIntersect } from './utils';
-import { NavigationDirection } from './components';
+
+// --- 1. Imports from sibling files ---
+import { CellId, CellData, CellStyle, GridSize, Sheet } from './types'; 
+
+// --- 2. Imports from utils folder ---
+import { 
+  evaluateFormula, 
+  getRange, 
+  getNextCellId, 
+  parseCellId, 
+  getCellId, 
+  extractDependencies, 
+  getStyleId, 
+  numToChar, 
+  checkIntersect 
+} from './utils';
+
+// --- 3. Component Imports ---
 import AIAssistant from './components/AIAssistant';
 
 // Import Skeletons
@@ -15,13 +28,15 @@ import {
   StatusBarSkeleton 
 } from './components/Skeletons';
 
-// Lazy Imports for Main Components
+// --- 4. Lazy Load Main Components ---
 const Toolbar = lazy(() => import('./components/Toolbar'));
 const FormulaBar = lazy(() => import('./components/FormulaBar'));
 const Grid = lazy(() => import('./components/Grid'));
 const SheetTabs = lazy(() => import('./components/SheetTabs'));
 const StatusBar = lazy(() => import('./components/StatusBar'));
 const MobileResizeTool = lazy(() => import('./components/MobileResizeTool'));
+
+export type NavigationDirection = 'up' | 'down' | 'left' | 'right';
 
 // --- EXCEL ENGINE CONSTANTS ---
 const MAX_ROWS = 1048576; 
@@ -36,6 +51,7 @@ const EXPANSION_BATCH_COLS = 100;
 const DEFAULT_COL_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 28;
 
+// --- DATA GENERATOR ---
 const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap: Record<CellId, CellId[]>, styles: Record<string, CellStyle> } => {
     const cells: Record<CellId, CellData> = {};
     const dependentsMap: Record<CellId, CellId[]> = {};
@@ -83,6 +99,7 @@ const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap:
       };
     });
     
+    // Initial calculation pass
     Object.keys(cells).forEach(key => {
         const cell = cells[key];
         if (cell.raw.startsWith('=')) {
@@ -201,6 +218,7 @@ const App: React.FC = () => {
           });
       }
 
+      // Simple dependency update queue
       const updateQueue = [id];
       const visited = new Set<string>(); 
 
@@ -506,7 +524,6 @@ const App: React.FC = () => {
   const handleAutoSum = useCallback(() => {}, []);
 
   // --- MERGE & CENTER FEATURE ---
-  // Follows Excel standard: Combines cells, keeps upper-left data, sets alignment to Center/Middle
   const handleMergeCenter = useCallback(() => {
       setSheets(prev => prev.map(sheet => {
           if (sheet.id !== activeSheetId || !sheet.selectionRange || sheet.selectionRange.length < 2) return sheet;
@@ -516,23 +533,18 @@ const App: React.FC = () => {
           const end = selection[selection.length - 1];
           const rangeStr = `${start}:${end}`;
           
-          // Check if range is already merged (simplification: exact match toggles off)
           if (sheet.merges.includes(rangeStr)) {
               return { ...sheet, merges: sheet.merges.filter(m => m !== rangeStr) };
           }
 
-          // Filter out intersecting merges (Excel unmerges them if you merge over)
           const newMerges = sheet.merges.filter(m => !checkIntersect(m, rangeStr));
           newMerges.push(rangeStr);
 
-          // Center the top-left cell
           const nextCells = { ...sheet.cells };
           let nextStyles = { ...sheet.styles };
           const cell = nextCells[start] || { id: start, raw: '', value: '' };
           const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
           
-          // CRITICAL ALIGNMENT UPDATE:
-          // Excel's "Merge & Center" explicitly sets Horizontal=Center AND Vertical=Middle
           const newStyle = { ...currentStyle, align: 'center', verticalAlign: 'middle' };
           
           const res = getStyleId(nextStyles, newStyle as CellStyle);
@@ -545,7 +557,6 @@ const App: React.FC = () => {
 
   const handleDataValidation = useCallback(() => {
       if (!activeCell) return;
-      // Simple prompt for now
       const input = prompt("Enter allowed values separated by comma (e.g. Yes,No,Maybe):");
       if (input !== null) {
           const options = input.split(',').map(s => s.trim()).filter(s => s.length > 0);
@@ -593,98 +604,99 @@ const App: React.FC = () => {
   }, [activeCell, activeSheetId, handleCellChange]);
 
   return (
-    <div className="flex flex-col h-[100dvh] bg-slate-50 font-sans text-slate-900 overflow-hidden">
-        <Suspense fallback={<ToolbarSkeleton />}>
-            <Toolbar 
-              currentStyle={activeStyle}
-              onToggleStyle={handleStyleChange}
-              onExport={handleExport}
-              onClear={handleClear}
-              onResetLayout={handleResetLayout}
-              onCopy={handleCopy}
-              onCut={handleCut}
-              onPaste={handlePaste}
-              onAutoSum={handleAutoSum}
-              onInsertRow={handleInsertRow}
-              onDeleteRow={handleDeleteRow}
-              onSort={handleSort}
-              onMergeCenter={handleMergeCenter}
-              onDataValidation={handleDataValidation}
-              onToggleAI={() => setShowAI(true)}
-            />
-        </Suspense>
-        
-        <Suspense fallback={<FormulaBarSkeleton />}>
-            <FormulaBar 
-              selectedCell={activeCell}
-              value={activeCell ? (cells[activeCell]?.raw || '') : ''}
-              onChange={handleFormulaChange}
-              onSubmit={handleFormulaSubmit}
-              onNameBoxSubmit={handleNameBoxSubmit}
-            />
-        </Suspense>
-        
-        <div className="flex-1 overflow-hidden relative flex flex-col z-0">
-          <Suspense fallback={<GridSkeleton />}>
-              <Grid 
-                size={gridSize}
-                cells={cells}
-                styles={styles}
-                merges={merges}
-                validations={validations}
-                activeCell={activeCell}
-                selectionRange={selectionRange}
-                columnWidths={columnWidths}
-                rowHeights={rowHeights} 
-                scale={zoom}
-                onCellClick={handleCellClick}
-                onSelectionDrag={handleSelectionDrag}
-                onCellDoubleClick={handleCellDoubleClick}
-                onCellChange={handleCellChange}
-                onNavigate={handleNavigate}
-                onColumnResize={handleColumnResize}
-                onRowResize={handleRowResize}
-                onExpandGrid={handleExpandGrid}
-                onZoom={handleZoomWheel}
-              />
-          </Suspense>
-          
-          <Suspense fallback={null}>
-               <MobileResizeTool 
-                   isOpen={showMobileResize}
-                   onClose={() => setShowMobileResize(false)}
-                   activeCell={activeCell}
-                   onResizeRow={resizeActiveRow}
-                   onResizeCol={resizeActiveCol}
-                   onReset={handleResetActiveResize}
-               />
-          </Suspense>
+    <div className="flex flex-col h-screen w-screen bg-slate-50 overflow-hidden font-sans text-slate-900">
+      <Suspense fallback={<ToolbarSkeleton />}>
+        <Toolbar 
+          currentStyle={activeStyle}
+          onToggleStyle={handleStyleChange}
+          onExport={handleExport}
+          onClear={handleClear}
+          onResetLayout={handleResetLayout}
+          onCopy={handleCopy}
+          onCut={handleCut}
+          onPaste={handlePaste}
+          onAutoSum={handleAutoSum}
+          onInsertRow={handleInsertRow}
+          onDeleteRow={handleDeleteRow}
+          onSort={handleSort}
+          onMergeCenter={handleMergeCenter}
+          onDataValidation={handleDataValidation}
+          onToggleAI={() => setShowAI(true)}
+        />
+      </Suspense>
+      
+      <Suspense fallback={<FormulaBarSkeleton />}>
+        <FormulaBar 
+          value={activeCell && cells[activeCell] ? cells[activeCell].raw : ''}
+          onChange={handleFormulaChange}
+          onSubmit={handleFormulaSubmit}
+          selectedCell={activeCell}
+          onNameBoxSubmit={handleNameBoxSubmit}
+        />
+      </Suspense>
 
-          <AIAssistant 
-            isOpen={showAI} 
-            onClose={() => setShowAI(false)} 
-            onApply={handleAIApply}
-          />
-        </div>
+      <div className="flex-1 overflow-hidden relative z-0">
+        <Suspense fallback={<GridSkeleton />}>
+            <Grid
+              size={gridSize}
+              cells={cells}
+              styles={styles}
+              merges={merges}
+              validations={validations}
+              activeCell={activeCell}
+              selectionRange={selectionRange}
+              columnWidths={columnWidths}
+              rowHeights={rowHeights}
+              scale={zoom}
+              onCellClick={handleCellClick}
+              onSelectionDrag={handleSelectionDrag}
+              onCellDoubleClick={handleCellDoubleClick}
+              onCellChange={handleCellChange}
+              onNavigate={handleNavigate}
+              onColumnResize={handleColumnResize}
+              onRowResize={handleRowResize}
+              onExpandGrid={handleExpandGrid}
+              onZoom={handleZoomWheel}
+            />
+        </Suspense>
+      </div>
 
-        <Suspense fallback={<SheetTabsSkeleton />}>
-            <SheetTabs 
-              sheets={sheets}
-              activeSheetId={activeSheetId}
-              onSwitch={setActiveSheetId}
-              onAdd={handleAddSheet}
-            />
-        </Suspense>
-        
-        <Suspense fallback={<StatusBarSkeleton />}>
-            <StatusBar 
-              selectionCount={selectionRange?.length || 0}
-              stats={selectionStats}
-              zoom={zoom}
-              onZoomChange={setZoom}
-              onToggleMobileResize={() => setShowMobileResize(prev => !prev)}
-            />
-        </Suspense>
+      <Suspense fallback={<SheetTabsSkeleton />}>
+        <SheetTabs 
+          sheets={sheets}
+          activeSheetId={activeSheetId}
+          onSwitch={setActiveSheetId}
+          onAdd={handleAddSheet}
+        />
+      </Suspense>
+
+      <Suspense fallback={<StatusBarSkeleton />}>
+        <StatusBar 
+          selectionCount={selectionRange ? selectionRange.length : 0}
+          stats={selectionStats}
+          zoom={zoom}
+          onZoomChange={setZoom}
+          onToggleMobileResize={() => setShowMobileResize(!showMobileResize)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+         <MobileResizeTool 
+            isOpen={showMobileResize}
+            onClose={() => setShowMobileResize(false)}
+            activeCell={activeCell}
+            onResizeRow={resizeActiveRow}
+            onResizeCol={resizeActiveCol}
+            onReset={handleResetActiveResize}
+         />
+      </Suspense>
+
+      <AIAssistant 
+        isOpen={showAI}
+        onClose={() => setShowAI(false)}
+        onApply={handleAIApply}
+        apiKey={process.env.API_KEY}
+      />
     </div>
   );
 };
