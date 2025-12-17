@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Send, Loader2 } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
 
 interface AIAssistantProps {
   isOpen: boolean;
@@ -18,12 +17,21 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, onApply, api
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
+    
+    const key = apiKey || '';
+
+    if (!key) {
+        setResult("Error: API Key is missing.");
+        return;
+    }
+
     setLoading(true);
     setResult(null);
 
     try {
-        // Safe access to process.env.API_KEY
-        const key = typeof process !== 'undefined' && process.env && process.env.API_KEY ? process.env.API_KEY : '';
+        // Dynamically import the SDK to avoid load-time dependency issues
+        const { GoogleGenAI } = await import("@google/genai");
+        
         const ai = new GoogleGenAI({ apiKey: key });
         
         const response = await ai.models.generateContent({
@@ -44,7 +52,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, onApply, api
 
         const text = response.text ? response.text.trim() : "";
         
-        // Try to parse as JSON for data insertion
         let handled = false;
         try {
             const json = JSON.parse(text);
@@ -54,11 +61,10 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, onApply, api
                 handled = true;
             }
         } catch (e) {
-            // Not JSON, continue
+            // Not JSON
         }
 
         if (!handled) {
-             // Check if it's a formula
             if (text.startsWith('=')) {
                 onApply({ type: 'formula', formula: text });
                 setResult(`Formula generated: ${text}`);

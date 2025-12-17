@@ -16,9 +16,6 @@ import {
   checkIntersect 
 } from './utils';
 
-// --- 3. Component Imports ---
-import AIAssistant from './components/AIAssistant';
-
 // Import Skeletons
 import { 
   ToolbarSkeleton, 
@@ -28,7 +25,9 @@ import {
   StatusBarSkeleton 
 } from './components/Skeletons';
 
-// --- 4. Lazy Load Main Components ---
+// --- 3. Component Imports ---
+// Lazy Load heavy UI components
+const AIAssistant = lazy(() => import('./components/AIAssistant'));
 const Toolbar = lazy(() => import('./components/Toolbar'));
 const FormulaBar = lazy(() => import('./components/FormulaBar'));
 const Grid = lazy(() => import('./components/Grid'));
@@ -115,6 +114,18 @@ const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap:
     return { cells, dependentsMap, styles };
 };
 
+// Safe API Key retrieval helper
+const getApiKey = () => {
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      return process.env.API_KEY || '';
+    }
+  } catch (e) {
+    return '';
+  }
+  return '';
+};
+
 const App: React.FC = () => {
   const [sheets, setSheets] = useState<Sheet[]>(() => {
     const { cells, dependentsMap, styles } = generateSparseData();
@@ -140,6 +151,8 @@ const App: React.FC = () => {
   const [showAI, setShowAI] = useState(false);
   const clipboardRef = useRef<{ cells: Record<CellId, CellData>; baseRow: number; baseCol: number } | null>(null);
   
+  const apiKey = getApiKey();
+
   const activeSheet = useMemo(() => 
     sheets.find(s => s.id === activeSheetId) || sheets[0], 
   [sheets, activeSheetId]);
@@ -691,12 +704,14 @@ const App: React.FC = () => {
          />
       </Suspense>
 
-      <AIAssistant 
-        isOpen={showAI}
-        onClose={() => setShowAI(false)}
-        onApply={handleAIApply}
-        apiKey={process.env.API_KEY}
-      />
+      <Suspense fallback={null}>
+        <AIAssistant 
+            isOpen={showAI}
+            onClose={() => setShowAI(false)}
+            onApply={handleAIApply}
+            apiKey={apiKey}
+        />
+      </Suspense>
     </div>
   );
 };
