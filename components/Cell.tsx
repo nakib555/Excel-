@@ -1,8 +1,11 @@
 
+
 import React, { memo, useState, useRef, useEffect } from 'react';
-import { CellData, CellStyle } from '../types';
+import { CellData, CellStyle, ValidationRule } from '../types';
 import { cn, formatCellValue } from '../utils';
 import { CellSkeleton } from './Skeletons';
+import { ChevronDown } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right' | 'none';
 
@@ -16,7 +19,8 @@ interface CellProps {
   width: number;
   height: number;
   scale?: number;
-  isGhost?: boolean; 
+  isGhost?: boolean;
+  validation?: ValidationRule;
   onMouseDown: (id: string, isShift: boolean) => void;
   onMouseEnter: (id: string) => void;
   onDoubleClick: (id: string) => void;
@@ -35,6 +39,7 @@ const Cell = memo(({
   height, 
   scale = 1,
   isGhost = false,
+  validation,
   onMouseDown, 
   onMouseEnter, 
   onDoubleClick, 
@@ -44,6 +49,9 @@ const Cell = memo(({
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(data.raw);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { setEditValue(data.raw); }, [data.raw]);
 
@@ -56,8 +64,11 @@ const Cell = memo(({
   }, [isActive, editing]);
 
   const handleBlur = () => {
-    setEditing(false);
-    if (editValue !== data.raw) onChange(id, editValue);
+    // Delay to allow dropdown click
+    setTimeout(() => {
+        setEditing(false);
+        if (editValue !== data.raw) onChange(id, editValue);
+    }, 150);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -90,6 +101,9 @@ const Cell = memo(({
   }
 
   const textAlign = resolvedStyle.align || 'left';
+  const verticalAlign = resolvedStyle.verticalAlign || 'bottom';
+  const indent = resolvedStyle.indent || 0;
+
   const fontWeight = resolvedStyle.bold ? '600' : '400';
   const fontStyle = resolvedStyle.italic ? 'italic' : 'normal';
   const textDecoration = resolvedStyle.underline ? 'underline' : 'none';
@@ -101,27 +115,36 @@ const Cell = memo(({
   const rotation = resolvedStyle.textRotation || 0;
   
   // Apply rotation logic
-  // Excel +45deg is CCW. CSS rotate(45deg) is Clockwise. 
-  // So Excel +45 = CSS -45deg.
   const cssRotation = rotation ? -rotation : 0; 
-  
-  // If rotated, we might need overflow visible to see it
   const hasRotation = rotation !== 0;
   const isVertical = verticalText;
   
-  // WhiteSpace logic: if rotated, usually no-wrap unless specified, but standard flow differs
   const whiteSpace = resolvedStyle.wrapText ? 'normal' : 'nowrap';
-  
   const displayValue = formatCellValue(data.value, resolvedStyle);
+
+  const handleDropdownSelect = (val: string) => {
+      onChange(id, val);
+      setShowDropdown(false);
+      setEditing(false);
+  };
+
+  // Map vertical align to flex align
+  const alignItems = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
+  
+  // Calculate padding based on indentation
+  const indentPx = indent * 10;
+  // If right aligned, indent usually means padding from right. If left, padding from left.
+  const paddingLeft = textAlign === 'right' ? '4px' : `${4 + indentPx}px`;
+  const paddingRight = textAlign === 'right' ? `${4 + indentPx}px` : '4px';
 
   return (
     <div
+      ref={containerRef}
       className={cn(
-        "relative box-border flex items-center px-[4px] select-none outline-none flex-shrink-0 border-r border-b border-slate-200",
-        isActive && "z-20",
+        "relative box-border flex px-[4px] select-none outline-none flex-shrink-0 border-r border-b border-slate-200",
+        isActive && "z-30",
         isSelected && !isActive && "z-10",
-        // If rotated, allow overflow visible so text sticks out like Excel
-        (hasRotation || isVertical) ? "overflow-visible z-[5]" : "overflow-hidden"
+        (hasRotation || isVertical) ? "overflow-visible z-[20]" : "overflow-hidden"
       )}
       style={{
           ...containerStyle,
@@ -131,6 +154,9 @@ const Cell = memo(({
           textDecoration,
           color,
           backgroundColor,
+          alignItems, // Flex alignment for vertical
+          paddingLeft: isVertical ? '0px' : paddingLeft, // Vertical text handles its own layout
+          paddingRight: isVertical ? '0px' : paddingRight,
           fontSize: isMicroView ? 0 : `${fontSize}px`,
           lineHeight: 1, 
           whiteSpace
@@ -146,7 +172,8 @@ const Cell = memo(({
           className="absolute inset-0 w-full h-full px-[2px] outline-none z-50 bg-white text-slate-900 shadow-elevation"
           style={{ 
             fontSize: `${fontSize}px`, 
-            fontFamily: 'inherit'
+            fontFamily: 'inherit',
+            textAlign
           }}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
@@ -158,14 +185,17 @@ const Cell = memo(({
             <span 
                 className={cn("pointer-events-none block origin-left", !resolvedStyle.wrapText && !hasRotation && !isVertical && "truncate")}
                 style={{
-                    // CSS writing-mode for vertical stacked text
-                    ...(isVertical ? { writingMode: 'vertical-rl', textOrientation: 'upright', width: '100%', display: 'flex', alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start' } : {}),
-                    // Transform for rotation
+                    ...(isVertical ? { 
+                        writingMode: 'vertical-rl', 
+                        textOrientation: 'upright', 
+                        width: '100%', 
+                        display: 'flex', 
+                        alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start' 
+                    } : {}),
                     ...(hasRotation ? { 
                         transform: `rotate(${cssRotation}deg)`, 
                         width: 'max-content',
                         transformOrigin: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'center right' : 'center left',
-                        // Alignment adjustments for rotated text
                         marginLeft: textAlign === 'center' ? 'auto' : undefined,
                         marginRight: textAlign === 'center' ? 'auto' : undefined,
                         display: 'inline-block'
@@ -175,6 +205,41 @@ const Cell = memo(({
                 {displayValue}
             </span>
         )
+      )}
+
+      {/* Validation Dropdown Trigger */}
+      {isActive && validation && validation.type === 'list' && !isGhost && (
+          <>
+            <div 
+                className="absolute right-0 top-0 bottom-0 w-5 bg-slate-100 hover:bg-slate-200 border-l border-slate-300 flex items-center justify-center cursor-pointer z-50"
+                onMouseDown={(e) => { e.stopPropagation(); setShowDropdown(!showDropdown); }}
+            >
+                <ChevronDown size={12} className="text-slate-600" />
+            </div>
+            {showDropdown && createPortal(
+                <div 
+                    className="fixed bg-white border border-slate-300 shadow-xl rounded-sm z-[2000] flex flex-col max-h-48 overflow-y-auto"
+                    style={{
+                        top: containerRef.current ? containerRef.current.getBoundingClientRect().bottom : 0,
+                        left: containerRef.current ? containerRef.current.getBoundingClientRect().left : 0,
+                        minWidth: containerRef.current ? containerRef.current.offsetWidth : 120
+                    }}
+                    ref={dropdownRef}
+                    onMouseDown={(e) => e.stopPropagation()} 
+                >
+                    {validation.options.map(opt => (
+                        <div 
+                            key={opt} 
+                            className="px-3 py-1.5 hover:bg-emerald-50 text-slate-700 text-sm cursor-pointer border-b border-slate-50 last:border-none"
+                            onMouseDown={() => handleDropdownSelect(opt)}
+                        >
+                            {opt}
+                        </div>
+                    ))}
+                </div>,
+                document.body
+            )}
+          </>
       )}
 
       {isSelected && (
@@ -192,14 +257,15 @@ const Cell = memo(({
 }, (prev, next) => {
   return (
     prev.data === next.data &&
-    prev.style === next.style && // Style object ref check (Flyweight helps here)
+    prev.style === next.style && 
     prev.isSelected === next.isSelected &&
     prev.isActive === next.isActive &&
     prev.isInRange === next.isInRange &&
     prev.width === next.width &&
     prev.height === next.height &&
     prev.scale === next.scale &&
-    prev.isGhost === next.isGhost
+    prev.isGhost === next.isGhost &&
+    prev.validation === next.validation
   );
 });
 

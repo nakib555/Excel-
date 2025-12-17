@@ -1,4 +1,5 @@
 
+
 import React, { memo } from 'react';
 import { RibbonGroup, TabProps } from '../../shared';
 import TopAlign from './TopAlign';
@@ -13,16 +14,16 @@ import IncreaseIndent from './IncreaseIndent';
 import WrapText from './WrapText';
 import MergeCenter from './MergeCenter';
 
-const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle }) => {
+const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onMergeCenter }) => {
   return (
     <RibbonGroup label="Alignment">
         <div className="flex h-full py-0.5 gap-2 px-1">
             {/* 1. Alignment Icons (3x2 Grid) */}
             <div className="flex flex-col justify-center h-full gap-1">
                 <div className="flex gap-0.5">
-                    <TopAlign />
-                    <MiddleAlign />
-                    <BottomAlign />
+                    <TopAlign currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                    <MiddleAlign currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                    <BottomAlign currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 </div>
                 <div className="flex gap-0.5">
                     <AlignLeft currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
@@ -43,9 +44,9 @@ const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle }
                 </div>
                 {/* Row 2 */}
                 <div className="flex gap-1">
-                    <DecreaseIndent />
-                    <IncreaseIndent />
-                    <MergeCenter />
+                    <DecreaseIndent currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                    <IncreaseIndent currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                    <MergeCenter onMergeCenter={onMergeCenter} />
                 </div>
             </div>
         </div>

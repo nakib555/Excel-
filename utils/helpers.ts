@@ -175,3 +175,47 @@ export const getStyleId = (
         registry: { ...registry, [newId]: newStyle }
     };
 };
+
+/**
+ * MERGE HELPERS
+ */
+export const checkIntersect = (range1: string, range2: string): boolean => {
+    const s1 = parseCellId(range1.split(':')[0]);
+    const e1 = parseCellId(range1.split(':')[1] || range1.split(':')[0]);
+    const s2 = parseCellId(range2.split(':')[0]);
+    const e2 = parseCellId(range2.split(':')[1] || range2.split(':')[0]);
+    
+    if (!s1 || !e1 || !s2 || !e2) return false;
+
+    // Check overlaps
+    return !(
+        e1.col < s2.col || 
+        s1.col > e2.col || 
+        e1.row < s2.row || 
+        s1.row > e2.row
+    );
+};
+
+export const getMergeRangeDimensions = (
+    range: string, 
+    colWidths: Record<string, number>, 
+    rowHeights: Record<number, number>,
+    defaultW: number,
+    defaultH: number
+) => {
+    const s = parseCellId(range.split(':')[0]);
+    const e = parseCellId(range.split(':')[1] || range.split(':')[0]);
+    if (!s || !e) return { width: defaultW, height: defaultH, top: 0, left: 0 };
+
+    let width = 0;
+    let height = 0;
+
+    for (let c = s.col; c <= e.col; c++) {
+        width += colWidths[numToChar(c)] ?? defaultW;
+    }
+    for (let r = s.row; r <= e.row; r++) {
+        height += rowHeights[r] ?? defaultH;
+    }
+
+    return { width, height };
+};

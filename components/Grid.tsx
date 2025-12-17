@@ -1,15 +1,16 @@
+
+
 import React, { useEffect, useRef, memo, useCallback, useState, useMemo, useLayoutEffect, Suspense } from 'react';
-import { CellId, CellData, GridSize, CellStyle } from '../types';
-import { numToChar, charToNum, getCellId, parseCellId, cn } from '../utils';
+import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
+import { numToChar, charToNum, getCellId, parseCellId, cn, getRange, getMergeRangeDimensions } from '../utils';
 import { NavigationDirection } from './Cell';
 import { Loader2 } from 'lucide-react';
 import { RowSkeleton } from './Skeletons';
 
-// Static imports for smoother scrolling performance and reduced overhead
 import GridRow from './GridRow';
 import ColumnHeader from './ColumnHeader';
+import Cell from './Cell';
 
-// --- EXCEL-LIKE ENGINE CONSTANTS ---
 const DEFAULT_COL_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 28;
 const HEADER_ROW_HEIGHT = 28;
@@ -22,6 +23,8 @@ interface GridProps {
   size: GridSize;
   cells: Record<CellId, CellData>;
   styles: Record<string, CellStyle>;
+  merges: string[];
+  validations: Record<CellId, ValidationRule>;
   activeCell: CellId | null;
   selectionRange: CellId[] | null;
   columnWidths: Record<string, number>;
@@ -42,6 +45,8 @@ const Grid: React.FC<GridProps> = ({
   size,
   cells,
   styles,
+  merges,
+  validations,
   activeCell,
   selectionRange,
   columnWidths,
@@ -62,25 +67,19 @@ const Grid: React.FC<GridProps> = ({
   const lastScrollPos = useRef({ top: 0, left: 0, time: 0 });
   const velocityRef = useRef({ y: 0, x: 0 });
   
-  // Detect Mobile/Tablet to reduce buffer size
   const isMobile = useRef(typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)).current;
-
-  // Interaction State
   const isDraggingRef = useRef(false);
   const selectionStartRef = useRef<string | null>(null);
   const resizingRef = useRef<{ type: 'col' | 'row'; index: number; start: number; initialSize: number; } | null>(null);
 
-  // Transient State
   const [isPinching, setIsPinching] = useState(false);
   const [isScrolling, setIsScrolling] = useState(false);
   const touchStartDist = useRef<number>(0);
   const rafRef = useRef<number | null>(null);
   
-  // Offloading Timer
   const offloadTimerRef = useRef<any>(null);
   const [isIdle, setIsIdle] = useState(true);
   
-  // Virtualization State
   const [scrollState, setScrollState] = useState({ 
     scrollTop: 0, 
     scrollLeft: 0, 
@@ -92,21 +91,37 @@ const Grid: React.FC<GridProps> = ({
   const [isExpanding, setIsExpanding] = useState(false);
   const loadingRef = useRef(false);
 
-  // Scroll Anchor Persistence
   const prevScaleRef = useRef(scale);
   const currentScaleRef = useRef(scale);
   useEffect(() => { currentScaleRef.current = scale; }, [scale]);
 
-  // --- Dynamic Header Width Calculation ---
-  // Calculates width based on number of digits in max row index to prevent overflow
   const headerColW = useMemo(() => {
      const digits = size.rows.toString().length;
-     // Base 46px, plus roughly 8px per extra digit beyond 3
      const baseW = Math.max(46, (digits * 8) + 20); 
      return baseW * scale;
   }, [size.rows, scale]);
 
-  // --- 0. SELECTION BOUNDS OPTIMIZATION (O(1)) ---
+  // --- PRE-CALCULATE MERGED CELL SET (Optimization) ---
+  const mergedCellsSet = useMemo(() => {
+      const set = new Set<string>();
+      merges.forEach(range => {
+          const cellsInRange = getRange(range.split(':')[0], range.split(':')[1] || range.split(':')[0]);
+          cellsInRange.forEach(id => set.add(id));
+      });
+      return set;
+  }, [merges]);
+
+  // --- HELPER TO GET TOP/LEFT POSITION OF A CELL ---
+  const getCellPosition = useCallback((col: number, row: number) => {
+      let top = 0;
+      let left = 0;
+      // Note: This is O(N). In production usually cached in a cumulative array.
+      // For this demo with virtualization it is acceptable as we only call it for visible merges.
+      for (let r = 0; r < row; r++) top += (rowHeights[r] ?? DEFAULT_ROW_HEIGHT);
+      for (let c = 0; c < col; c++) left += (columnWidths[numToChar(c)] ?? DEFAULT_COL_WIDTH);
+      return { top: top * scale, left: left * scale };
+  }, [rowHeights, columnWidths, scale]);
+
   const selectionBounds = useMemo(() => {
     if (!selectionRange || selectionRange.length === 0) return null;
     const start = parseCellId(selectionRange[0]);
@@ -120,15 +135,14 @@ const Grid: React.FC<GridProps> = ({
     };
   }, [selectionRange]);
 
-  // --- 1. EXCEL-LIKE VIRTUALIZATION LOGIC ---
   const { 
     visibleRows, visibleCols, 
     spacerTop, spacerBottom, 
-    spacerLeft, spacerRight 
+    spacerLeft, spacerRight,
+    viewStartRow, viewEndRow, viewStartCol, viewEndCol
   } = useMemo(() => {
     const { scrollTop, scrollLeft, clientHeight, clientWidth, velocityFactor } = scrollState;
     
-    // Tweak buffers based on device capability
     const IDLE_BUFFER = isMobile ? 3 : 5; 
     const BASE_BUFFER = isMobile ? 8 : 15;
     const MAX_BUFFER = isMobile ? 20 : 80;
@@ -136,37 +150,28 @@ const Grid: React.FC<GridProps> = ({
     const avgRowH = DEFAULT_ROW_HEIGHT * scale;
     const avgColW = DEFAULT_COL_WIDTH * scale;
 
-    // Calculate Viewport
     const viewportStartRow = Math.floor(scrollTop / avgRowH);
     const viewportEndRow = Math.min(size.rows - 1, Math.ceil((scrollTop + clientHeight) / avgRowH));
-    
     const viewportStartCol = Math.floor(scrollLeft / avgColW);
     const viewportEndCol = Math.min(size.cols - 1, Math.ceil((scrollLeft + clientWidth) / avgColW));
 
-    // Dynamic Buffer Calculation based on Velocity
     let dynamicBuffer = isIdle ? IDLE_BUFFER : BASE_BUFFER;
-    
-    // Aggressive buffering for smoothness, but capped for mobile memory
     if (velocityFactor > 3) dynamicBuffer = MAX_BUFFER; 
     else if (velocityFactor > 1) dynamicBuffer = Math.min(MAX_BUFFER, BASE_BUFFER * 2);
     else if (velocityFactor > 0.5) dynamicBuffer = Math.min(MAX_BUFFER, BASE_BUFFER * 1.5);
 
     const renderStartRow = Math.max(0, viewportStartRow - dynamicBuffer);
     const renderEndRow = Math.min(size.rows - 1, viewportEndRow + dynamicBuffer);
-    
     const renderStartCol = Math.max(0, viewportStartCol - dynamicBuffer);
     const renderEndCol = Math.min(size.cols - 1, viewportEndCol + dynamicBuffer);
 
-    // Spacers
     const spacerTop = renderStartRow * avgRowH;
     const spacerBottom = (size.rows - 1 - renderEndRow) * avgRowH;
     const spacerLeft = renderStartCol * avgColW;
     const spacerRight = (size.cols - 1 - renderEndCol) * avgColW;
 
-    // Generate indices
     const rows = [];
     for (let i = renderStartRow; i <= renderEndRow; i++) rows.push(i);
-
     const cols = [];
     for (let i = renderStartCol; i <= renderEndCol; i++) cols.push(i);
 
@@ -174,18 +179,36 @@ const Grid: React.FC<GridProps> = ({
         visibleRows: rows, 
         visibleCols: cols,
         spacerTop, spacerBottom,
-        spacerLeft, spacerRight
+        spacerLeft, spacerRight,
+        viewStartRow: renderStartRow, viewEndRow: renderEndRow,
+        viewStartCol: renderStartCol, viewEndCol: renderEndCol
     };
   }, [scrollState, size, scale, isIdle, isMobile]); 
 
-  // Background Pattern
+  // --- MERGE OVERLAY CALCULATION ---
+  const visibleMerges = useMemo(() => {
+      // Filter merges that intersect with the rendered area
+      return merges.filter(range => {
+          const s = parseCellId(range.split(':')[0]);
+          const e = parseCellId(range.split(':')[1] || range.split(':')[0]);
+          if (!s || !e) return false;
+          
+          // Intersection check with View Buffer
+          return !(
+              e.row < viewStartRow || 
+              s.row > viewEndRow || 
+              e.col < viewStartCol || 
+              s.col > viewEndCol
+          );
+      });
+  }, [merges, viewStartRow, viewEndRow, viewStartCol, viewEndCol]);
+
   const bgPatternStyle = useMemo(() => ({
     backgroundImage: `linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)`,
     backgroundSize: `${DEFAULT_COL_WIDTH * scale}px ${DEFAULT_ROW_HEIGHT * scale}px`,
     backgroundPosition: '0 0'
   }), [scale]);
 
-  // --- 2. SMOOTH ZOOM & SELECTION CENTERING ---
   useLayoutEffect(() => {
     if (Math.abs(prevScaleRef.current - scale) > 0.001 && containerRef.current) {
         const el = containerRef.current;
@@ -197,24 +220,20 @@ const Grid: React.FC<GridProps> = ({
              const { minRow, maxRow, minCol, maxCol } = selectionBounds;
              let top = minRow * DEFAULT_ROW_HEIGHT;
              let bottom = (maxRow + 1) * DEFAULT_ROW_HEIGHT;
-             
              for (const [rStr, h] of Object.entries(rowHeights)) {
                  const r = parseInt(rStr);
                  const delta = Number(h) - DEFAULT_ROW_HEIGHT;
                  if (r < minRow) { top += delta; bottom += delta; } 
                  else if (r <= maxRow) { bottom += delta; }
              }
-
              let left = minCol * DEFAULT_COL_WIDTH;
              let right = (maxCol + 1) * DEFAULT_COL_WIDTH;
-             
              for (const [cStr, w] of Object.entries(columnWidths)) {
                  const c = charToNum(cStr);
                  const delta = Number(w) - DEFAULT_COL_WIDTH;
                  if (c < minCol) { left += delta; right += delta; } 
                  else if (c <= maxCol) { right += delta; }
              }
-
              targetUnscaledCenterY = (top + bottom) / 2;
              targetUnscaledCenterX = (left + right) / 2;
              hasTarget = true;
@@ -234,17 +253,12 @@ const Grid: React.FC<GridProps> = ({
     }
   }, [scale, selectionBounds, rowHeights, columnWidths]);
 
-  // --- 2.5 JUMP TO CELL (SCROLL SYNC) ---
-  // When activeCell changes drastically (e.g. NameBox jump), scroll to it.
   useEffect(() => {
     if (!activeCell || !containerRef.current) return;
-    
     const parsed = parseCellId(activeCell);
     if (!parsed) return;
     const { row, col } = parsed;
     
-    // Calculate approximate position (O(K) where K is number of resized rows/cols)
-    // Much faster than O(N) iteration
     let top = row * DEFAULT_ROW_HEIGHT;
     for (const [rStr, h] of Object.entries(rowHeights)) {
         const r = parseInt(rStr);
@@ -263,7 +277,6 @@ const Grid: React.FC<GridProps> = ({
     const cellH = ((rowHeights[row] ? Number(rowHeights[row]) : undefined) || DEFAULT_ROW_HEIGHT) * scale;
     const cellW = ((columnWidths[numToChar(col)] ? Number(columnWidths[numToChar(col)]) : undefined) || DEFAULT_COL_WIDTH) * scale;
 
-    // Scroll if out of view
     if (top < el.scrollTop) el.scrollTop = top;
     else if (top + cellH > el.scrollTop + el.clientHeight) el.scrollTop = top + cellH - el.clientHeight;
 
@@ -272,7 +285,6 @@ const Grid: React.FC<GridProps> = ({
 
   }, [activeCell, rowHeights, columnWidths, scale]);
 
-  // --- 3. PINCH ZOOM LOGIC ---
   const isPinchingRef = useRef(false);
 
   useEffect(() => {
@@ -353,17 +365,13 @@ const Grid: React.FC<GridProps> = ({
     };
   }, [onZoom]);
 
-  // --- 4. EXPANSION & SCROLL LOGIC ---
   const checkExpansion = useCallback((vy: number, vx: number) => {
      if (!containerRef.current || loadingRef.current) return;
      const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = containerRef.current;
-     
      const yMultiplier = Math.max(1, vy); 
      const xMultiplier = Math.max(1, vx);
-     
      const rowThreshold = clientHeight * (2 + yMultiplier * 1.5); 
      const colThreshold = clientWidth * (2 + xMultiplier * 1.5); 
-     
      if ((scrollHeight - (scrollTop + clientHeight)) < rowThreshold) {
         loadingRef.current = true;
         setIsExpanding(true);
@@ -380,7 +388,6 @@ const Grid: React.FC<GridProps> = ({
   const handleScroll = useCallback(() => {
     if (!containerRef.current) return;
     const element = containerRef.current;
-    
     const now = performance.now();
     const currentTop = element.scrollTop;
     const currentLeft = element.scrollLeft;
@@ -392,26 +399,18 @@ const Grid: React.FC<GridProps> = ({
     const vy = dy / dt;
     const vx = dx / dt;
     velocityRef.current = { x: vx, y: vy };
-
     lastScrollPos.current = { top: currentTop, left: currentLeft, time: now };
-
     if (isIdle) setIsIdle(false);
     setIsScrolling(true);
-    
     if (offloadTimerRef.current) clearTimeout(offloadTimerRef.current);
     offloadTimerRef.current = setTimeout(() => {
         setIsScrolling(false);
         setIsIdle(true); 
-        // Force velocity to 0 when scrolling stops so we exit fast-scrolling mode
         setScrollState(prev => ({ ...prev, velocityFactor: 0 }));
     }, 150); 
-
     checkExpansion(vy, vx);
-
-    // Throttle for touch devices to prevent main thread blocking
     const updateThreshold = isMobile ? SCROLL_UPDATE_THRESHOLD * 1.5 : SCROLL_UPDATE_THRESHOLD;
     if (dy < updateThreshold && dx < updateThreshold) return;
-
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     rafRef.current = requestAnimationFrame(() => {
         setScrollState({ 
@@ -424,7 +423,6 @@ const Grid: React.FC<GridProps> = ({
     });
   }, [checkExpansion, isIdle, isMobile]);
 
-  // --- 5. EVENT HANDLERS ---
   const handleMouseDown = useCallback((id: string, isShift: boolean) => {
       isDraggingRef.current = true;
       if (!isShift) selectionStartRef.current = id;
@@ -495,8 +493,6 @@ const Grid: React.FC<GridProps> = ({
   const headerFontSize = Math.max(7, 12 * scale);
   const arrowSize = Math.max(4, 8 * scale);
   const arrowOffset = Math.max(2, 4 * scale);
-
-  // Velocity threshold is lower on mobile to trigger fast mode earlier
   const velocityThreshold = isMobile ? 0.5 : 2;
   const isScrollingFast = Math.abs(scrollState.velocityFactor) > velocityThreshold;
 
@@ -560,7 +556,7 @@ const Grid: React.FC<GridProps> = ({
             </div>
         </div>
 
-        <div>
+        <div className="relative">
             <div style={{ height: spacerTop, width: '100%', ...bgPatternStyle }} />
             
             {visibleRows.map(row => (
@@ -574,6 +570,7 @@ const Grid: React.FC<GridProps> = ({
                     getColW={getColW}
                     cells={cells}
                     styles={styles}
+                    mergedCellsSet={mergedCellsSet}
                     activeCell={activeCell}
                     selectionBounds={selectionBounds} 
                     scale={scale}
@@ -592,6 +589,53 @@ const Grid: React.FC<GridProps> = ({
             ))}
             
             <div style={{ height: spacerBottom, width: '100%', ...bgPatternStyle }} />
+
+            {/* MERGED CELL OVERLAY - Rendered absolutely on top of grid */}
+            {visibleMerges.map(range => {
+                const s = parseCellId(range.split(':')[0]);
+                if (!s) return null;
+                const { width, height } = getMergeRangeDimensions(range, columnWidths, rowHeights, DEFAULT_COL_WIDTH, DEFAULT_ROW_HEIGHT);
+                const { top, left } = getCellPosition(s.col, s.row);
+                
+                const id = getCellId(s.col, s.row);
+                const data = cells[id];
+                const safeData = data || { id, raw: '', value: '' };
+                const cellStyle = (safeData.styleId && styles[safeData.styleId]) ? styles[safeData.styleId] : {};
+                const isSelected = activeCell === id;
+                const validation = validations[id];
+
+                return (
+                    <div 
+                        key={range}
+                        className="absolute z-20"
+                        style={{
+                            top: top,
+                            left: left + headerColW, // Offset by row header width
+                            width: width * scale,
+                            height: height * scale
+                        }}
+                    >
+                         <Cell 
+                            id={id} 
+                            data={safeData}
+                            style={cellStyle}
+                            isSelected={isSelected}
+                            isActive={isSelected} 
+                            isInRange={false} // Merged cells handle their own range style usually
+                            width={width * scale}
+                            height={height * scale}
+                            scale={scale}
+                            isGhost={false}
+                            validation={validation}
+                            onMouseDown={handleMouseDown}
+                            onMouseEnter={handleMouseEnter}
+                            onDoubleClick={onCellDoubleClick}
+                            onChange={onCellChange}
+                            onNavigate={(dir) => onNavigate(dir, false)}
+                        />
+                    </div>
+                );
+            })}
         </div>
 
         {(isExpanding) && (

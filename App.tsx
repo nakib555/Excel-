@@ -1,6 +1,8 @@
+
+
 import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
-import { CellId, CellData, CellStyle, GridSize, Sheet } from './types';
-import { evaluateFormula, getRange, getNextCellId, parseCellId, getCellId, extractDependencies, getStyleId, numToChar } from './utils';
+import { CellId, CellData, CellStyle, GridSize, Sheet, ValidationRule } from './types';
+import { evaluateFormula, getRange, getNextCellId, parseCellId, getCellId, extractDependencies, getStyleId, numToChar, checkIntersect } from './utils';
 import { NavigationDirection } from './components';
 
 // Import Skeletons
@@ -21,29 +23,18 @@ const StatusBar = lazy(() => import('./components/StatusBar'));
 const MobileResizeTool = lazy(() => import('./components/MobileResizeTool'));
 
 // --- EXCEL ENGINE CONSTANTS ---
-// Theoretical limits (Excel specs)
 const MAX_ROWS = 1048576; 
 const MAX_COLS = 16384;   
 
-// Viewport Strategy
 const INITIAL_ROWS = 150; 
-const INITIAL_COLS = 30;  // A-Z + buffer
+const INITIAL_COLS = 30;
 
-// --- UPDATED BATCH RATES (Optimized for velocity scrolling) ---
-// Drastically increased for 4GB RAM devices to batch expensive operations
 const EXPANSION_BATCH_ROWS = 300; 
 const EXPANSION_BATCH_COLS = 100; 
 
-// Defaults for resizing
 const DEFAULT_COL_WIDTH = 100;
 const DEFAULT_ROW_HEIGHT = 28;
 
-/**
- * 1️⃣ SPARSE DATA GENERATION
- * "Empty cells are conceptual, not real."
- * We do not loop to create empty objects. We only instantiate what exists.
- * NOW WITH STYLE COMPRESSION: Uses style registry to avoid duplicated style objects.
- */
 const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap: Record<CellId, CellId[]>, styles: Record<string, CellStyle> } => {
     const cells: Record<CellId, CellData> = {};
     const dependentsMap: Record<CellId, CellId[]> = {};
@@ -56,7 +47,6 @@ const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap:
       { id: "C1", val: "Qty", style: { bold: true, bg: '#f1f5f9', color: '#475569' } },
       { id: "D1", val: "Total", style: { bold: true, bg: '#f1f5f9', color: '#475569', format: 'currency' as const } },
       
-      // Data Rows - Set decimalPlaces: 0 for cleaner integer display
       { id: "A2", val: "MacBook Pro" }, 
       { id: "B2", val: "2400", style: { format: 'currency' as const, decimalPlaces: 0 } }, 
       { id: "C2", val: "2" }, 
@@ -76,11 +66,8 @@ const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap:
       { id: "D5", val: "=SUM(D2:D4)", style: { bold: true, color: '#059669', bg: '#ecfdf5', format: 'currency' as const, decimalPlaces: 0 } },
     ];
 
-    // Hydrate only used cells
     dataset.forEach(s => {
       let styleId: string | undefined = undefined;
-      
-      // Compress style if exists
       if (s.style) {
           const res = getStyleId(styles, s.style);
           styles = res.registry;
@@ -95,7 +82,6 @@ const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap:
       };
     });
     
-    // Initial Evaluation Loop (Dependency Graph Build)
     Object.keys(cells).forEach(key => {
         const cell = cells[key];
         if (cell.raw.startsWith('=')) {
@@ -119,6 +105,8 @@ const App: React.FC = () => {
       name: 'Budget 2024',
       cells,
       styles,
+      merges: [],
+      validations: {},
       dependentsMap,
       activeCell: "A1",
       selectionRange: ["A1"],
@@ -139,6 +127,8 @@ const App: React.FC = () => {
 
   const cells = activeSheet.cells;
   const styles = activeSheet.styles;
+  const merges = activeSheet.merges;
+  const validations = activeSheet.validations;
   const activeCell = activeSheet.activeCell;
   const selectionRange = activeSheet.selectionRange;
   const columnWidths = activeSheet.columnWidths;
@@ -172,11 +162,6 @@ const App: React.FC = () => {
     };
   }, [selectionRange, cells]);
 
-  /**
-   * 2️⃣ LAZY CELL MANAGEMENT & MEMORY COMPRESSION
-   * "Formatting is a memory vampire."
-   * If a cell loses its value and has no unique style, we DELETE it from memory.
-   */
   const handleCellChange = useCallback((id: CellId, rawValue: string) => {
     setSheets(prevSheets => prevSheets.map(sheet => {
       if (sheet.id !== activeSheetId) return sheet;
@@ -184,7 +169,6 @@ const App: React.FC = () => {
       const nextCells = { ...sheet.cells };
       const nextDependents = { ...sheet.dependentsMap };
 
-      // A. Clean up old dependencies
       const oldCell = nextCells[id];
       if (oldCell?.raw.startsWith('=')) {
           const oldDeps = extractDependencies(oldCell.raw);
@@ -196,23 +180,17 @@ const App: React.FC = () => {
           });
       }
 
-      // B. SPARSE STORAGE LOGIC:
-      // Check if the cell is effectively empty (no data, no style reference)
       const hasStyle = !!oldCell?.styleId;
-      
       if (!rawValue && !hasStyle) {
-         // MEMORY OPTIMIZATION: Delete the object entirely.
          delete nextCells[id];
       } else {
-         // Update or Create
          nextCells[id] = {
-           ...nextCells[id] || { id }, // styleId persists if it existed
+           ...nextCells[id] || { id },
            raw: rawValue,
            value: rawValue 
          };
       }
 
-      // C. Register new dependencies
       if (rawValue.startsWith('=')) {
           const newDeps = extractDependencies(rawValue);
           newDeps.forEach(depId => {
@@ -221,7 +199,6 @@ const App: React.FC = () => {
           });
       }
 
-      // D. Lazy Recalculation (Dependency Graph)
       const updateQueue = [id];
       const visited = new Set<string>(); 
 
@@ -268,7 +245,6 @@ const App: React.FC = () => {
     handleCellClick(id, false);
   }, [handleCellClick]);
 
-  // STYLE UPDATE WITH FLYWEIGHT PATTERN (Compression)
   const handleStyleChange = useCallback((key: keyof CellStyle, value: any) => {
     setSheets(prevSheets => prevSheets.map(sheet => {
       if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
@@ -277,19 +253,13 @@ const App: React.FC = () => {
       let nextStyles = { ...sheet.styles };
       
       sheet.selectionRange.forEach(id => {
-        // 1. Get current style
         const cell = nextCells[id] || { id, raw: '', value: '' };
         const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
-        
-        // 2. Compute new style
         const newStyle = { ...currentStyle, [key]: value };
-        
-        // 3. De-duplicate: Check if style exists in registry
         const res = getStyleId(nextStyles, newStyle);
         nextStyles = res.registry;
         const newStyleId = res.id;
         
-        // 4. Update Cell
         nextCells[id] = {
           ...cell,
           styleId: newStyleId
@@ -313,30 +283,18 @@ const App: React.FC = () => {
     if (nextId && nextId !== activeCell) handleCellClick(nextId, isShift);
   }, [activeCell, gridSize, handleCellClick]);
 
-  /**
-   * 🗺️ NAME BOX NAVIGATION HANDLER
-   * Allows jumping to specific coordinates (e.g., "XFD1048576").
-   * Expands the grid on demand if the target is outside current bounds.
-   */
   const handleNameBoxSubmit = useCallback((input: string) => {
     const coords = parseCellId(input);
     if (!coords) return;
-    
     const { row, col } = coords;
-    
-    // Check Excel Limits
     if (row >= MAX_ROWS || col >= MAX_COLS) {
-        alert(`Cell reference out of bounds. Max: ${numToChar(MAX_COLS-1)}${MAX_ROWS}`);
+        alert(`Cell reference out of bounds.`);
         return;
     }
-
-    // Force Expand Grid if needed to show this cell
     setGridSize(prev => ({
-        rows: Math.max(prev.rows, row + 50), // Add generous buffer
+        rows: Math.max(prev.rows, row + 50), 
         cols: Math.max(prev.cols, col + 20)
     }));
-
-    // Select the cell
     const id = getCellId(col, row);
     handleCellClick(id, false);
   }, [handleCellClick]);
@@ -349,7 +307,6 @@ const App: React.FC = () => {
     setSheets(prev => prev.map(s => s.id === activeSheetId ? { ...s, rowHeights: { ...s.rowHeights, [rowIdx]: height } } : s));
   }, [activeSheetId]);
 
-  // Relative Resizing Helpers for Tools/Keyboard
   const resizeActiveRow = useCallback((delta: number) => {
      if (!activeCell) return;
      const { row } = parseCellId(activeCell)!;
@@ -369,21 +326,16 @@ const App: React.FC = () => {
      if (!activeCell) return;
      const { col, row } = parseCellId(activeCell)!;
      const colChar = numToChar(col);
-     
      setSheets(prev => prev.map(s => {
          if (s.id !== activeSheetId) return s;
          const newColWidths = { ...s.columnWidths };
          const newRowHeights = { ...s.rowHeights };
-         
-         // Remove overrides to reset to defaults
          delete newColWidths[colChar];
          delete newRowHeights[row];
-         
          return { ...s, columnWidths: newColWidths, rowHeights: newRowHeights };
      }));
   }, [activeCell, activeSheetId]);
 
-  // Keyboard Shortcuts for Desktop Resizing
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
         if (e.altKey && activeCell) {
@@ -406,18 +358,9 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeCell, resizeActiveCol, resizeActiveRow]);
 
-  /**
-   * 3️⃣ INFINITE SCROLL EXPANSION
-   * "Excel expands the grid conceptually as you move."
-   * We treat the grid as potentially infinite. We only increase the coordinate bounds
-   * when the user hits the edge, creating the illusion of infinite space up to MAX_ROWS.
-   * 
-   * Update: Generates cells in larger batches to handle fast scrolling.
-   */
   const handleExpandGrid = useCallback((direction: 'row' | 'col') => {
     setGridSize(prev => {
         const { rows, cols } = prev;
-        // Check if we hit the hard limit (Excel's 1M rows)
         if (direction === 'row' && rows < MAX_ROWS) {
             return { ...prev, rows: Math.min(rows + EXPANSION_BATCH_ROWS, MAX_ROWS) };
         } 
@@ -450,8 +393,7 @@ const App: React.FC = () => {
     if (confirm(`Clear all contents of "${activeSheet.name}"?`)) {
         setSheets(prev => prev.map(s => {
           if (s.id !== activeSheetId) return s;
-          // Sparse clear: just reset to empty object. Zero memory usage.
-          return { ...s, cells: {}, dependentsMap: {}, activeCell: 'A1', selectionRange: ['A1'], styles: {} };
+          return { ...s, cells: {}, dependentsMap: {}, activeCell: 'A1', selectionRange: ['A1'], styles: {}, merges: [], validations: {} };
         }));
     }
   }, [activeSheet.name, activeSheetId]);
@@ -463,6 +405,8 @@ const App: React.FC = () => {
       name: `Sheet ${prev.length + 1}`,
       cells: {},
       styles: {},
+      merges: [],
+      validations: {},
       dependentsMap: {},
       activeCell: 'A1',
       selectionRange: ['A1'],
@@ -486,15 +430,9 @@ const App: React.FC = () => {
     const coords = selectionRange.map(id => parseCellId(id)!);
     const minRow = Math.min(...coords.map(c => c.row));
     const minCol = Math.min(...coords.map(c => c.col));
-
     selectionRange.forEach(id => {
        if (cells[id]) copiedCells[id] = JSON.parse(JSON.stringify(cells[id]));
     });
-    // Note: We copy cell data with styleId. 
-    // Ideally we should resolve style to raw style object for clipboard to handle cross-sheet pasting correctly if registries differ,
-    // but for same-sheet copy-paste this is fine. For now we assume styleIds are specific to sheet.
-    // To be safe, we could expand styles here, but let's keep it simple for now.
-
     clipboardRef.current = { cells: copiedCells, baseRow: minRow, baseCol: minCol };
   }, [selectionRange, cells]);
 
@@ -520,9 +458,6 @@ const App: React.FC = () => {
         Object.values(copiedCells).forEach((cell: CellData) => {
              const orig = parseCellId(cell.id)!;
              const targetId = getCellId(targetStart.col + (orig.col - baseCol), targetStart.row + (orig.row - baseRow));
-             // Important: if styleId exists, we should technically re-register it if copying between sheets with different registries.
-             // Since we are in single app session, we can assume 'styles' map is consistent or we just copy styleId.
-             // Ideally: resolve style from source sheet, getStyleId in target sheet.
              nextCells[targetId] = { ...cell, id: targetId };
         });
         return { ...s, cells: nextCells };
@@ -535,7 +470,6 @@ const App: React.FC = () => {
       setSheets(prev => prev.map(sheet => {
           if (sheet.id !== activeSheetId) return sheet;
           const newCells: Record<string, CellData> = {};
-          // Reverse iteration for safety or just shift
           Object.values(sheet.cells).forEach((cell: CellData) => {
               const { col, row } = parseCellId(cell.id)!;
               if (row >= startRow) {
@@ -565,13 +499,65 @@ const App: React.FC = () => {
       }));
   }, [activeCell, activeSheetId]);
 
-  const handleSort = useCallback((direction: 'asc' | 'desc') => {
-    // Sort implementation (simplified)
-  }, []);
+  const handleSort = useCallback((direction: 'asc' | 'desc') => {}, []);
 
-  const handleAutoSum = useCallback(() => {
-      // AutoSum implementation
-  }, []);
+  const handleAutoSum = useCallback(() => {}, []);
+
+  // --- NEW FEATURES ---
+
+  const handleMergeCenter = useCallback(() => {
+      setSheets(prev => prev.map(sheet => {
+          if (sheet.id !== activeSheetId || !sheet.selectionRange || sheet.selectionRange.length < 2) return sheet;
+          
+          const selection = sheet.selectionRange;
+          const start = selection[0];
+          const end = selection[selection.length - 1];
+          const rangeStr = `${start}:${end}`;
+          
+          // Check if range is already merged (simplification: exact match toggles off)
+          if (sheet.merges.includes(rangeStr)) {
+              return { ...sheet, merges: sheet.merges.filter(m => m !== rangeStr) };
+          }
+
+          // Filter out intersecting merges (Excel unmerges them if you merge over)
+          const newMerges = sheet.merges.filter(m => !checkIntersect(m, rangeStr));
+          newMerges.push(rangeStr);
+
+          // Center the top-left cell
+          const nextCells = { ...sheet.cells };
+          let nextStyles = { ...sheet.styles };
+          const cell = nextCells[start] || { id: start, raw: '', value: '' };
+          const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
+          // UPDATED: Set vertical align to middle as well for better "Merge & Center" behavior
+          const newStyle = { ...currentStyle, align: 'center', verticalAlign: 'middle' };
+          const res = getStyleId(nextStyles, newStyle as CellStyle);
+          nextStyles = res.registry;
+          nextCells[start] = { ...cell, styleId: res.id };
+
+          return { ...sheet, merges: newMerges, cells: nextCells, styles: nextStyles };
+      }));
+  }, [activeSheetId]);
+
+  const handleDataValidation = useCallback(() => {
+      if (!activeCell) return;
+      // Simple prompt for now
+      const input = prompt("Enter allowed values separated by comma (e.g. Yes,No,Maybe):");
+      if (input !== null) {
+          const options = input.split(',').map(s => s.trim()).filter(s => s.length > 0);
+          setSheets(prev => prev.map(sheet => {
+              if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
+              const nextValidations = { ...sheet.validations };
+              sheet.selectionRange.forEach(id => {
+                  if (options.length > 0) {
+                      nextValidations[id] = { type: 'list', options };
+                  } else {
+                      delete nextValidations[id];
+                  }
+              });
+              return { ...sheet, validations: nextValidations };
+          }));
+      }
+  }, [activeCell, activeSheetId]);
 
   return (
     <div className="flex flex-col h-[100dvh] bg-slate-50 font-sans text-slate-900 overflow-hidden">
@@ -589,6 +575,8 @@ const App: React.FC = () => {
               onInsertRow={handleInsertRow}
               onDeleteRow={handleDeleteRow}
               onSort={handleSort}
+              onMergeCenter={handleMergeCenter}
+              onDataValidation={handleDataValidation}
             />
         </Suspense>
         
@@ -608,6 +596,8 @@ const App: React.FC = () => {
                 size={gridSize}
                 cells={cells}
                 styles={styles}
+                merges={merges}
+                validations={validations}
                 activeCell={activeCell}
                 selectionRange={selectionRange}
                 columnWidths={columnWidths}

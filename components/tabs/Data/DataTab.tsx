@@ -1,4 +1,5 @@
 
+
 import React, { memo, lazy, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { TabProps } from '../shared';
@@ -22,7 +23,7 @@ const DataTab: React.FC<TabProps> = (props) => {
         <Suspense fallback={<GroupSkeleton width={140} />}><QueriesConnectionsGroup /></Suspense>
         <Suspense fallback={<GroupSkeleton width={140} />}><DataTypesGroup /></Suspense>
         <Suspense fallback={<GroupSkeleton width={180} />}><SortFilterGroup {...props} /></Suspense>
-        <Suspense fallback={<GroupSkeleton width={240} />}><DataToolsGroup /></Suspense>
+        <Suspense fallback={<GroupSkeleton width={240} />}><DataToolsGroup {...props} /></Suspense>
     </motion.div>
   );
 };

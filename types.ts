@@ -7,6 +7,8 @@ export interface CellStyle {
   italic?: boolean;
   underline?: boolean;
   align?: 'left' | 'center' | 'right';
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+  indent?: number; // Indentation level (0, 1, 2...)
   color?: string;
   bg?: string;
   fontSize?: number;
@@ -24,6 +26,11 @@ export interface CellData {
   styleId?: string; // Memory Optimization: Reference to a style in the Sheet's style registry
 }
 
+export interface ValidationRule {
+  type: 'list';
+  options: string[];
+}
+
 export interface SheetState {
   cells: Record<CellId, CellData>;
   selectedCell: CellId | null;
@@ -38,6 +45,8 @@ export interface Sheet {
   name: string;
   cells: Record<CellId, CellData>;
   styles: Record<string, CellStyle>; // Registry of unique styles (Flyweight pattern)
+  merges: string[]; // Array of range strings e.g. ["A1:B2"]
+  validations: Record<CellId, ValidationRule>;
   dependentsMap: Record<CellId, CellId[]>; // Dependency Graph: Cell -> [Dependents]
   activeCell: CellId | null;
   selectionRange: CellId[] | null;

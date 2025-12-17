@@ -1,4 +1,5 @@
 
+
 import React, { memo } from 'react';
 import { getCellId, parseCellId, cn, formatCellValue } from '../utils';
 import { NavigationDirection } from './Cell';
@@ -17,6 +18,7 @@ interface GridRowProps {
   activeCell: string | null;
   selectionBounds: { minRow: number, maxRow: number, minCol: number, maxCol: number } | null;
   scale: number;
+  mergedCellsSet: Set<string>; // Set of cell IDs that are part of a merge
   onCellClick: (id: string, isShift: boolean) => void;
   handleMouseDown: (id: string, isShift: boolean) => void;
   handleMouseEnter: (id: string) => void;
@@ -30,72 +32,25 @@ interface GridRowProps {
   bgPatternStyle: React.CSSProperties;
 }
 
-// Lightweight component for Empty Cells (No React overhead for hooks/state)
-const EmptyCell = memo(({ width, height, id, onMouseDown, onMouseEnter, onDoubleClick, bgPatternStyle }: any) => (
+// Lightweight component for Empty/Hidden Cells
+const EmptyCell = memo(({ width, height, id, onMouseDown, onMouseEnter, onDoubleClick, isHidden }: any) => (
     <div
-      className="border-r border-b border-slate-200 box-border flex-shrink-0 bg-white select-none"
+      className={cn(
+          "border-r border-b border-slate-200 box-border flex-shrink-0 bg-white select-none",
+          isHidden && "border-none bg-transparent" // If hidden by merge
+      )}
       style={{
           width, 
           height, 
           minWidth: width, 
           minHeight: height,
+          visibility: isHidden ? 'hidden' : 'visible'
       }}
-      onMouseDown={(e) => onMouseDown(id, e.shiftKey)}
-      onMouseEnter={() => onMouseEnter(id)}
-      onDoubleClick={() => onDoubleClick(id)}
+      onMouseDown={(e) => !isHidden && onMouseDown(id, e.shiftKey)}
+      onMouseEnter={() => !isHidden && onMouseEnter(id)}
+      onDoubleClick={() => !isHidden && onDoubleClick(id)}
     />
-), (prev, next) => prev.width === next.width && prev.height === next.height);
-
-// High-Performance Cell for Fast Scrolling (Pure rendering, no interactive overhead)
-// Now accepts onMouseDown for UX catch-ability
-const FastCell = memo(({ width, height, data, style, onMouseDown }: any) => {
-    const displayValue = formatCellValue(data.value, style);
-    
-    // Rotation logic for FastCell
-    const rotation = style.textRotation || 0;
-    const isVertical = style.verticalText;
-    const hasRotation = rotation !== 0;
-    const cssRotation = rotation ? -rotation : 0;
-    const textAlign = style.align || 'left';
-
-    return (
-        <div
-            className={cn(
-                "border-r border-b border-slate-200 box-border flex-shrink-0 select-none px-[4px] flex items-center",
-                (hasRotation || isVertical) ? "overflow-visible z-[5]" : "overflow-hidden"
-            )}
-            style={{
-                width, 
-                height,
-                minWidth: width,
-                minHeight: height,
-                backgroundColor: style.bg || '#fff',
-                color: style.color || '#0f172a',
-                fontWeight: style.bold ? '600' : '400',
-                fontStyle: style.italic ? 'italic' : 'normal',
-                textDecoration: style.underline ? 'underline' : 'none',
-                textAlign,
-                fontSize: `${(style.fontSize || 13)}px`,
-            }}
-            onMouseDown={(e) => onMouseDown && onMouseDown(data.id, e.shiftKey)}
-        >
-             <span 
-                className={cn("w-full block origin-left", !style.wrapText && !hasRotation && !isVertical && "truncate")}
-                style={{
-                    ...(isVertical ? { writingMode: 'vertical-rl', textOrientation: 'upright', width: '100%', display: 'flex', alignItems: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'flex-end' : 'flex-start' } : {}),
-                    ...(hasRotation ? { 
-                        transform: `rotate(${cssRotation}deg)`, 
-                        width: 'max-content',
-                        transformOrigin: textAlign === 'center' ? 'center' : textAlign === 'right' ? 'center right' : 'center left',
-                        display: 'inline-block'
-                    } : {})
-                }}
-             >
-                {displayValue}
-             </span>
-        </div>
-    );
-}, (prev, next) => prev.data === next.data && prev.style === next.style && prev.width === next.width && prev.height === next.height);
+), (prev, next) => prev.width === next.width && prev.height === next.height && prev.isHidden === next.isHidden);
 
 const GridRow = memo(({ 
     rowIdx, 
@@ -109,6 +64,7 @@ const GridRow = memo(({
     activeCell, 
     selectionBounds, 
     scale, 
+    mergedCellsSet,
     onCellClick, 
     handleMouseDown, 
     handleMouseEnter, 
@@ -118,13 +74,11 @@ const GridRow = memo(({
     startResize,
     headerColW,
     isGhost,
-    isScrollingFast,
     bgPatternStyle
 }: GridRowProps) => {
     const isActiveRow = activeCell && parseInt(activeCell.replace(/[A-Z]+/, '')) === rowIdx + 1;
     const headerFontSize = Math.max(7, 12 * scale);
     
-    // Quick row-level check to avoid column loops if row not involved in selection
     const isRowSelected = selectionBounds 
         ? (rowIdx >= selectionBounds.minRow && rowIdx <= selectionBounds.maxRow)
         : false;
@@ -135,7 +89,7 @@ const GridRow = memo(({
             style={{ 
                 width: 'max-content', 
                 height,
-                contain: 'layout style' // Performance: Isolate layout reflows
+                contain: 'layout style'
             }}
         >
             {/* Row Header */}
@@ -160,10 +114,14 @@ const GridRow = memo(({
             {/* Cells Loop */}
             {visibleCols.map((col: number) => {
                 const id = getCellId(col, rowIdx);
-                const data = cells[id]; // Direct undefined check is faster than 'in' operator
                 
-                // PERFORMANCE CRITICAL: 
-                // Determine if we need the Heavy Cell Component or the Lightweight Div
+                // Merge Check
+                if (mergedCellsSet.has(id)) {
+                    // Render hidden placeholder to maintain flex layout
+                    return <EmptyCell key={id} width={getColW(col)} height={height} isHidden={true} />;
+                }
+
+                const data = cells[id];
                 const isSelected = activeCell === id;
                 const isInRange = isRowSelected && selectionBounds 
                     ? (col >= selectionBounds.minCol && col <= selectionBounds.maxCol)
@@ -171,25 +129,9 @@ const GridRow = memo(({
 
                 const width = getColW(col);
 
-                // If cell has data, style, is active, or selected -> Render full component
                 if (data || isSelected || isInRange) {
                     const safeData = data || { id, raw: '', value: '' };
                     const cellStyle = (safeData.styleId && styles[safeData.styleId]) ? styles[safeData.styleId] : {};
-                    
-                    // MEMORY OPTIMIZATION:
-                    // If scrolling fast and this cell is NOT active/selected, render a FastCell
-                    if (isScrollingFast && !isSelected && !isInRange) {
-                        return (
-                             <FastCell 
-                                key={id}
-                                width={width}
-                                height={height}
-                                data={safeData}
-                                style={cellStyle}
-                                onMouseDown={handleMouseDown}
-                             />
-                        );
-                    }
 
                     return (
                         <Cell 
@@ -213,7 +155,6 @@ const GridRow = memo(({
                     );
                 }
 
-                // Otherwise, render lightweight primitive
                 return (
                     <EmptyCell 
                         key={id}
@@ -233,19 +174,17 @@ const GridRow = memo(({
         </div>
     );
 }, (prev, next) => {
-    // 1. High-level layout checks (Fastest)
     if (prev.scale !== next.scale) return false;
     if (prev.height !== next.height) return false;
     if (prev.isGhost !== next.isGhost) return false;
-    if (prev.isScrollingFast !== next.isScrollingFast) return false; // Important check for fast scrolling
     if (prev.visibleCols !== next.visibleCols) return false;
     if (prev.headerColW !== next.headerColW) return false;
     if (prev.spacerLeft !== next.spacerLeft) return false;
     if (prev.spacerRight !== next.spacerRight) return false;
-    if (prev.cells !== next.cells) return false; // Reference check on sparse object
+    if (prev.cells !== next.cells) return false;
     if (prev.styles !== next.styles) return false;
+    if (prev.mergedCellsSet !== next.mergedCellsSet) return false;
     
-    // 2. Active Cell Check
     const isRowInvolvedActive = (id: string | null, rowIdx: number) => {
         if (!id) return false;
         const p = parseCellId(id);
@@ -258,7 +197,6 @@ const GridRow = memo(({
     if (prevActive !== nextActive) return false;
     if (prevActive && nextActive && prev.activeCell !== next.activeCell) return false;
 
-    // 3. Selection Check
     const b1 = prev.selectionBounds;
     const b2 = next.selectionBounds;
     

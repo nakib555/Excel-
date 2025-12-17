@@ -19,6 +19,8 @@ export interface TabProps {
   onInsertRow?: () => void;
   onDeleteRow?: () => void;
   onSort?: (direction: 'asc' | 'desc') => void;
+  onMergeCenter?: () => void;
+  onDataValidation?: () => void;
 }
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {
@@ -190,7 +192,6 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
   );
 });
 
-// Reusable Smart Dropdown Component using Portal for Fixed Positioning
 export const SmartDropdown = ({ 
     trigger, 
     children, 
