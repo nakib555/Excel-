@@ -195,6 +195,15 @@ const Cell = memo(({
       }),
       lineHeight: 1.2
   };
+  
+  // Map Excel alignment to CSS textAlign for input field
+  const getCssTextAlign = (): React.CSSProperties['textAlign'] => {
+      if (align === 'center' || align === 'centerAcross') return 'center';
+      if (align === 'right') return 'right';
+      if (align === 'justify' || align === 'distributed') return 'justify';
+      return 'left';
+  };
+  const cssTextAlign = getCssTextAlign();
 
   return (
     <div
@@ -217,7 +226,7 @@ const Cell = memo(({
           style={{ 
             fontSize: `${fontSize}px`, 
             fontFamily: 'inherit',
-            textAlign: align // Match cell alignment while editing
+            textAlign: cssTextAlign // Fixed type error by using mapped value
           }}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
