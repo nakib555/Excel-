@@ -101,12 +101,16 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
 
                         <div className="flex flex-col gap-2">
                             <span className="text-[13px] text-slate-600">Negative numbers:</span>
-                            <div className="border border-slate-200 rounded-lg h-[120px] overflow-y-auto p-1 bg-white scrollbar-thin">
-                                <div className="px-3 py-1.5 text-[13px] text-slate-800 hover:bg-primary-50 hover:text-primary-700 cursor-pointer rounded transition-colors">-1,234.10</div>
-                                <div className="px-3 py-1.5 text-[13px] text-red-600 hover:bg-primary-50 cursor-pointer rounded transition-colors">1,234.10</div>
-                                <div className="px-3 py-1.5 text-[13px] text-slate-800 hover:bg-primary-50 hover:text-primary-700 cursor-pointer rounded transition-colors">(-1,234.10)</div>
-                                <div className="px-3 py-1.5 text-[13px] text-red-600 hover:bg-primary-50 cursor-pointer rounded transition-colors">(-1,234.10)</div>
-                            </div>
+                            <ModernSelect
+                                value="default"
+                                onChange={() => {}}
+                                options={[
+                                    { value: 'default', label: '-1,234.10' },
+                                    { value: 'red', label: <span className="text-red-600">1,234.10</span> },
+                                    { value: 'parens', label: '(-1,234.10)' },
+                                    { value: 'redParens', label: <span className="text-red-600">(-1,234.10)</span> },
+                                ]}
+                            />
                         </div>
                     </div>
                 );
@@ -146,12 +150,16 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
                         {category === 'Currency' && (
                             <div className="flex flex-col gap-2 mt-2">
                                 <span className="text-[13px] text-slate-600">Negative numbers:</span>
-                                <div className="border border-slate-200 rounded-lg h-[100px] overflow-y-auto p-1 bg-white scrollbar-thin">
-                                    <div className="px-3 py-1.5 text-[13px] text-slate-800 hover:bg-primary-50 cursor-pointer rounded flex justify-between"><span>-1,234.10</span></div>
-                                    <div className="px-3 py-1.5 text-[13px] text-red-600 hover:bg-primary-50 cursor-pointer rounded flex justify-between"><span>1,234.10</span></div>
-                                    <div className="px-3 py-1.5 text-[13px] text-slate-800 hover:bg-primary-50 cursor-pointer rounded flex justify-between"><span>(1,234.10)</span></div>
-                                    <div className="px-3 py-1.5 text-[13px] text-red-600 hover:bg-primary-50 cursor-pointer rounded flex justify-between"><span>(1,234.10)</span></div>
-                                </div>
+                                <ModernSelect
+                                    value="default"
+                                    onChange={() => {}}
+                                    options={[
+                                        { value: 'default', label: '-1,234.10' },
+                                        { value: 'red', label: <span className="text-red-600">1,234.10</span> },
+                                        { value: 'parens', label: '(-1,234.10)' },
+                                        { value: 'redParens', label: <span className="text-red-600">(-1,234.10)</span> },
+                                    ]}
+                                />
                             </div>
                         )}
                     </div>
@@ -162,27 +170,18 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-2">
                             <span className="text-[13px] text-slate-600">Type:</span>
-                            <div className="border border-slate-200 rounded-lg h-[160px] overflow-y-auto p-1 bg-white scrollbar-thin">
-                                {[
-                                    { l: '3/14/2012', v: 'shortDate' },
-                                    { l: 'Wednesday, March 14, 2012', v: 'longDate' },
-                                    { l: '3/14', v: 'shortDate' },
-                                    { l: '3/14/12 1:30 PM', v: 'custom' },
-                                    { l: '13:30', v: 'time' },
-                                    { l: '1:30:55 PM', v: 'time' },
-                                ].map((opt, i) => (
-                                    <div 
-                                        key={i} 
-                                        onClick={() => onChange('format', opt.v as any)}
-                                        className={`
-                                            px-3 py-2 text-[13px] cursor-pointer rounded transition-colors
-                                            ${style.format === opt.v ? "bg-primary-600 text-white" : "text-slate-700 hover:bg-slate-50"}
-                                        `}
-                                    >
-                                        {opt.l}
-                                    </div>
-                                ))}
-                            </div>
+                            <ModernSelect 
+                                value={style.format || 'shortDate'}
+                                onChange={(val) => onChange('format', val)}
+                                options={[
+                                    { label: '3/14/2012', value: 'shortDate' },
+                                    { label: 'Wednesday, March 14, 2012', value: 'longDate' },
+                                    { label: '3/14', value: 'shortDate' },
+                                    { label: '3/14/12 1:30 PM', value: 'custom' },
+                                    { label: '13:30', value: 'time' },
+                                    { label: '1:30:55 PM', value: 'time' },
+                                ]}
+                            />
                         </div>
                         <div className="flex flex-col gap-1">
                             <span className="text-[13px] text-slate-600">Locale (location):</span>
@@ -207,25 +206,14 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
 
     return (
         <div className={`flex h-full ${isMobile ? "flex-col gap-4" : "gap-6"}`}>
-            {/* Category List */}
+            {/* Category List - Converted to Dropdown */}
             <div className={`flex flex-col gap-2 ${isMobile ? "w-full" : "w-[160px]"}`}>
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Category</span>
-                <div className={`bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm flex ${isMobile ? "flex-row overflow-x-auto no-scrollbar p-1" : "flex-col h-[320px] overflow-y-auto p-1 scrollbar-thin"}`}>
-                    {CATEGORIES.map(cat => (
-                        <button
-                            key={cat}
-                            onClick={() => handleCategorySelect(cat)}
-                            className={`
-                                text-left px-4 py-2.5 text-[13px] transition-all rounded-lg flex-shrink-0 whitespace-nowrap
-                                ${category === cat 
-                                    ? "bg-primary-50 text-primary-700 font-semibold" 
-                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"}
-                            `}
-                        >
-                            {cat}
-                        </button>
-                    ))}
-                </div>
+                <ModernSelect
+                    value={category}
+                    onChange={handleCategorySelect}
+                    options={CATEGORIES.map(c => ({ value: c, label: c }))}
+                />
             </div>
 
             {/* Content Pane */}

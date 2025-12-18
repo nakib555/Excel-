@@ -84,24 +84,16 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
                 <GroupBox label="Line" className="flex flex-col gap-4 h-full">
                     <div className="flex flex-col gap-2 flex-1">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Style</span>
-                        <div className="flex-1 border border-slate-200 rounded-lg bg-white overflow-y-auto p-1 min-h-[160px] scrollbar-thin">
-                            {lineStyles.map((s) => (
-                                <div 
-                                    key={s.id}
-                                    onClick={() => setLineStyle(s.id as any)}
-                                    className={cn(
-                                        "h-8 flex items-center px-3 cursor-pointer rounded mb-0.5 transition-all group",
-                                        lineStyle === s.id ? "bg-primary-50 ring-1 ring-primary-200" : "hover:bg-slate-50"
-                                    )}
-                                >
-                                    {s.id === 'none' ? (
-                                        <span className={cn("text-xs font-medium", lineStyle === 'none' ? "text-primary-700" : "text-slate-500")}>None</span>
-                                    ) : (
-                                        <div className={cn("w-full border-slate-800 transition-colors", s.css, lineStyle === s.id && "border-primary-600")} />
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                        <ModernSelect
+                            value={lineStyle}
+                            onChange={(val) => setLineStyle(val)}
+                            options={lineStyles.map(s => ({
+                                value: s.id,
+                                label: s.id === 'none' 
+                                    ? <span className="text-slate-500 italic">None</span> 
+                                    : <div className={cn("w-full transition-colors", s.css)} />
+                            }))}
+                        />
                     </div>
                     
                     <div className="flex flex-col gap-2">

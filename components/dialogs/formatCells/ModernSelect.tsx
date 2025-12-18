@@ -1,103 +1,187 @@
 
-import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, Search } from 'lucide-react';
 import { cn } from '../../../utils';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface ModernSelectProps {
-    value: string;
-    options: { value: string; label: React.ReactNode }[];
-    onChange: (val: string) => void;
+    value: string | number;
+    options: { value: string | number; label: React.ReactNode; searchTerms?: string }[];
+    onChange: (val: any) => void;
+    placeholder?: string;
+    searchable?: boolean;
     className?: string;
+    renderOption?: (option: any) => React.ReactNode;
 }
 
 const ModernSelect: React.FC<ModernSelectProps> = ({ 
     value, 
     options, 
     onChange, 
-    className 
+    placeholder = "Select...",
+    searchable = false,
+    className,
+    renderOption
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
     const triggerRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
-    const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+    
+    // Positioning State
+    const [coords, setCoords] = useState<{ top: number; left: number; width: number; maxHeight: number; placement: 'top' | 'bottom' } | null>(null);
 
-    const updateCoords = () => {
-        if (triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect();
-            setCoords({
-                top: rect.bottom + window.scrollY,
-                left: rect.left + window.scrollX,
-                width: rect.width
-            });
-        }
-    };
-
+    // Calculate position before paint to prevent jumping
     useLayoutEffect(() => {
-        if (isOpen) {
-            updateCoords();
-            window.addEventListener('scroll', updateCoords, true);
-            window.addEventListener('resize', updateCoords);
+        if (isOpen && triggerRef.current) {
+            const updatePosition = () => {
+                const rect = triggerRef.current!.getBoundingClientRect();
+                const windowHeight = window.innerHeight;
+                const spaceBelow = windowHeight - rect.bottom - 10;
+                const spaceAbove = rect.top - 10;
+                
+                // Determine placement (flip if not enough space below)
+                const placement = (spaceBelow < 200 && spaceAbove > spaceBelow) ? 'top' : 'bottom';
+                
+                const maxHeight = placement === 'bottom' ? Math.min(300, spaceBelow) : Math.min(300, spaceAbove);
+
+                setCoords({
+                    top: placement === 'bottom' ? rect.bottom + 6 : rect.top - 6,
+                    left: rect.left,
+                    width: rect.width,
+                    maxHeight,
+                    placement
+                });
+            };
+
+            updatePosition();
+            window.addEventListener('scroll', updatePosition, true);
+            window.addEventListener('resize', updatePosition);
+            
+            return () => {
+                window.removeEventListener('scroll', updatePosition, true);
+                window.removeEventListener('resize', updatePosition);
+            };
         }
-        return () => {
-            window.removeEventListener('scroll', updateCoords, true);
-            window.removeEventListener('resize', updateCoords);
-        };
     }, [isOpen]);
 
+    // Close on click outside
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
+        const handleClickOutside = (e: MouseEvent) => {
             if (
-                triggerRef.current && !triggerRef.current.contains(event.target as Node) &&
-                dropdownRef.current && !dropdownRef.current.contains(event.target as Node)
+                triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
+                dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
             ) {
                 setIsOpen(false);
+                setSearchTerm('');
             }
         };
-        if (isOpen) document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        if (isOpen) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isOpen]);
 
-    const selectedLabel = options.find(o => o.value === value)?.label || value;
+    const filteredOptions = useMemo(() => {
+        if (!searchable || !searchTerm) return options;
+        return options.filter(opt => {
+            const labelStr = typeof opt.label === 'string' ? opt.label : '';
+            const searchStr = (opt.searchTerms || labelStr || String(opt.value)).toLowerCase();
+            return searchStr.includes(searchTerm.toLowerCase());
+        });
+    }, [options, searchTerm, searchable]);
+
+    const selectedOption = options.find(o => o.value === value);
 
     return (
-        <div className={cn("relative", className)}>
+        <div className={cn("relative w-full", className)}>
             <button
                 ref={triggerRef}
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full h-10 bg-white border border-slate-200 rounded-xl px-4 text-[13px] text-slate-800 flex items-center justify-between hover:border-primary-400 hover:shadow-sm transition-all focus:ring-4 focus:ring-primary-500/10 outline-none"
+                className={cn(
+                    "w-full min-h-[40px] bg-white border border-slate-200 rounded-xl px-3 py-2 text-[13px] text-slate-800 flex items-center justify-between transition-all outline-none group",
+                    isOpen ? "border-primary-500 ring-4 ring-primary-500/10" : "hover:border-slate-300 hover:shadow-sm"
+                )}
             >
-                <span className="truncate font-medium flex items-center gap-2 w-full">{selectedLabel}</span>
-                <ChevronDown size={16} className={cn("text-slate-400 transition-transform duration-300 flex-shrink-0", isOpen && "rotate-180")} />
+                <span className={cn("truncate font-medium flex items-center gap-2 w-full text-left", !selectedOption && "text-slate-400")}>
+                    {selectedOption ? selectedOption.label : placeholder}
+                </span>
+                <ChevronDown 
+                    size={16} 
+                    className={cn(
+                        "text-slate-400 transition-transform duration-300 flex-shrink-0 group-hover:text-slate-600", 
+                        isOpen && "rotate-180 text-primary-500"
+                    )} 
+                />
             </button>
             
-            {isOpen && coords && createPortal(
-                <div 
-                    ref={dropdownRef}
-                    className="fixed z-[9999] bg-white/95 backdrop-blur-xl border border-slate-200 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5"
-                    style={{ 
-                        top: coords.top + 4, 
-                        left: coords.left, 
-                        width: coords.width,
-                        maxHeight: '300px'
-                    }}
-                >
-                    <div className="overflow-y-auto max-h-[290px] py-1.5 scrollbar-thin">
-                        {options.map(option => (
-                            <div
-                                key={option.value}
-                                onClick={() => { onChange(option.value); setIsOpen(false); }}
-                                className={cn(
-                                    "px-4 py-2.5 text-[13px] cursor-pointer hover:bg-slate-50 text-slate-700 transition-colors flex items-center justify-between mx-1 rounded-lg",
-                                    option.value === value && "bg-primary-50 text-primary-700 font-bold hover:bg-primary-50"
+            {createPortal(
+                <AnimatePresence>
+                    {isOpen && coords && (
+                        <motion.div 
+                            ref={dropdownRef}
+                            initial={{ opacity: 0, scale: 0.95, y: coords.placement === 'bottom' ? -10 : 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                            className={cn(
+                                "fixed z-[9999] bg-white/95 backdrop-blur-xl border border-slate-200 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-black/5 origin-top",
+                                coords.placement === 'top' && "origin-bottom -translate-y-full"
+                            )}
+                            style={{ 
+                                top: coords.placement === 'bottom' ? coords.top : 'auto',
+                                bottom: coords.placement === 'top' ? (window.innerHeight - coords.top) : 'auto', 
+                                left: coords.left, 
+                                width: coords.width,
+                                maxHeight: coords.maxHeight
+                            }}
+                        >
+                            {searchable && (
+                                <div className="p-2 border-b border-slate-100 bg-slate-50/50 sticky top-0 z-10">
+                                    <div className="relative">
+                                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            placeholder="Search..."
+                                            className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-500/10"
+                                            autoFocus
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="overflow-y-auto scrollbar-thin p-1.5">
+                                {filteredOptions.length > 0 ? (
+                                    filteredOptions.map(option => (
+                                        <div
+                                            key={option.value}
+                                            onClick={() => { onChange(option.value); setIsOpen(false); setSearchTerm(''); }}
+                                            className={cn(
+                                                "px-3 py-2 text-[13px] cursor-pointer rounded-lg transition-colors flex items-center justify-between group",
+                                                option.value === value 
+                                                    ? "bg-primary-50 text-primary-700 font-semibold" 
+                                                    : "text-slate-700 hover:bg-slate-50"
+                                            )}
+                                        >
+                                            <div className="flex-1 truncate mr-2">
+                                                {renderOption ? renderOption(option) : option.label}
+                                            </div>
+                                            {option.value === value && (
+                                                <Check size={14} className="text-primary-600 flex-shrink-0 animate-in fade-in zoom-in duration-200" />
+                                            )}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="px-4 py-3 text-xs text-slate-400 text-center italic">
+                                        No matches found
+                                    </div>
                                 )}
-                            >
-                                <span className="flex items-center gap-2">{option.label}</span>
-                                {option.value === value && <Check size={14} className="text-primary-600" />}
                             </div>
-                        ))}
-                    </div>
-                </div>,
+                        </motion.div>
+                    )}
+                </AnimatePresence>,
                 document.body
             )}
         </div>
