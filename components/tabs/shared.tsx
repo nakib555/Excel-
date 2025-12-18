@@ -1,5 +1,4 @@
 
-
 import React, { useRef, useState, useEffect, useLayoutEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown } from 'lucide-react';
@@ -130,7 +129,7 @@ interface RibbonButtonProps {
 export const RibbonButton: React.FC<RibbonButtonProps> = memo(({ 
   icon, label, subLabel, onClick, active, variant = 'small', hasDropdown, className = "", title, disabled 
 }) => {
-  const baseClass = `flex items-center justify-center rounded-[4px] transition-all duration-150 select-none ${
+  const baseClass = `flex items-center justify-center rounded-md transition-all duration-150 select-none ${
     active 
       ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-200' 
       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200'

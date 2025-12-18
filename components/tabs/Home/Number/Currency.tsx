@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DollarSign, ChevronDown } from 'lucide-react';
 import { RibbonButton, SmartDropdown, TabProps } from '../../shared';
@@ -55,7 +56,7 @@ const Currency: React.FC<CurrencyProps> = ({ currentStyle, onToggleStyle, onOpen
                 trigger={
                     <button 
                         onClick={() => setOpen(!open)}
-                        className={`h-6 w-3 flex items-center justify-center rounded-r-[3px] hover:bg-slate-200 transition-colors ${open ? 'bg-slate-200' : ''}`}
+                        className={`h-6 w-3 flex items-center justify-center rounded-r-md hover:bg-slate-200 transition-colors ${open ? 'bg-slate-200' : ''}`}
                     >
                         <ChevronDown size={8} className="text-slate-600" />
                     </button>
