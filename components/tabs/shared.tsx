@@ -23,6 +23,11 @@ export interface TabProps {
   onDataValidation?: () => void;
   onOpenFormatDialog?: () => void;
   onToggleAI?: () => void;
+  // Insert Tab Features
+  onInsertTable?: () => void;
+  onInsertCheckbox?: () => void;
+  onInsertLink?: () => void;
+  onInsertComment?: () => void;
 }
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {

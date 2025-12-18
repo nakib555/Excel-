@@ -1,10 +1,9 @@
 
-
 import React, { memo, useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
 import { cn, formatCellValue } from '../utils';
 import { CellSkeleton } from './Skeletons';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right' | 'none';
@@ -54,6 +53,9 @@ const Cell = memo(({
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [scaleFactor, setScaleFactor] = useState(1);
+
+  // New features state
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => { setEditValue(data.raw); }, [data.raw]);
 
@@ -215,7 +217,8 @@ const Cell = memo(({
       )}
       style={containerStyle}
       onMouseDown={(e) => onMouseDown(id, e.shiftKey)}
-      onMouseEnter={() => onMouseEnter(id)}
+      onMouseEnter={() => { onMouseEnter(id); setIsHovered(true); }}
+      onMouseLeave={() => setIsHovered(false)}
       onDoubleClick={() => { setEditing(true); onDoubleClick(id); }}
     >
       {editing ? (
@@ -226,7 +229,7 @@ const Cell = memo(({
           style={{ 
             fontSize: `${fontSize}px`, 
             fontFamily: 'inherit',
-            textAlign: cssTextAlign // Fixed type error by using mapped value
+            textAlign: cssTextAlign 
           }}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
@@ -234,11 +237,69 @@ const Cell = memo(({
           onKeyDown={handleKeyDown}
         />
       ) : (
-        !isMicroView && displayValue && (
-            <span ref={spanRef} style={textStyle}>
-                {displayValue}
-            </span>
+        !isMicroView && (
+            data.isCheckbox ? (
+                 <div className="flex items-center justify-center w-full h-full">
+                     <input 
+                        type="checkbox" 
+                        checked={data.value === 'TRUE'} 
+                        onChange={(e) => onChange(id, e.target.checked ? 'TRUE' : 'FALSE')}
+                        className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                        onMouseDown={(e) => e.stopPropagation()} 
+                     />
+                 </div>
+            ) : (
+                <span ref={spanRef} style={textStyle} className="relative">
+                    {displayValue}
+                    {data.link && (
+                         <a 
+                            href={data.link} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="absolute inset-0 z-10"
+                            onClick={(e) => {
+                                // Only follow link if holding Ctrl or Meta (Command), otherwise select cell
+                                if (!e.ctrlKey && !e.metaKey) {
+                                    e.preventDefault();
+                                }
+                            }}
+                            title={`Ctrl+Click to follow link: ${data.link}`}
+                         >
+                            <span className="sr-only">Link</span>
+                         </a>
+                    )}
+                </span>
+            )
         )
+      )}
+
+      {/* Link Indicator (small icon if space permits, or implicit by underline/blue) */}
+      {data.link && !editing && isActive && (
+          <div className="absolute top-0 right-0 p-0.5 bg-blue-50 z-20 cursor-pointer" title={`Go to ${data.link}`} onMouseDown={(e) => { e.stopPropagation(); window.open(data.link, '_blank'); }}>
+               <ExternalLink size={10} className="text-blue-500" />
+          </div>
+      )}
+
+      {/* Comment Indicator */}
+      {data.comment && (
+          <>
+            <div className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-500 z-10" />
+            {(isHovered || isActive) && (
+                createPortal(
+                    <div 
+                        className="fixed z-[9999] bg-yellow-50 border border-yellow-200 shadow-xl rounded-sm p-2 text-xs text-slate-800 max-w-[200px] break-words animate-in fade-in zoom-in-95 duration-200 pointer-events-none"
+                        style={{
+                            top: containerRef.current ? containerRef.current.getBoundingClientRect().top - 10 : 0,
+                            left: containerRef.current ? containerRef.current.getBoundingClientRect().right + 10 : 0,
+                        }}
+                    >
+                        <div className="font-bold mb-1 text-slate-500 text-[10px] uppercase">Comment</div>
+                        {data.comment}
+                    </div>,
+                    document.body
+                )
+            )}
+          </>
       )}
 
       {/* Data Validation Dropdown Arrow */}
@@ -277,11 +338,11 @@ const Cell = memo(({
       )}
 
       {isSelected && (
-        <div className="absolute inset-0 pointer-events-none border-[2px] border-primary-500 shadow-glow mix-blend-multiply rounded-[1px]">
+        <div className="absolute inset-0 pointer-events-none border-[2px] border-primary-500 shadow-glow mix-blend-multiply rounded-[3px]">
              {isActive && (
                 <div 
-                    className="absolute -bottom-[4px] -right-[4px] bg-primary-500 border border-white cursor-crosshair rounded-[1px] shadow-sm z-50 pointer-events-auto" 
-                    style={{ width: Math.max(6, 8 * scale), height: Math.max(6, 8 * scale) }}
+                    className="absolute -bottom-[4px] -right-[4px] bg-primary-500 border border-white cursor-crosshair rounded-[2.5px] shadow-sm z-50 pointer-events-auto hover:scale-110 transition-transform" 
+                    style={{ width: Math.max(6, 9 * scale), height: Math.max(6, 9 * scale) }}
                 />
              )}
         </div>

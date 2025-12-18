@@ -26,6 +26,17 @@ const NumberFormatSelector: React.FC<NumberFormatSelectorProps> = ({ currentStyl
 
     const handleSelect = (formatId: CellStyle['format']) => {
         onToggleStyle('format', formatId);
+        
+        // Apply sensible defaults for number formats
+        if (formatId === 'currency' || formatId === 'accounting') {
+            onToggleStyle('decimalPlaces', 2);
+            if (!currentStyle.currencySymbol) {
+                onToggleStyle('currencySymbol', 'USD');
+            }
+        } else if (formatId === 'percent' || formatId === 'number' || formatId === 'scientific' || formatId === 'comma') {
+            onToggleStyle('decimalPlaces', 2);
+        }
+
         setOpen(false);
     };
 

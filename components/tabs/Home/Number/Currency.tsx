@@ -18,6 +18,7 @@ const Currency: React.FC<CurrencyProps> = ({ currentStyle, onToggleStyle, onOpen
     const handleSelect = (code: string) => {
         onToggleStyle('format', 'accounting');
         onToggleStyle('currencySymbol', code);
+        onToggleStyle('decimalPlaces', 2);
         setOpen(false);
     };
 
@@ -30,6 +31,7 @@ const Currency: React.FC<CurrencyProps> = ({ currentStyle, onToggleStyle, onOpen
             if (!currentStyle.currencySymbol) {
                 onToggleStyle('currencySymbol', 'USD');
             }
+            onToggleStyle('decimalPlaces', 2);
         }
     };
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { RibbonButton, TabProps } from '../../shared';
 
@@ -9,7 +8,11 @@ const CommaStyle: React.FC<CommaProps> = ({ currentStyle, onToggleStyle }) => (
         variant="icon-only" 
         icon={<span className="font-bold text-[14px] text-slate-600 leading-none pb-1">,</span>} 
         active={currentStyle.format === 'comma'}
-        onClick={() => onToggleStyle('format', currentStyle.format === 'comma' ? 'general' : 'comma')} 
+        onClick={() => {
+            const isComma = currentStyle.format === 'comma';
+            onToggleStyle('format', isComma ? 'general' : 'comma');
+            if (!isComma) onToggleStyle('decimalPlaces', 2);
+        }} 
         title="Comma Style" 
     />
 );

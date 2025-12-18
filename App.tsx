@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 
 // --- 1. Imports from sibling files ---
@@ -216,7 +217,10 @@ const App: React.FC = () => {
       }
 
       const hasStyle = !!oldCell?.styleId;
-      if (!rawValue && !hasStyle) {
+      // Also keep if it has special properties
+      const hasSpecial = oldCell?.isCheckbox || oldCell?.link || oldCell?.comment;
+
+      if (!rawValue && !hasStyle && !hasSpecial) {
          delete nextCells[id];
       } else {
          nextCells[id] = {
@@ -613,6 +617,105 @@ const App: React.FC = () => {
       }
   }, [activeCell, activeSheetId]);
 
+  // --- NEW INSERT FEATURES ---
+  const handleInsertTable = useCallback(() => {
+    setSheets(prev => prev.map(sheet => {
+        if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
+        const range = sheet.selectionRange;
+        // Calculate bounds
+        const coords = range.map(id => parseCellId(id)!);
+        const minRow = Math.min(...coords.map(c => c.row));
+        
+        const nextCells = { ...sheet.cells };
+        let nextStyles = { ...sheet.styles };
+
+        range.forEach(id => {
+            const { row } = parseCellId(id)!;
+            const isHeader = row === minRow;
+            const isBand = (row - minRow) % 2 === 0;
+
+            const cell = nextCells[id] || { id, raw: '', value: '' };
+            const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
+            
+            let newStyle = { ...currentStyle };
+            
+            if (isHeader) {
+                newStyle = { ...newStyle, bold: true, bg: '#1e293b', color: '#ffffff' };
+            } else if (!isBand) { // Alternating row
+                 // Check if it already has a bg, if not apply light gray
+                 if (!newStyle.bg || newStyle.bg === '#ffffff') {
+                     newStyle.bg = '#f1f5f9';
+                 }
+            }
+
+            const res = getStyleId(nextStyles, newStyle);
+            nextStyles = res.registry;
+            nextCells[id] = { ...cell, styleId: res.id };
+        });
+        return { ...sheet, cells: nextCells, styles: nextStyles };
+    }));
+  }, [activeSheetId]);
+
+  const handleInsertCheckbox = useCallback(() => {
+      setSheets(prev => prev.map(sheet => {
+        if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
+        const nextCells = { ...sheet.cells };
+        sheet.selectionRange.forEach(id => {
+           nextCells[id] = {
+               ...nextCells[id] || { id, raw: '', value: '' },
+               isCheckbox: true,
+               raw: 'FALSE',
+               value: 'FALSE'
+           };
+        });
+        return { ...sheet, cells: nextCells };
+      }));
+  }, [activeSheetId]);
+
+  const handleInsertLink = useCallback(() => {
+    if (!activeCell) return;
+    const url = prompt("Enter URL:", "https://");
+    if (url) {
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
+            const nextCells = { ...sheet.cells };
+            let nextStyles = { ...sheet.styles };
+            
+            sheet.selectionRange.forEach(id => {
+               const cell = nextCells[id] || { id, raw: '', value: '' };
+               
+               // Apply link style
+               const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
+               const newStyle = { ...currentStyle, color: '#2563eb', underline: true };
+               const res = getStyleId(nextStyles, newStyle);
+               nextStyles = res.registry;
+
+               nextCells[id] = {
+                   ...cell,
+                   styleId: res.id,
+                   link: url,
+                   value: cell.value || url // Use URL as text if empty
+               };
+            });
+            return { ...sheet, cells: nextCells, styles: nextStyles };
+        }));
+    }
+  }, [activeCell, activeSheetId]);
+
+  const handleInsertComment = useCallback(() => {
+    if (!activeCell) return;
+    const text = prompt("Enter comment:");
+    if (text) {
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells = { ...sheet.cells };
+            const cell = nextCells[activeCell] || { id: activeCell, raw: '', value: '' };
+            nextCells[activeCell] = { ...cell, comment: text };
+            return { ...sheet, cells: nextCells };
+        }));
+    }
+  }, [activeCell, activeSheetId]);
+
   const handleAIApply = useCallback((result: { type: 'data' | 'formula', data?: string[][], formula?: string }) => {
     if (!activeCell) return;
     const start = parseCellId(activeCell);
@@ -662,6 +765,11 @@ const App: React.FC = () => {
             onDataValidation={handleDataValidation}
             onToggleAI={() => setShowAI(true)}
             onOpenFormatDialog={() => setShowFormatCells(true)}
+            // New Handlers
+            onInsertTable={handleInsertTable}
+            onInsertCheckbox={handleInsertCheckbox}
+            onInsertLink={handleInsertLink}
+            onInsertComment={handleInsertComment}
           />
         </Suspense>
       </div>

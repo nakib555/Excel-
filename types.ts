@@ -1,4 +1,5 @@
 
+
 export type CellId = string; // e.g., "A1", "B2"
 
 export interface CellBorder {
@@ -47,6 +48,9 @@ export interface CellData {
   raw: string;      // The user input (e.g., "=SUM(A1:A5)" or "100")
   value: string;    // The computed display value (e.g., "500")
   styleId?: string; // Memory Optimization: Reference to a style in the Sheet's style registry
+  isCheckbox?: boolean; // If true, renders as a checkbox
+  link?: string;    // URL if the cell is a hyperlink
+  comment?: string; // Comment text
 }
 
 export interface ValidationRule {
