@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { cn } from '../../../utils';
 import { CellStyle } from '../../../types';
 import GroupBox from './GroupBox';
 import ModernSelect from './ModernSelect';
+import { Ban, PaintBucket, Palette } from 'lucide-react';
 
 interface FillTabProps {
     style: CellStyle;
@@ -26,8 +27,7 @@ const STANDARD_COLORS = [
 ];
 
 const PATTERN_STYLES = [
-    { value: 'none', label: '' },
-    { value: 'solid', label: 'Solid' },
+    { value: 'none', label: 'Solid' },
     { value: '75_gray', label: '75% Gray' },
     { value: '50_gray', label: '50% Gray' },
     { value: '25_gray', label: '25% Gray' },
@@ -46,9 +46,9 @@ const PATTERN_STYLES = [
 ];
 
 const getPatternPreview = (style: string, color: string) => {
-    // Simple CSS pattern approximations
-    const c = color === 'automatic' ? '#000' : color;
+    const c = color === 'automatic' ? '#000000' : color;
     switch (style) {
+        case 'none': return {}; // Solid fill (no pattern overlay)
         case 'solid': return { backgroundColor: c };
         case '75_gray': return { backgroundImage: `radial-gradient(${c} 1.5px, transparent 0)`, backgroundSize: '2px 2px' };
         case '50_gray': return { backgroundImage: `radial-gradient(${c} 1px, transparent 0)`, backgroundSize: '2px 2px' };
@@ -57,8 +57,14 @@ const getPatternPreview = (style: string, color: string) => {
         case 'vert_stripe': return { backgroundImage: `linear-gradient(90deg, ${c} 25%, transparent 25%, transparent 50%, ${c} 50%, ${c} 75%, transparent 75%, transparent)`, backgroundSize: '4px 4px' };
         case 'rev_diag_stripe': return { backgroundImage: `repeating-linear-gradient(45deg, ${c}, ${c} 1px, transparent 1px, transparent 4px)` };
         case 'diag_stripe': return { backgroundImage: `repeating-linear-gradient(-45deg, ${c}, ${c} 1px, transparent 1px, transparent 4px)` };
-        case 'diag_cross': return { backgroundImage: `linear-gradient(45deg, ${c} 25%, transparent 25%, transparent 75%, ${c} 75%, ${c}), linear-gradient(45deg, ${c} 25%, transparent 25%, transparent 75%, ${c} 75%, ${c})`, backgroundSize: '4px 4px' };
-        // ... add more as needed, fallback to solid or none
+        case 'diag_cross': return { backgroundImage: `linear-gradient(45deg, ${c} 25%, transparent 25%, transparent 75%, ${c} 75%, ${c}), linear-gradient(-45deg, ${c} 25%, transparent 25%, transparent 75%, ${c} 75%, ${c})`, backgroundSize: '4px 4px' };
+        case 'thick_diag_cross': return { backgroundImage: `linear-gradient(45deg, ${c} 35%, transparent 35%, transparent 65%, ${c} 65%, ${c}), linear-gradient(-45deg, ${c} 35%, transparent 35%, transparent 65%, ${c} 65%, ${c})`, backgroundSize: '6px 6px' };
+        case 'thin_horiz_stripe': return { backgroundImage: `linear-gradient(0deg, ${c} 1px, transparent 1px)`, backgroundSize: '100% 3px' };
+        case 'thin_vert_stripe': return { backgroundImage: `linear-gradient(90deg, ${c} 1px, transparent 1px)`, backgroundSize: '3px 100%' };
+        case 'thin_rev_diag_stripe': return { backgroundImage: `repeating-linear-gradient(45deg, ${c}, ${c} 0.5px, transparent 0.5px, transparent 4px)` };
+        case 'thin_diag_stripe': return { backgroundImage: `repeating-linear-gradient(-45deg, ${c}, ${c} 0.5px, transparent 0.5px, transparent 4px)` };
+        case 'thin_horiz_cross': return { backgroundImage: `linear-gradient(${c} 1px, transparent 1px), linear-gradient(90deg, ${c} 1px, transparent 1px)`, backgroundSize: '4px 4px' };
+        case 'thin_diag_cross': return { backgroundImage: `linear-gradient(45deg, ${c} 0.5px, transparent 0.5px), linear-gradient(-45deg, ${c} 0.5px, transparent 0.5px)`, backgroundSize: '6px 6px' };
         default: return {};
     }
 };
@@ -67,69 +73,81 @@ const FillTab: React.FC<FillTabProps> = ({ style, onChange, isMobile }) => {
     const [patternColor, setPatternColor] = useState('automatic');
     const [patternStyle, setPatternStyle] = useState('none');
 
-    const handleColorSelect = (c: string | undefined) => {
+    const handleBgColorSelect = (c: string | undefined) => {
         onChange('bg', c);
     };
 
     const currentBg = style.bg;
 
-    // Helper to render color options in ModernSelect
     const renderColorOption = (option: any) => (
         <div className="flex items-center gap-2">
             <div 
                 className="w-4 h-4 rounded-[2px] shadow-sm border border-slate-200" 
                 style={{ backgroundColor: option.value === 'automatic' ? '#000' : option.value }} 
             />
-            <span className="font-mono text-xs capitalize">{option.label}</span>
+            <span className="font-medium text-xs capitalize">{option.label}</span>
         </div>
     );
 
-    // Helper to render pattern options in ModernSelect
     const renderPatternOption = (option: any) => (
-        <div className="flex items-center gap-2 w-full">
-            <div className="w-8 h-4 border border-slate-200 bg-white relative overflow-hidden">
+        <div className="flex items-center gap-3 w-full">
+            <div className="w-10 h-5 border border-slate-200 bg-white relative overflow-hidden rounded-sm shadow-sm">
                 <div className="absolute inset-0" style={getPatternPreview(option.value, '#000')} />
             </div>
-            <span className="text-xs">{option.label || 'None'}</span>
+            <span className="text-xs font-medium text-slate-700">{option.label || 'None'}</span>
         </div>
     );
 
     return (
-        <div className={cn("grid h-full", isMobile ? "grid-cols-1 gap-6 pb-20" : "grid-cols-[1.8fr_1.2fr] gap-8")}>
+        <div className={cn("grid h-full", isMobile ? "grid-cols-1 gap-6 pb-20" : "grid-cols-[2fr_1.3fr] gap-8")}>
             
-            {/* Left Column: Background Color */}
-            <div className="flex flex-col gap-4">
-                <GroupBox label="Background Color" className="flex flex-col gap-4 h-full">
+            {/* LEFT PANE: Background Color */}
+            <div className="flex flex-col gap-4 h-full overflow-y-auto pr-2">
+                <GroupBox label="Background Color" className="flex flex-col gap-5 h-full">
                     
                     {/* No Color Button */}
                     <button 
-                        onClick={() => handleColorSelect(undefined)}
+                        onClick={() => handleBgColorSelect(undefined)}
                         className={cn(
-                            "w-full py-2 px-4 rounded-lg border border-slate-200 flex items-center justify-center gap-2 transition-all hover:bg-slate-50",
-                            !currentBg && "bg-slate-100 ring-2 ring-primary-500/20 border-primary-500"
+                            "w-full py-3 px-4 rounded-xl border flex items-center justify-center gap-3 transition-all duration-200 group relative overflow-hidden",
+                            !currentBg 
+                                ? "bg-slate-100 border-primary-500 shadow-inner ring-1 ring-primary-500/30" 
+                                : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm"
                         )}
                     >
-                        <div className="w-6 h-6 border border-slate-300 bg-white relative rounded-md overflow-hidden">
-                             {/* Red diagonal line to indicate 'no color' */}
-                             {/* Using CSS logic for 'no fill' icon look */}
+                        <div className={cn(
+                            "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                            !currentBg ? "bg-white shadow-sm" : "bg-slate-100"
+                        )}>
+                             <Ban size={16} className={cn("transition-colors", !currentBg ? "text-primary-600" : "text-slate-400")} />
                         </div>
-                        <span className="text-[13px] font-semibold text-slate-700">No Color</span>
+                        <span className={cn(
+                            "text-[13px] font-bold",
+                            !currentBg ? "text-primary-700" : "text-slate-600 group-hover:text-slate-800"
+                        )}>No Background Color</span>
+                        
+                        {!currentBg && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
+                        )}
                     </button>
 
-                    <div className="flex-1 flex flex-col gap-4">
+                    <div className="flex-1 flex flex-col gap-5">
                         {/* Theme Colors Grid */}
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Theme Colors</span>
-                            <div className="grid grid-cols-10 gap-1 p-1">
+                        <div className="flex flex-col gap-2">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                                <Palette size={12} /> Theme Colors
+                            </span>
+                            <div className="grid grid-cols-10 gap-1.5 p-1">
                                 {THEME_COLORS.map((c, i) => (
                                     <button
                                         key={`${c}-${i}`}
                                         className={cn(
-                                            "aspect-square rounded-[2px] border border-transparent hover:border-slate-400 hover:scale-110 transition-transform relative z-0 hover:z-10",
-                                            currentBg === c && "ring-2 ring-primary-500 ring-offset-1 z-10"
+                                            "aspect-square rounded-[3px] border border-transparent transition-all relative outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2",
+                                            "hover:scale-125 hover:border-white hover:shadow-md hover:z-10",
+                                            currentBg === c && "ring-2 ring-primary-600 ring-offset-1 z-10 scale-110 shadow-sm"
                                         )}
                                         style={{ backgroundColor: c }}
-                                        onClick={() => handleColorSelect(c)}
+                                        onClick={() => handleBgColorSelect(c)}
                                         title={c}
                                     />
                                 ))}
@@ -137,39 +155,46 @@ const FillTab: React.FC<FillTabProps> = ({ style, onChange, isMobile }) => {
                         </div>
 
                         {/* Standard Colors Grid */}
-                        <div className="flex flex-col gap-1">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Standard Colors</span>
-                            <div className="grid grid-cols-10 gap-1 p-1">
+                        <div className="flex flex-col gap-2">
+                            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest px-1 flex items-center gap-2">
+                                <PaintBucket size={12} /> Standard Colors
+                            </span>
+                            <div className="grid grid-cols-10 gap-1.5 p-1">
                                 {STANDARD_COLORS.map((c, i) => (
                                     <button
                                         key={`${c}-${i}`}
                                         className={cn(
-                                            "aspect-square rounded-[2px] border border-transparent hover:border-slate-400 hover:scale-110 transition-transform relative z-0 hover:z-10",
-                                            currentBg === c && "ring-2 ring-primary-500 ring-offset-1 z-10"
+                                            "aspect-square rounded-full border border-transparent transition-all relative outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2",
+                                            "hover:scale-125 hover:border-white hover:shadow-md hover:z-10",
+                                            currentBg === c && "ring-2 ring-primary-600 ring-offset-1 z-10 scale-110 shadow-sm"
                                         )}
                                         style={{ backgroundColor: c }}
-                                        onClick={() => handleColorSelect(c)}
+                                        onClick={() => handleBgColorSelect(c)}
                                         title={c}
                                     />
                                 ))}
                             </div>
                         </div>
                         
-                        <div className="mt-auto pt-2">
-                             <button className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-[12px] font-semibold text-slate-600 rounded-lg transition-colors border border-slate-200">
+                        {/* Actions */}
+                        <div className="grid grid-cols-2 gap-3 mt-auto pt-2">
+                             <button className="py-2.5 bg-white hover:bg-slate-50 text-[12px] font-bold text-slate-600 rounded-xl transition-all border border-slate-200 shadow-sm hover:shadow active:scale-95">
                                  More Colors...
+                             </button>
+                             <button className="py-2.5 bg-gradient-to-r from-white to-slate-50 hover:to-slate-100 text-[12px] font-bold text-slate-600 rounded-xl transition-all border border-slate-200 shadow-sm hover:shadow active:scale-95">
+                                 Fill Effects...
                              </button>
                         </div>
                     </div>
                 </GroupBox>
             </div>
 
-            {/* Right Column: Pattern & Sample */}
-            <div className="flex flex-col gap-4">
+            {/* RIGHT PANE: Pattern & Sample */}
+            <div className="flex flex-col gap-6">
                 
                 {/* Pattern Color & Style */}
-                <GroupBox label="Pattern Color" className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1">
+                <GroupBox label="Pattern" className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-2">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Pattern Color</span>
                         <ModernSelect 
                             value={patternColor}
@@ -179,56 +204,60 @@ const FillTab: React.FC<FillTabProps> = ({ style, onChange, isMobile }) => {
                                 ...THEME_COLORS.slice(0, 10).map(c => ({ value: c, label: c }))
                             ]}
                             renderOption={renderColorOption}
+                            placeholder="Select Color"
                         />
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-2">
                         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Pattern Style</span>
                         <ModernSelect 
                             value={patternStyle}
                             onChange={setPatternStyle}
                             options={PATTERN_STYLES}
                             renderOption={renderPatternOption}
-                            className="max-h-48"
+                            className="max-h-60"
+                            placeholder="Select Pattern"
                         />
                     </div>
                 </GroupBox>
 
-                {/* Fill Effects */}
-                <button className="w-full py-2.5 bg-gradient-to-b from-white to-slate-50 hover:from-slate-50 hover:to-slate-100 text-[13px] font-semibold text-slate-700 rounded-xl transition-all border border-slate-200 shadow-sm">
-                    Fill Effects...
-                </button>
-
                 {/* Sample Preview */}
-                <GroupBox label="Sample" className="flex-1 min-h-[140px] flex flex-col">
-                    <div className="flex-1 border border-slate-300 rounded-lg relative overflow-hidden bg-white shadow-inner m-1">
+                <GroupBox label="Sample" className="flex-1 min-h-[160px] flex flex-col">
+                    <div className="flex-1 border-2 border-slate-200 rounded-xl relative overflow-hidden bg-white shadow-inner m-1 group">
+                        {/* Checkerboard background for transparency reference */}
+                        <div className="absolute inset-0 opacity-20" 
+                             style={{ 
+                                 backgroundImage: `linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)`,
+                                 backgroundSize: '20px 20px',
+                                 backgroundPosition: '0 0, 0 10px, 10px -10px, -10px 0px'
+                             }} 
+                        />
+
                         {/* Background Color Layer */}
                         <div 
-                            className="absolute inset-0 transition-colors duration-200"
+                            className="absolute inset-0 transition-colors duration-300 ease-out"
                             style={{ backgroundColor: currentBg || 'transparent' }}
                         />
                         
                         {/* Pattern Layer */}
                         {patternStyle !== 'none' && (
                             <div 
-                                className="absolute inset-0 opacity-100 mix-blend-multiply"
+                                className="absolute inset-0 opacity-90 mix-blend-multiply transition-all duration-300"
                                 style={getPatternPreview(patternStyle, patternColor === 'automatic' ? '#000' : patternColor)}
                             />
                         )}
 
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <span className="text-slate-900/40 font-bold text-lg select-none mix-blend-hard-light">Sample</span>
+                            <span className="text-slate-900/10 font-black text-4xl select-none tracking-widest uppercase transform -rotate-12 group-hover:scale-110 transition-transform duration-500">Preview</span>
                         </div>
                     </div>
-                    <div className="mt-3 text-center">
-                        <span className="text-[10px] text-slate-400">
-                            {currentBg ? "Solid color fill" : "No Background Color"} 
-                            {patternStyle !== 'none' ? ` with ${PATTERN_STYLES.find(p => p.value === patternStyle)?.label}` : ""}
-                        </span>
-                    </div>
-                </GroupBox>
-            </div>
-        </div>
-    );
-};
-
-export default FillTab;
+                    <div className="mt-4 text-center px-4">
+                        <p className="text-[11px] text-slate-500 font-medium">
+                            {currentBg ? (
+                                <span className="flex items-center justify-center gap-1.5">
+                                    <span className="w-3 h-3 rounded-full border border-slate-300 shadow-sm" style={{ backgroundColor: currentBg }} />
+                                    {currentBg}
+                                </span>
+                            ) : "No Background Color"} 
+                        </p>
+                        {patternStyle !== 'none' && (
+                            <p className="text-[
