@@ -22,6 +22,7 @@ export interface TabProps {
   onMergeCenter?: () => void;
   onDataValidation?: () => void;
   onOpenFormatDialog?: () => void;
+  onToggleAI?: () => void;
 }
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {
