@@ -203,6 +203,7 @@ export const SmartDropdown = ({
     children, 
     contentWidth = 'w-48', 
     className = "",
+    triggerClassName = "h-full",
     open,
     onToggle
 }: {
@@ -210,6 +211,7 @@ export const SmartDropdown = ({
     children?: React.ReactNode;
     contentWidth?: string; 
     className?: string;
+    triggerClassName?: string;
     open: boolean;
     onToggle: () => void;
 }) => {
@@ -249,11 +251,22 @@ export const SmartDropdown = ({
                     if (transformOrigin.includes('right')) transformOrigin = 'bottom right';
                 }
 
+                // If dimensions are suspiciously zero (first render), don't show yet
+                // But generally setStyle will update with whatever we have.
+                // The RAF loop below will catch the updated size.
+                
                 setStyle({ top, left, transformOrigin, opacity: 1 });
             };
 
             // Force initial measure
             updatePosition();
+            
+            // Re-measure after a frame to ensure content is fully laid out (fix for first-open glitch)
+            let rafId = requestAnimationFrame(() => {
+                updatePosition();
+                // Double RAF for safety on slower engines/devices
+                rafId = requestAnimationFrame(updatePosition);
+            });
             
             window.addEventListener('scroll', updatePosition, true);
             window.addEventListener('resize', updatePosition);
@@ -261,6 +274,7 @@ export const SmartDropdown = ({
             return () => {
                 window.removeEventListener('scroll', updatePosition, true);
                 window.removeEventListener('resize', updatePosition);
+                cancelAnimationFrame(rafId);
             };
         } else {
             setStyle(s => ({ ...s, opacity: 0 }));
@@ -290,7 +304,7 @@ export const SmartDropdown = ({
 
     return (
         <>
-            <div ref={triggerRef} onClick={onToggle} className="inline-block h-full select-none">
+            <div ref={triggerRef} onClick={onToggle} className={`inline-block select-none ${triggerClassName}`}>
                 {trigger}
             </div>
             {open && createPortal(

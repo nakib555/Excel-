@@ -46,6 +46,7 @@ const NumberFormatSelector: React.FC<NumberFormatSelectorProps> = ({ currentStyl
             open={open}
             onToggle={() => setOpen(!open)}
             contentWidth="w-64"
+            triggerClassName="h-auto"
             trigger={
                 <div className="w-32 md:w-36 h-6 bg-white border border-slate-300 rounded-md flex items-center justify-between px-2 text-[11px] text-slate-700 shadow-sm cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-colors">
                     <span className="truncate">{currentLabel}</span>

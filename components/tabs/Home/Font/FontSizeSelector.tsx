@@ -16,6 +16,7 @@ const FontSizeSelector: React.FC<FontSizeSelectorProps> = ({ currentStyle, onTog
             onToggle={() => setOpen(!open)}
             contentWidth="w-16"
             className="max-h-64 overflow-y-auto"
+            triggerClassName="h-auto"
             trigger={
                 <div className="w-12 h-7 bg-white border border-slate-300 hover:border-slate-400 rounded-md flex items-center justify-center text-xs text-slate-700 shadow-sm cursor-pointer group relative transition-colors">
                     <span>{currentFontSize}</span>
