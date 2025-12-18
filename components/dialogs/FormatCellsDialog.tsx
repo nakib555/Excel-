@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Lock, Info, ChevronDown, Check, MousePointer2, RotateCw } from 'lucide-react';
+import { X, Lock, Info, ChevronDown, Check, MousePointer2, RotateCw, Grip } from 'lucide-react';
 import { CellStyle } from '../../types';
 import { cn } from '../../utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -54,7 +54,7 @@ const ModernSelect = ({
     className 
 }: { 
     value: string, 
-    options: { value: string, label: string }[], 
+    options: { value: string, label: React.ReactNode }[], 
     onChange: (val: string) => void, 
     className?: string 
 }) => {
@@ -108,8 +108,8 @@ const ModernSelect = ({
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full h-10 bg-white border border-slate-200 rounded-xl px-4 text-[13px] text-slate-800 flex items-center justify-between hover:border-primary-400 hover:shadow-sm transition-all focus:ring-4 focus:ring-primary-500/10 outline-none"
             >
-                <span className="truncate font-medium">{selectedLabel}</span>
-                <ChevronDown size={16} className={cn("text-slate-400 transition-transform duration-300", isOpen && "rotate-180")} />
+                <span className="truncate font-medium flex items-center gap-2 w-full">{selectedLabel}</span>
+                <ChevronDown size={16} className={cn("text-slate-400 transition-transform duration-300 flex-shrink-0", isOpen && "rotate-180")} />
             </button>
             
             {isOpen && coords && createPortal(
@@ -133,7 +133,7 @@ const ModernSelect = ({
                                     option.value === value && "bg-primary-50 text-primary-700 font-bold hover:bg-primary-50"
                                 )}
                             >
-                                <span>{option.label}</span>
+                                <span className="flex items-center gap-2">{option.label}</span>
                                 {option.value === value && <Check size={14} className="text-primary-600" />}
                             </div>
                         ))}
@@ -196,49 +196,236 @@ const GroupBox = ({ label, children, className }: { label: string, children?: Re
     </div>
 );
 
-const NumberTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => {
-    const getCategoryFromFormat = () => {
-        if (!style.format || style.format === 'general') return 'General';
-        const map: any = { 
-            'number': 'Number', 'currency': 'Currency', 'accounting': 'Accounting', 
-            'shortDate': 'Date', 'longDate': 'Date', 'time': 'Time', 
-            'percent': 'Percentage', 'fraction': 'Fraction', 'scientific': 'Scientific', 
-            'text': 'Text' 
+const NumberTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: (key: keyof CellStyle, val: any) => void, isMobile: boolean }) => {
+    // Determine category from style
+    const getCategory = () => {
+        const f = style.format || 'general';
+        if (f === 'shortDate' || f === 'longDate') return 'Date';
+        if (f === 'comma') return 'Number';
+        const map: Record<string, string> = {
+            general: 'General', number: 'Number', currency: 'Currency', accounting: 'Accounting',
+            time: 'Time', percent: 'Percentage', fraction: 'Fraction', scientific: 'Scientific',
+            text: 'Text', custom: 'Custom'
         };
-        return map[style.format] || 'Custom';
+        return map[f] || 'Custom';
     };
-    const selectedCat = getCategoryFromFormat();
-    
-    return (
-        <div className={cn("flex h-full", isMobile ? "flex-col gap-6" : "gap-8")}>
-            <div className={cn("flex flex-col gap-2", isMobile ? "w-full" : "w-[180px]")}>
-                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider px-1">Category:</span>
-                <ScrollableList 
-                    items={CATEGORIES}
-                    selected={selectedCat}
-                    onSelect={(cat) => {
-                        const map: any = {
-                            'General': 'general', 'Number': 'number', 'Currency': 'currency', 'Accounting': 'accounting',
-                            'Date': 'shortDate', 'Time': 'time', 'Percentage': 'percent', 'Fraction': 'fraction',
-                            'Scientific': 'scientific', 'Text': 'text'
-                        };
-                        if (map[cat]) onChange('format', map[cat]);
-                    }}
-                    className={cn("flex-1 border-slate-100", isMobile ? "min-h-[140px]" : "min-h-[300px]")}
-                />
-            </div>
-            
-            <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1">
-                <div className="flex flex-col gap-2">
-                    <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider px-1">Preview</span>
-                    <div className="h-14 bg-gradient-to-br from-slate-50 to-white border border-slate-200 rounded-xl flex items-center px-5 text-base text-slate-900 font-mono shadow-inner group">
-                        {style.format === 'currency' ? `${style.currencySymbol || '$'}1,234.56` : '1234.56'}
+
+    const [category, setCategory] = useState(getCategory());
+
+    // Update local state if external style changes
+    useEffect(() => {
+        const newCat = getCategory();
+        if (newCat !== category && newCat !== 'Custom') { // Prevent loop if custom
+             setCategory(newCat);
+        }
+    }, [style.format]);
+
+    const handleCategorySelect = (newCat: string) => {
+        setCategory(newCat);
+        // Set defaults
+        switch(newCat) {
+            case 'General': onChange('format', 'general'); break;
+            case 'Number': onChange('format', 'number'); break;
+            case 'Currency': onChange('format', 'currency'); onChange('currencySymbol', '$'); break;
+            case 'Accounting': onChange('format', 'accounting'); onChange('currencySymbol', '$'); break;
+            case 'Date': onChange('format', 'shortDate'); break;
+            case 'Time': onChange('format', 'time'); break;
+            case 'Percentage': onChange('format', 'percent'); break;
+            case 'Fraction': onChange('format', 'fraction'); break;
+            case 'Scientific': onChange('format', 'scientific'); break;
+            case 'Text': onChange('format', 'text'); break;
+            default: onChange('format', 'custom'); break;
+        }
+    };
+
+    const renderRightPane = () => {
+        switch (category) {
+            case 'General':
+                return (
+                    <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex flex-col gap-2">
+                        <span className="text-[13px] text-slate-700 leading-relaxed">
+                            General format cells have no specific number format.
+                        </span>
                     </div>
+                );
+            case 'Number':
+                return (
+                    <div className="flex flex-col gap-5">
+                        <div className="flex items-center justify-between md:justify-start md:gap-8">
+                            <span className="text-[13px] text-slate-600">Decimal places:</span>
+                            <div className="flex items-center w-24 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+                                <input 
+                                    type="number" 
+                                    value={style.decimalPlaces ?? 2} 
+                                    onChange={(e) => onChange('decimalPlaces', Math.max(0, parseInt(e.target.value) || 0))}
+                                    className="w-full h-8 px-3 text-[13px] bg-transparent outline-none text-slate-800 font-mono"
+                                />
+                                <div className="flex flex-col border-l border-slate-200">
+                                    <button onClick={() => onChange('decimalPlaces', (style.decimalPlaces ?? 2) + 1)} className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 text-slate-500">
+                                        <ChevronDown size={10} className="rotate-180" />
+                                    </button>
+                                    <button onClick={() => onChange('decimalPlaces', Math.max(0, (style.decimalPlaces ?? 2) - 1))} className="h-4 w-6 flex items-center justify-center hover:bg-slate-200 text-slate-500">
+                                        <ChevronDown size={10} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <label className="flex items-center gap-3 cursor-pointer select-none">
+                            <div className="relative flex items-center">
+                                <input type="checkbox" className="peer w-4 h-4 appearance-none rounded border border-slate-300 bg-white checked:bg-primary-600 checked:border-primary-600 focus:ring-2 focus:ring-primary-100 transition-all" />
+                                <Check size={10} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 pointer-events-none" strokeWidth={4} />
+                            </div>
+                            <span className="text-[13px] text-slate-700">Use 1000 Separator (,)</span>
+                        </label>
+
+                        <div className="flex flex-col gap-2">
+                            <span className="text-[13px] text-slate-600">Negative numbers:</span>
+                            <div className="border border-slate-200 rounded-lg h-[120px] overflow-y-auto p-1 bg-white scrollbar-thin">
+                                <div className="px-3 py-1.5 text-[13px] text-slate-800 hover:bg-primary-50 hover:text-primary-700 cursor-pointer rounded transition-colors">-1,234.10</div>
+                                <div className="px-3 py-1.5 text-[13px] text-red-600 hover:bg-primary-50 cursor-pointer rounded transition-colors">1,234.10</div>
+                                <div className="px-3 py-1.5 text-[13px] text-slate-800 hover:bg-primary-50 hover:text-primary-700 cursor-pointer rounded transition-colors">(-1,234.10)</div>
+                                <div className="px-3 py-1.5 text-[13px] text-red-600 hover:bg-primary-50 cursor-pointer rounded transition-colors">(-1,234.10)</div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'Currency':
+            case 'Accounting':
+                return (
+                    <div className="flex flex-col gap-5">
+                        <div className="flex items-center justify-between md:justify-start md:gap-8">
+                            <span className="text-[13px] text-slate-600 w-24">Decimal places:</span>
+                            <div className="flex items-center w-20 bg-slate-50 border border-slate-200 rounded-lg overflow-hidden">
+                                <input 
+                                    type="number" 
+                                    value={style.decimalPlaces ?? 2} 
+                                    onChange={(e) => onChange('decimalPlaces', Math.max(0, parseInt(e.target.value) || 0))}
+                                    className="w-full h-8 px-2 text-[13px] bg-transparent outline-none text-slate-800 font-mono"
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center justify-between md:justify-start md:gap-8">
+                            <span className="text-[13px] text-slate-600 w-24">Symbol:</span>
+                            <div className="w-48">
+                                <ModernSelect 
+                                    value={style.currencySymbol || '$'}
+                                    options={[
+                                        { value: 'None', label: 'None' },
+                                        { value: '$', label: '$ English (USA)' },
+                                        { value: '£', label: '£ English (UK)' },
+                                        { value: '€', label: '€ Euro' },
+                                        { value: '¥', label: '¥ Chinese (PRC)' },
+                                    ]}
+                                    onChange={(val) => onChange('currencySymbol', val === 'None' ? '' : val)}
+                                />
+                            </div>
+                        </div>
+
+                        {category === 'Currency' && (
+                            <div className="flex flex-col gap-2 mt-2">
+                                <span className="text-[13px] text-slate-600">Negative numbers:</span>
+                                <div className="border border-slate-200 rounded-lg h-[100px] overflow-y-auto p-1 bg-white scrollbar-thin">
+                                    <div className="px-3 py-1.5 text-[13px] text-slate-800 hover:bg-primary-50 cursor-pointer rounded flex justify-between"><span>-1,234.10</span></div>
+                                    <div className="px-3 py-1.5 text-[13px] text-red-600 hover:bg-primary-50 cursor-pointer rounded flex justify-between"><span>1,234.10</span></div>
+                                    <div className="px-3 py-1.5 text-[13px] text-slate-800 hover:bg-primary-50 cursor-pointer rounded flex justify-between"><span>(1,234.10)</span></div>
+                                    <div className="px-3 py-1.5 text-[13px] text-red-600 hover:bg-primary-50 cursor-pointer rounded flex justify-between"><span>(1,234.10)</span></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            case 'Date':
+            case 'Time':
+                return (
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                            <span className="text-[13px] text-slate-600">Type:</span>
+                            <div className="border border-slate-200 rounded-lg h-[160px] overflow-y-auto p-1 bg-white scrollbar-thin">
+                                {[
+                                    { l: '3/14/2012', v: 'shortDate' },
+                                    { l: 'Wednesday, March 14, 2012', v: 'longDate' },
+                                    { l: '3/14', v: 'shortDate' },
+                                    { l: '3/14/12 1:30 PM', v: 'custom' },
+                                    { l: '13:30', v: 'time' },
+                                    { l: '1:30:55 PM', v: 'time' },
+                                ].map((opt, i) => (
+                                    <div 
+                                        key={i} 
+                                        onClick={() => onChange('format', opt.v as any)}
+                                        className={cn(
+                                            "px-3 py-2 text-[13px] cursor-pointer rounded transition-colors",
+                                            style.format === opt.v ? "bg-primary-600 text-white" : "text-slate-700 hover:bg-slate-50"
+                                        )}
+                                    >
+                                        {opt.l}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[13px] text-slate-600">Locale (location):</span>
+                            <ModernSelect 
+                                value="en-US" 
+                                options={[{value: 'en-US', label: 'English (United States)'}, {value: 'en-UK', label: 'English (United Kingdom)'}]} 
+                                onChange={() => {}} 
+                            />
+                        </div>
+                    </div>
+                );
+            default:
+                return (
+                    <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 flex flex-col gap-2">
+                        <span className="text-[13px] text-slate-700 leading-relaxed">
+                            No additional settings for this format.
+                        </span>
+                    </div>
+                );
+        }
+    }
+
+    return (
+        <div className={cn("flex h-full", isMobile ? "flex-col gap-4" : "gap-6")}>
+            {/* Category List */}
+            <div className={cn("flex flex-col gap-2", isMobile ? "w-full" : "w-[160px]")}>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Category</span>
+                <div className={cn("bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm flex", isMobile ? "flex-row overflow-x-auto no-scrollbar p-1" : "flex-col h-[320px] overflow-y-auto p-1 scrollbar-thin")}>
+                    {CATEGORIES.map(cat => (
+                        <button
+                            key={cat}
+                            onClick={() => handleCategorySelect(cat)}
+                            className={cn(
+                                "text-left px-4 py-2.5 text-[13px] transition-all rounded-lg flex-shrink-0 whitespace-nowrap",
+                                category === cat 
+                                    ? "bg-primary-50 text-primary-700 font-semibold" 
+                                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                            )}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Content Pane */}
+            <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1 pb-4">
+                {/* Sample Preview */}
+                <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Sample</span>
+                    <div className="text-[15px] font-mono text-slate-800 font-medium truncate">
+                        {category === 'Currency' || category === 'Accounting' ? `${style.currencySymbol || '$'}1,234.56` : '1234.56'}
+                    </div>
+                </div>
+
+                {/* Dynamic Settings */}
+                <div className="flex-1">
+                    {renderRightPane()}
                 </div>
             </div>
         </div>
     );
-};
+}
 
 const AlignmentTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => {
     const indentEnabled = style.align === 'left' || style.align === 'right' || style.align === 'distributed';
@@ -581,19 +768,279 @@ const FontTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: an
     </div>
 );
 
-const BorderTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => (
-    <div className="flex flex-col gap-6 h-full justify-center items-center text-center px-4 md:px-6">
-        <div className="w-20 h-20 bg-slate-50 rounded-[32px] flex items-center justify-center text-slate-200 border-2 border-dashed border-slate-100">
-             <Info size={40} strokeWidth={1} />
+const BorderTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: (key: keyof CellStyle, value: any) => void, isMobile: boolean }) => {
+    // Default Line Settings
+    const [lineStyle, setLineStyle] = useState<'thin' | 'medium' | 'thick' | 'dashed' | 'dotted' | 'double' | 'none'>('thin');
+    const [lineColor, setLineColor] = useState<string>('#000000');
+
+    // Mappings for visual rendering
+    const lineStyles = [
+        { id: 'none', label: 'None', css: 'border-none' },
+        { id: 'thin', label: 'Thin', css: 'border-b border-slate-800' },
+        { id: 'medium', label: 'Medium', css: 'border-b-[2px] border-slate-800' },
+        { id: 'thick', label: 'Thick', css: 'border-b-[4px] border-slate-800' },
+        { id: 'dashed', label: 'Dashed', css: 'border-b-[2px] border-dashed border-slate-800' },
+        { id: 'dotted', label: 'Dotted', css: 'border-b-[2px] border-dotted border-slate-800' },
+        { id: 'double', label: 'Double', css: 'border-b-[4px] border-double border-slate-800' },
+    ];
+
+    const currentBorders = style.borders || {};
+
+    const toggleBorder = (side: keyof NonNullable<CellStyle['borders']>) => {
+        const current = currentBorders[side];
+        // Remove if active and same style, otherwise apply
+        if (current && current.style === lineStyle && current.color === lineColor) {
+            const next = { ...currentBorders };
+            delete next[side];
+            onChange('borders', next);
+        } else {
+            const next = { 
+                ...currentBorders, 
+                [side]: { style: lineStyle, color: lineColor } 
+            };
+            onChange('borders', next);
+        }
+    };
+
+    const applyPreset = (type: 'none' | 'outline') => {
+        let next = { ...currentBorders };
+        const b = { style: lineStyle, color: lineColor };
+        
+        if (type === 'none') {
+            next = {};
+        } else if (type === 'outline') {
+            next.top = b;
+            next.bottom = b;
+            next.left = b;
+            next.right = b;
+        }
+        onChange('borders', next);
+    };
+
+    // Helper to generate dynamic inline styles for the preview box borders
+    const getBorderStyle = (side: keyof NonNullable<CellStyle['borders']>) => {
+        const b = currentBorders[side];
+        if (!b || b.style === 'none') return 'none';
+        
+        const width = b.style === 'thick' || b.style === 'double' ? '3px' : b.style === 'medium' ? '2px' : '1px';
+        const s = b.style === 'double' ? 'double' : b.style === 'dashed' ? 'dashed' : b.style === 'dotted' ? 'dotted' : 'solid';
+        return `${width} ${s} ${b.color}`;
+    };
+
+    // Helper to check if a specific border is active for UI highlighting
+    const isBorderActive = (side: keyof NonNullable<CellStyle['borders']>) => {
+        const b = currentBorders[side];
+        return b && b.style !== 'none';
+    };
+
+    return (
+        <div className={cn("grid h-full", isMobile ? "grid-cols-1 gap-6 pb-20" : "grid-cols-[240px_1fr] gap-8")}>
+            {/* Left Column: Line Style & Color */}
+            <div className="flex flex-col gap-4">
+                <GroupBox label="Line" className="flex flex-col gap-4 h-full">
+                    <div className="flex flex-col gap-2 flex-1">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Style</span>
+                        <div className="flex-1 border border-slate-200 rounded-lg bg-white overflow-y-auto p-1 min-h-[160px] scrollbar-thin">
+                            {lineStyles.map((s) => (
+                                <div 
+                                    key={s.id}
+                                    onClick={() => setLineStyle(s.id as any)}
+                                    className={cn(
+                                        "h-8 flex items-center px-3 cursor-pointer rounded mb-0.5 transition-all group",
+                                        lineStyle === s.id ? "bg-primary-50 ring-1 ring-primary-200" : "hover:bg-slate-50"
+                                    )}
+                                >
+                                    {s.id === 'none' ? (
+                                        <span className={cn("text-xs font-medium", lineStyle === 'none' ? "text-primary-700" : "text-slate-500")}>None</span>
+                                    ) : (
+                                        <div className={cn("w-full border-slate-800 transition-colors", s.css, lineStyle === s.id && "border-primary-600")} />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <div className="flex flex-col gap-2">
+                        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Color</span>
+                        <ModernSelect 
+                            value={lineColor}
+                            options={COLORS.map(c => ({ 
+                                value: c, 
+                                label: (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 rounded-[2px] shadow-sm border border-slate-200" style={{backgroundColor: c}}/>
+                                        <span className="font-mono text-xs">{c === '#000000' ? 'Automatic' : c}</span>
+                                    </div>
+                                ) 
+                            }))} 
+                            onChange={setLineColor}
+                        />
+                    </div>
+                </GroupBox>
+            </div>
+
+            {/* Right Column: Presets & Diagram */}
+            <div className="flex flex-col gap-4">
+                {/* Presets */}
+                <GroupBox label="Presets" className="pb-4">
+                    <div className="flex items-center gap-4 justify-center">
+                        <button onClick={() => applyPreset('none')} className="flex flex-col items-center gap-2 p-3 hover:bg-slate-50 rounded-xl group transition-all">
+                            <div className="w-10 h-10 border border-slate-200 rounded-lg flex items-center justify-center bg-white group-hover:border-slate-300 group-hover:shadow-sm transition-all">
+                                <div className="w-4 h-4 border border-slate-300 opacity-30" />
+                            </div>
+                            <span className="text-[11px] font-bold text-slate-500 group-hover:text-slate-700">None</span>
+                        </button>
+                        <button onClick={() => applyPreset('outline')} className="flex flex-col items-center gap-2 p-3 hover:bg-slate-50 rounded-xl group transition-all">
+                            <div className="w-10 h-10 border border-slate-200 rounded-lg flex items-center justify-center bg-white group-hover:border-slate-300 group-hover:shadow-sm transition-all">
+                                <div className="w-6 h-6 border-2 border-slate-800" />
+                            </div>
+                            <span className="text-[11px] font-bold text-slate-500 group-hover:text-slate-700">Outline</span>
+                        </button>
+                    </div>
+                </GroupBox>
+
+                {/* Interactive Diagram */}
+                <GroupBox label="Border" className="flex-1 flex flex-col justify-center items-center relative min-h-[220px]">
+                    <div className="relative p-8">
+                        {/* Central Preview Box */}
+                        <div className="w-32 h-32 md:w-40 md:h-40 relative flex items-center justify-center">
+                            
+                            {/* Top Toggle Button */}
+                            <button 
+                                onClick={() => toggleBorder('top')}
+                                className={cn(
+                                    "absolute -top-8 left-1/2 -translate-x-1/2 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
+                                    isBorderActive('top') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                )}
+                            >
+                                <div className="w-4 h-[2px] bg-current" />
+                            </button>
+
+                            {/* Bottom Toggle Button */}
+                            <button 
+                                onClick={() => toggleBorder('bottom')}
+                                className={cn(
+                                    "absolute -bottom-8 left-1/2 -translate-x-1/2 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
+                                    isBorderActive('bottom') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                )}
+                            >
+                                <div className="w-4 h-[2px] bg-current" />
+                            </button>
+
+                            {/* Left Toggle Button */}
+                            <button 
+                                onClick={() => toggleBorder('left')}
+                                className={cn(
+                                    "absolute top-1/2 -left-8 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
+                                    isBorderActive('left') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                )}
+                            >
+                                <div className="h-4 w-[2px] bg-current" />
+                            </button>
+
+                            {/* Right Toggle Button */}
+                            <button 
+                                onClick={() => toggleBorder('right')}
+                                className={cn(
+                                    "absolute top-1/2 -right-8 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
+                                    isBorderActive('right') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                )}
+                            >
+                                <div className="h-4 w-[2px] bg-current" />
+                            </button>
+
+                            {/* Diagonal Up Toggle */}
+                            <button
+                                onClick={() => toggleBorder('diagonalUp')}
+                                className={cn(
+                                    "absolute -bottom-8 -left-8 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
+                                    isBorderActive('diagonalUp') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                )}
+                            >
+                                <div className="w-4 h-[2px] bg-current -rotate-45" />
+                            </button>
+
+                            {/* Diagonal Down Toggle */}
+                            <button
+                                onClick={() => toggleBorder('diagonalDown')}
+                                className={cn(
+                                    "absolute -bottom-8 -right-8 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
+                                    isBorderActive('diagonalDown') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                )}
+                            >
+                                <div className="w-4 h-[2px] bg-current rotate-45" />
+                            </button>
+
+
+                            {/* The Actual Box Render */}
+                            <div 
+                                className="w-full h-full bg-white relative flex items-center justify-center overflow-hidden"
+                                style={{
+                                    borderTop: getBorderStyle('top'),
+                                    borderBottom: getBorderStyle('bottom'),
+                                    borderLeft: getBorderStyle('left'),
+                                    borderRight: getBorderStyle('right'),
+                                }}
+                            >
+                                {/* Diagonals */}
+                                {isBorderActive('diagonalUp') && (
+                                    <div 
+                                        className="absolute w-[142%] h-[1px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none origin-center -rotate-45"
+                                        style={{ 
+                                            borderTop: getBorderStyle('diagonalUp'),
+                                            height: currentBorders.diagonalUp?.style === 'double' ? '4px' : '1px'
+                                        }} 
+                                    />
+                                )}
+                                {isBorderActive('diagonalDown') && (
+                                    <div 
+                                        className="absolute w-[142%] h-[1px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none origin-center rotate-45"
+                                        style={{ 
+                                            borderTop: getBorderStyle('diagonalDown'),
+                                            height: currentBorders.diagonalDown?.style === 'double' ? '4px' : '1px'
+                                        }} 
+                                    />
+                                )}
+
+                                {/* Inner Cross Guides (Visual only, typical Excel dialog shows them as faint guidelines) */}
+                                <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none">
+                                    <div className="border-r border-b border-slate-100" />
+                                    <div className="border-b border-slate-100" />
+                                    <div className="border-r border-slate-100" />
+                                    <div />
+                                </div>
+
+                                <span className="relative z-10 text-slate-400 font-medium text-sm select-none">Text</span>
+                                
+                                {/* Clickable Hotspots for Direct Interaction */}
+                                <div className="absolute inset-0 z-20">
+                                    {/* Top */}
+                                    <div className="absolute top-0 left-0 right-0 h-4 cursor-pointer hover:bg-primary-500/10 transition-colors" onClick={() => toggleBorder('top')} />
+                                    {/* Bottom */}
+                                    <div className="absolute bottom-0 left-0 right-0 h-4 cursor-pointer hover:bg-primary-500/10 transition-colors" onClick={() => toggleBorder('bottom')} />
+                                    {/* Left */}
+                                    <div className="absolute top-0 bottom-0 left-0 w-4 cursor-pointer hover:bg-primary-500/10 transition-colors" onClick={() => toggleBorder('left')} />
+                                    {/* Right */}
+                                    <div className="absolute top-0 bottom-0 right-0 w-4 cursor-pointer hover:bg-primary-500/10 transition-colors" onClick={() => toggleBorder('right')} />
+                                </div>
+                            </div>
+
+                            {/* Corner Guides */}
+                            <div className="absolute -top-[1px] -left-[1px] w-2 h-2 border-t border-l border-slate-300" />
+                            <div className="absolute -top-[1px] -right-[1px] w-2 h-2 border-t border-r border-slate-300" />
+                            <div className="absolute -bottom-[1px] -left-[1px] w-2 h-2 border-b border-l border-slate-300" />
+                            <div className="absolute -bottom-[1px] -right-[1px] w-2 h-2 border-b border-r border-slate-300" />
+                        </div>
+                    </div>
+                    
+                    <p className="text-[10px] text-slate-400 text-center max-w-[200px] mt-4">
+                        Click on the diagram or use the buttons to apply borders.
+                    </p>
+                </GroupBox>
+            </div>
         </div>
-        <div>
-            <h3 className="text-[17px] font-black text-slate-800 tracking-tight">Style Borders</h3>
-            <p className="text-[12px] text-slate-500 mt-2 leading-relaxed font-medium">
-                Advanced border customizer is in development.<br/>Use Home tab for rapid borders.
-            </p>
-        </div>
-    </div>
-);
+    );
+};
 
 const FillTab = ({ style, onChange, isMobile }: { style: CellStyle, onChange: any, isMobile: boolean }) => (
     <div className="flex flex-col gap-6 h-full">
@@ -641,7 +1088,7 @@ const ProtectionTab = ({ style, onChange, isMobile }: { style: CellStyle, onChan
 );
 
 const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, initialStyle, onApply }) => {
-  const [activeTab, setActiveTab] = useState('Alignment');
+  const [activeTab, setActiveTab] = useState('Number');
   const [style, setStyle] = useState<CellStyle>(initialStyle);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
