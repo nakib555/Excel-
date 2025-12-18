@@ -36,8 +36,11 @@ const ModernSelect: React.FC<ModernSelectProps> = ({
     useLayoutEffect(() => {
         if (isOpen && triggerRef.current) {
             const updatePosition = () => {
-                const rect = triggerRef.current!.getBoundingClientRect();
+                if (!triggerRef.current) return;
+                const rect = triggerRef.current.getBoundingClientRect();
                 const windowHeight = window.innerHeight;
+                const windowWidth = window.innerWidth;
+                
                 const spaceBelow = windowHeight - rect.bottom - 10;
                 const spaceAbove = rect.top - 10;
                 
@@ -46,9 +49,16 @@ const ModernSelect: React.FC<ModernSelectProps> = ({
                 
                 const maxHeight = placement === 'bottom' ? Math.min(300, spaceBelow) : Math.min(300, spaceAbove);
 
+                // Horizontal clamp
+                let left = rect.left;
+                if (left + rect.width > windowWidth - 10) {
+                    left = windowWidth - rect.width - 10;
+                }
+                if (left < 10) left = 10;
+
                 setCoords({
                     top: placement === 'bottom' ? rect.bottom + 6 : rect.top - 6,
-                    left: rect.left,
+                    left,
                     width: rect.width,
                     maxHeight,
                     placement

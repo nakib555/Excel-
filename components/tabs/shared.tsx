@@ -215,25 +215,59 @@ export const SmartDropdown = ({
 }) => {
     const triggerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
-    const [coords, setCoords] = useState<{top: number, left: number} | null>(null);
+    const [coords, setCoords] = useState<{top: number, left: number, transformOrigin: string} | null>(null);
 
     useLayoutEffect(() => {
         if (open && triggerRef.current) {
-            const rect = triggerRef.current.getBoundingClientRect();
-            let top = rect.bottom + 4;
-            let left = rect.left;
+            const updatePosition = () => {
+                if (!triggerRef.current) return;
+                const rect = triggerRef.current.getBoundingClientRect();
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                
+                let top = rect.bottom + 4;
+                let left = rect.left;
+                let transformOrigin = 'top left';
+
+                // Heuristic width parsing for positioning adjustment
+                let estimatedWidth = 192; // default w-48
+                if (contentWidth.includes('w-64')) estimatedWidth = 256;
+                if (contentWidth.includes('w-56')) estimatedWidth = 224;
+                if (contentWidth.includes('w-40')) estimatedWidth = 160;
+                if (contentWidth.includes('w-32')) estimatedWidth = 128;
+                if (contentWidth.includes('w-96')) estimatedWidth = 384;
+
+                // Adjust horizontal position if close to right edge
+                if (left + estimatedWidth > windowWidth - 10) {
+                    left = windowWidth - estimatedWidth - 10;
+                    transformOrigin = 'top right';
+                }
+                // Ensure not off-screen left
+                if (left < 10) {
+                    left = 10;
+                    transformOrigin = 'top left';
+                }
+
+                // Adjust vertical if needed (though ribbon is usually top)
+                if (top + 300 > windowHeight && rect.top > 300) {
+                    // Could flip to top, but usually bottom is preferred for ribbon
+                }
+
+                setCoords({ top, left, transformOrigin });
+            };
+
+            updatePosition();
             
-            // Adjust if going off-screen (basic check)
-            if (left + 200 > window.innerWidth) {
-                left = window.innerWidth - 210;
-            }
-            if (left < 0) left = 10;
+            // Capture scroll events from any parent container
+            window.addEventListener('scroll', updatePosition, true);
+            window.addEventListener('resize', updatePosition);
             
-            setCoords({ top, left });
-        } else {
-            setCoords(null);
+            return () => {
+                window.removeEventListener('scroll', updatePosition, true);
+                window.removeEventListener('resize', updatePosition);
+            };
         }
-    }, [open]);
+    }, [open, contentWidth]);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -246,7 +280,7 @@ export const SmartDropdown = ({
                 if (open) onToggle();
             }
         };
-        document.addEventListener('mousedown', handleClickOutside);
+        if(open) document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [open, onToggle]);
 
@@ -258,8 +292,8 @@ export const SmartDropdown = ({
             {open && coords && createPortal(
                 <div 
                     ref={contentRef}
-                    className={`fixed z-[1000] bg-white shadow-elevation border border-slate-200 rounded-lg animate-in fade-in zoom-in-95 duration-100 p-1 ${contentWidth} ${className}`}
-                    style={{ top: coords.top, left: coords.left }}
+                    className={`fixed z-[2000] bg-white shadow-xl border border-slate-200 rounded-lg animate-in fade-in zoom-in-95 duration-100 p-1 ${contentWidth} ${className}`}
+                    style={{ top: coords.top, left: coords.left, transformOrigin: coords.transformOrigin }}
                 >
                     {children}
                 </div>,

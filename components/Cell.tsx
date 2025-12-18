@@ -53,6 +53,7 @@ const Cell = memo(({
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [scaleFactor, setScaleFactor] = useState(1);
+  const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number, width: number} | null>(null);
 
   // New features state
   const [isHovered, setIsHovered] = useState(false);
@@ -66,6 +67,44 @@ const Cell = memo(({
   useEffect(() => {
     if (isActive && editing) inputRef.current?.focus();
   }, [isActive, editing]);
+
+  // Handle dropdown positioning updates
+  useLayoutEffect(() => {
+      if (showDropdown && containerRef.current) {
+          const update = () => {
+              if (containerRef.current) {
+                  const rect = containerRef.current.getBoundingClientRect();
+                  setDropdownPosition({
+                      top: rect.bottom,
+                      left: rect.left,
+                      width: rect.width
+                  });
+                  // Optional: Close if scrolled far away to prevent confusion, but standard behavior is usually sticking or closing
+                  // Here we stick
+              }
+          };
+          update();
+          window.addEventListener('scroll', update, true);
+          window.addEventListener('resize', update);
+          return () => {
+              window.removeEventListener('scroll', update, true);
+              window.removeEventListener('resize', update);
+          };
+      }
+  }, [showDropdown]);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+      if (!showDropdown) return;
+      const handleClickOutside = (e: MouseEvent) => {
+          if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) && 
+              containerRef.current && !containerRef.current.contains(e.target as Node)) {
+              setShowDropdown(false);
+          }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDropdown]);
 
   // Shrink to Fit Implementation (Excel Feature)
   useLayoutEffect(() => {
@@ -311,13 +350,13 @@ const Cell = memo(({
             >
                 <ChevronDown size={12} className="text-slate-600" />
             </div>
-            {showDropdown && createPortal(
+            {showDropdown && dropdownPosition && createPortal(
                 <div 
                     className="fixed bg-white border border-slate-300 shadow-xl rounded-sm z-[2000] flex flex-col max-h-48 overflow-y-auto"
                     style={{
-                        top: containerRef.current ? containerRef.current.getBoundingClientRect().bottom : 0,
-                        left: containerRef.current ? containerRef.current.getBoundingClientRect().left : 0,
-                        minWidth: containerRef.current ? containerRef.current.offsetWidth : 120
+                        top: dropdownPosition.top,
+                        left: dropdownPosition.left,
+                        minWidth: Math.max(120, dropdownPosition.width)
                     }}
                     ref={dropdownRef}
                     onMouseDown={(e) => e.stopPropagation()} 
