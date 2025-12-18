@@ -78,7 +78,7 @@ const ModernSelect: React.FC<ModernSelectProps> = ({
 
     // Close on click outside
     useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
+        const handleClickOutside = (e: MouseEvent | TouchEvent) => {
             if (
                 triggerRef.current && !triggerRef.current.contains(e.target as Node) &&
                 dropdownRef.current && !dropdownRef.current.contains(e.target as Node)
@@ -87,8 +87,14 @@ const ModernSelect: React.FC<ModernSelectProps> = ({
                 setSearchTerm('');
             }
         };
-        if (isOpen) document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside, { passive: true });
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
     }, [isOpen]);
 
     const filteredOptions = useMemo(() => {

@@ -215,50 +215,46 @@ export const SmartDropdown = ({
 }) => {
     const triggerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
-    const [coords, setCoords] = useState<{top: number, left: number, transformOrigin: string} | null>(null);
+    const [style, setStyle] = useState<{top: number, left: number, transformOrigin: string, opacity: number}>({ top: 0, left: 0, transformOrigin: 'top left', opacity: 0 });
 
     useLayoutEffect(() => {
-        if (open && triggerRef.current) {
+        if (open) {
             const updatePosition = () => {
-                if (!triggerRef.current) return;
-                const rect = triggerRef.current.getBoundingClientRect();
+                if (!triggerRef.current || !contentRef.current) return;
+                
+                const triggerRect = triggerRef.current.getBoundingClientRect();
+                const contentRect = contentRef.current.getBoundingClientRect();
                 const windowWidth = window.innerWidth;
                 const windowHeight = window.innerHeight;
                 
-                let top = rect.bottom + 4;
-                let left = rect.left;
+                let top = triggerRect.bottom + 4;
+                let left = triggerRect.left;
                 let transformOrigin = 'top left';
 
-                // Heuristic width parsing for positioning adjustment
-                let estimatedWidth = 192; // default w-48
-                if (contentWidth.includes('w-64')) estimatedWidth = 256;
-                if (contentWidth.includes('w-56')) estimatedWidth = 224;
-                if (contentWidth.includes('w-40')) estimatedWidth = 160;
-                if (contentWidth.includes('w-32')) estimatedWidth = 128;
-                if (contentWidth.includes('w-96')) estimatedWidth = 384;
-
-                // Adjust horizontal position if close to right edge
-                if (left + estimatedWidth > windowWidth - 10) {
-                    left = windowWidth - estimatedWidth - 10;
+                // Horizontal Constraint
+                if (left + contentRect.width > windowWidth - 8) {
+                    left = windowWidth - contentRect.width - 8;
                     transformOrigin = 'top right';
                 }
-                // Ensure not off-screen left
-                if (left < 10) {
-                    left = 10;
-                    transformOrigin = 'top left';
+                if (left < 8) left = 8;
+
+                // Vertical Constraint
+                const spaceBelow = windowHeight - triggerRect.bottom - 8;
+                const spaceAbove = triggerRect.top - 8;
+
+                // Prefer bottom, flip if needed
+                if (spaceBelow < contentRect.height && spaceAbove > spaceBelow) {
+                    top = triggerRect.top - contentRect.height - 4;
+                    transformOrigin = 'bottom left';
+                    if (transformOrigin.includes('right')) transformOrigin = 'bottom right';
                 }
 
-                // Adjust vertical if needed (though ribbon is usually top)
-                if (top + 300 > windowHeight && rect.top > 300) {
-                    // Could flip to top, but usually bottom is preferred for ribbon
-                }
-
-                setCoords({ top, left, transformOrigin });
+                setStyle({ top, left, transformOrigin, opacity: 1 });
             };
 
+            // Force initial measure
             updatePosition();
             
-            // Capture scroll events from any parent container
             window.addEventListener('scroll', updatePosition, true);
             window.addEventListener('resize', updatePosition);
             
@@ -266,11 +262,13 @@ export const SmartDropdown = ({
                 window.removeEventListener('scroll', updatePosition, true);
                 window.removeEventListener('resize', updatePosition);
             };
+        } else {
+            setStyle(s => ({ ...s, opacity: 0 }));
         }
-    }, [open, contentWidth]);
+    }, [open, children]);
 
     useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
+        const handleClickOutside = (e: MouseEvent | TouchEvent) => {
              if (
                 triggerRef.current && 
                 !triggerRef.current.contains(e.target as Node) &&
@@ -280,20 +278,34 @@ export const SmartDropdown = ({
                 if (open) onToggle();
             }
         };
-        if(open) document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        if(open) {
+            document.addEventListener('mousedown', handleClickOutside);
+            document.addEventListener('touchstart', handleClickOutside, { passive: true });
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
     }, [open, onToggle]);
 
     return (
         <>
-            <div ref={triggerRef} onClick={onToggle} className="inline-block h-full">
+            <div ref={triggerRef} onClick={onToggle} className="inline-block h-full select-none">
                 {trigger}
             </div>
-            {open && coords && createPortal(
+            {open && createPortal(
                 <div 
                     ref={contentRef}
-                    className={`fixed z-[2000] bg-white shadow-xl border border-slate-200 rounded-lg animate-in fade-in zoom-in-95 duration-100 p-1 ${contentWidth} ${className}`}
-                    style={{ top: coords.top, left: coords.left, transformOrigin: coords.transformOrigin }}
+                    className={`fixed z-[2000] bg-white shadow-xl border border-slate-200 rounded-lg p-1 ${contentWidth} ${className}`}
+                    style={{ 
+                        top: style.top, 
+                        left: style.left, 
+                        transformOrigin: style.transformOrigin,
+                        opacity: style.opacity,
+                        visibility: style.opacity === 0 ? 'hidden' : 'visible',
+                        transition: 'opacity 0.15s ease-out, transform 0.15s ease-out',
+                        transform: style.opacity === 1 ? 'scale(1)' : 'scale(0.95)'
+                    }}
                 >
                     {children}
                 </div>,
@@ -312,7 +324,6 @@ export const ColorPicker: React.FC<{
 }> = memo(({ icon, color, onChange, colors, title }) => {
     const [open, setOpen] = useState(false);
     
-    // Style the inner icon before wrapping
     const styledIcon = React.isValidElement(icon) 
         ? React.cloneElement(icon as React.ReactElement<any>, { size: 16, strokeWidth: 2 }) 
         : icon;
@@ -325,7 +336,7 @@ export const ColorPicker: React.FC<{
             trigger={
                 <RibbonButton 
                     variant="icon-only" 
-                    onClick={() => {}} // Handled by SmartDropdown trigger wrapper
+                    onClick={() => {}} 
                     title={title}
                     hasDropdown
                     icon={

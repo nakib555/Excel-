@@ -79,8 +79,6 @@ const Cell = memo(({
                       left: rect.left,
                       width: rect.width
                   });
-                  // Optional: Close if scrolled far away to prevent confusion, but standard behavior is usually sticking or closing
-                  // Here we stick
               }
           };
           update();
@@ -96,14 +94,18 @@ const Cell = memo(({
   // Click outside to close dropdown
   useEffect(() => {
       if (!showDropdown) return;
-      const handleClickOutside = (e: MouseEvent) => {
+      const handleClickOutside = (e: MouseEvent | TouchEvent) => {
           if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) && 
               containerRef.current && !containerRef.current.contains(e.target as Node)) {
               setShowDropdown(false);
           }
       };
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside, { passive: true });
+      return () => {
+          document.removeEventListener('mousedown', handleClickOutside);
+          document.removeEventListener('touchstart', handleClickOutside);
+      };
   }, [showDropdown]);
 
   // Shrink to Fit Implementation (Excel Feature)
