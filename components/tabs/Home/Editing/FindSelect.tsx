@@ -23,9 +23,10 @@ const FindSelect: React.FC<FindSelectProps> = ({ onFindReplace, onSelectSpecial 
             contentWidth="w-56"
             trigger={
                 <RibbonButton 
-                    variant="small"
-                    icon={<Search size={14} className="text-indigo-600" />} 
-                    label="Find & Select" 
+                    variant="large"
+                    icon={<Search size={20} className="text-indigo-600" />} 
+                    label="Find &" 
+                    subLabel="Select"
                     hasDropdown 
                     onClick={() => {}} 
                 />
