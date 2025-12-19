@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, Check, Hash, Coins, Calendar, Clock, Percent, FlaskConical, Type, Settings2, CalendarRange, Calculator } from 'lucide-react';
 import { CellStyle } from '../../../types';
 import ModernSelect from './ModernSelect';
+import { formatCellValue } from '../../../utils';
 
 interface NumberTabProps {
     style: CellStyle;
@@ -86,6 +87,14 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
         { label: '13:30', value: 'time', icon: <Clock size={14} className="text-orange-500" /> },
         { label: '1:30:55 PM', value: 'time', icon: <Clock size={14} className="text-orange-600" /> },
     ];
+
+    const getSampleValue = () => {
+        if (style.format === 'percent') return '0.1234';
+        if (['shortDate', 'longDate', 'time'].includes(style.format || '')) return '45380.567'; // ~ mid 2024
+        return '1234.5678';
+    };
+
+    const formattedSample = formatCellValue(getSampleValue(), style);
 
     const renderRightPane = () => {
         switch (category) {
@@ -249,7 +258,7 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
                     </div>
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Sample</span>
                     <div className="text-[15px] font-mono text-slate-800 font-medium truncate">
-                        {category === 'Currency' || category === 'Accounting' ? `${style.currencySymbol || '$'}1,234.56` : '1234.56'}
+                        {formattedSample}
                     </div>
                 </div>
 

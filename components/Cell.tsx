@@ -1,7 +1,7 @@
 
 import React, { memo, useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
-import { cn, formatCellValue } from '../utils';
+import { cn, formatCellValue, measureTextWidth } from '../utils';
 import { CellSkeleton } from './Skeletons';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -104,21 +104,36 @@ const Cell = memo(({
       };
   }, [showDropdown]);
 
+  const isMicroView = scale < 0.25; 
+  const fontSize = Math.max(scale < 0.6 ? 7 : 9, (resolvedStyle.fontSize || 13) * scale);
+  const displayValue = formatCellValue(data.value, resolvedStyle);
+
   useLayoutEffect(() => {
-    if (resolvedStyle.shrinkToFit && !resolvedStyle.wrapText && spanRef.current && !editing) {
-       const span = spanRef.current;
-       const paddingX = (resolvedStyle.indent || 0) * 10 + 8; 
-       const avail = width - paddingX;
-       const actual = span.scrollWidth;
-       if (actual > avail && avail > 0) {
-           setScaleFactor(avail / actual);
+    if (resolvedStyle.shrinkToFit && !resolvedStyle.wrapText && !editing && displayValue) {
+       const indentPx = (resolvedStyle.indent || 0) * 10 * scale; 
+       const totalPadding = 8 + indentPx; // 4px left + 4px right base
+       const avail = width - totalPadding;
+       
+       if (avail > 0) {
+           const fontName = resolvedStyle.fontFamily || 'Inter, sans-serif';
+           const isBold = !!resolvedStyle.bold;
+           // Measure theoretical width using canvas to avoid layout thrashing and loops
+           const textWidth = measureTextWidth(displayValue, fontSize, fontName, isBold);
+           
+           if (textWidth > avail) {
+               // Apply scale if text is wider than available space
+               // Subtract a tiny epsilon to ensure it fits visually
+               setScaleFactor((avail / textWidth) - 0.01);
+           } else {
+               setScaleFactor(1);
+           }
        } else {
            setScaleFactor(1);
        }
     } else {
         setScaleFactor(1);
     }
-  }, [data.value, resolvedStyle, width, height, editing]);
+  }, [displayValue, resolvedStyle, width, fontSize, scale, editing]);
 
   const handleBlur = () => {
     setTimeout(() => {
@@ -139,9 +154,6 @@ const Cell = memo(({
     }
   };
 
-  const isMicroView = scale < 0.25; 
-  const fontSize = Math.max(scale < 0.6 ? 7 : 9, (resolvedStyle.fontSize || 13) * scale);
-
   if (isGhost) {
       return <CellSkeleton width={width} height={height} />;
   }
@@ -161,7 +173,7 @@ const Cell = memo(({
   const fontStyle = resolvedStyle.italic ? 'italic' : 'normal';
   const textDecoration = resolvedStyle.underline ? 'underline' : 'none';
   const color = resolvedStyle.color || '#0f172a';
-  const backgroundColor = resolvedStyle.bg || (isInRange ? 'rgba(16, 185, 129, 0.08)' : '#fff'); // Lighter selection bg
+  const backgroundColor = resolvedStyle.bg || (isInRange ? 'rgba(16, 185, 129, 0.08)' : '#fff'); 
   
   const verticalText = resolvedStyle.verticalText;
   const rotation = resolvedStyle.textRotation || 0;
@@ -169,7 +181,6 @@ const Cell = memo(({
   const hasRotation = rotation !== 0;
   
   const whiteSpace = resolvedStyle.wrapText ? 'pre-wrap' : 'nowrap';
-  const displayValue = formatCellValue(data.value, resolvedStyle);
 
   const handleDropdownSelect = (val: string) => {
       onChange(id, val);
@@ -209,6 +220,7 @@ const Cell = memo(({
       color,
       whiteSpace,
       textAlign: cssTextAlign,
+      display: 'inline-block', // Important for transform
       ...(verticalText ? { 
           writingMode: 'vertical-rl', 
           textOrientation: 'upright', 
@@ -292,14 +304,12 @@ const Cell = memo(({
           </div>
       )}
 
-      {/* Visual Comment Indicator (Red Triangle) */}
       {data.comment && (
           <>
             <div 
                 className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-600 z-10" 
                 style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}
             />
-            {/* Tooltip on Hover */}
             {(isHovered || isActive) && (
                 createPortal(
                     <div 
