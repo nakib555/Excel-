@@ -59,8 +59,8 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
         switch(newCat) {
             case 'General': onChange('format', 'general'); break;
             case 'Number': onChange('format', 'number'); break;
-            case 'Currency': onChange('format', 'currency'); onChange('currencySymbol', '$'); break;
-            case 'Accounting': onChange('format', 'accounting'); onChange('currencySymbol', '$'); break;
+            case 'Currency': onChange('format', 'currency'); onChange('currencySymbol', 'USD'); break;
+            case 'Accounting': onChange('format', 'accounting'); onChange('currencySymbol', 'USD'); break;
             case 'Date': onChange('format', 'shortDate'); break;
             case 'Time': onChange('format', 'time'); break;
             case 'Percentage': onChange('format', 'percent'); break;
@@ -172,13 +172,15 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
                             <span className="text-[13px] text-slate-600 w-24">Symbol:</span>
                             <div className="w-48">
                                 <ModernSelect 
-                                    value={style.currencySymbol || '$'}
+                                    value={style.currencySymbol || 'USD'}
                                     options={[
                                         { value: 'None', label: 'None' },
-                                        { value: '$', label: <div className="flex items-center gap-2"><span className="text-green-600 font-bold">$</span> English (USA)</div> },
-                                        { value: '£', label: <div className="flex items-center gap-2"><span className="text-blue-600 font-bold">£</span> English (UK)</div> },
-                                        { value: '€', label: <div className="flex items-center gap-2"><span className="text-indigo-600 font-bold">€</span> Euro</div> },
-                                        { value: '¥', label: <div className="flex items-center gap-2"><span className="text-red-600 font-bold">¥</span> Chinese (PRC)</div> },
+                                        { value: 'USD', label: <div className="flex items-center gap-2"><span className="text-green-600 font-bold">$</span> English (USA)</div> },
+                                        { value: 'GBP', label: <div className="flex items-center gap-2"><span className="text-blue-600 font-bold">£</span> English (UK)</div> },
+                                        { value: 'EUR', label: <div className="flex items-center gap-2"><span className="text-indigo-600 font-bold">€</span> Euro</div> },
+                                        { value: 'CNY', label: <div className="flex items-center gap-2"><span className="text-red-600 font-bold">¥</span> Chinese (PRC)</div> },
+                                        { value: 'JPY', label: <div className="flex items-center gap-2"><span className="text-red-600 font-bold">¥</span> Japanese</div> },
+                                        { value: 'CHF', label: <div className="flex items-center gap-2"><span className="text-slate-600 font-bold">fr.</span> Swiss</div> },
                                     ]}
                                     onChange={(val) => onChange('currencySymbol', val === 'None' ? '' : val)}
                                 />

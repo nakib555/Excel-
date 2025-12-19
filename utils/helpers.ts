@@ -113,7 +113,23 @@ const getFormatter = (type: string, decimals: number, currency: string = 'USD'):
         }
         // 'comma' uses default decimal formatting
 
-        formatterCache.set(key, new Intl.NumberFormat('en-US', options));
+        try {
+            formatterCache.set(key, new Intl.NumberFormat('en-US', options));
+        } catch (e) {
+            console.warn(`Formatting error for key "${key}":`, e);
+            // Fallback for invalid currency codes
+            if (options.style === 'currency') {
+                options.currency = 'USD';
+                try {
+                    formatterCache.set(key, new Intl.NumberFormat('en-US', options));
+                } catch {
+                    // Total fallback if even USD fails (unlikely)
+                    formatterCache.set(key, new Intl.NumberFormat('en-US'));
+                }
+            } else {
+                formatterCache.set(key, new Intl.NumberFormat('en-US'));
+            }
+        }
     }
     return formatterCache.get(key)!;
 };
