@@ -51,16 +51,10 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
           // Validate initialTab exists, fallback if not
           const tabExists = TABS.find(t => t.id === initialTab);
           setActiveTab(tabExists ? initialTab : 'Number');
-          if (!isMobile) {
-            const width = 680;
-            const height = 680;
-            setPosition({ 
-                x: (window.innerWidth - width) / 2, 
-                y: (window.innerHeight - height) / 2 
-            });
-          }
+          // Reset position when opening
+          setPosition({ x: 0, y: 0 });
       }
-  }, [isOpen, initialStyle, isMobile, initialTab]);
+  }, [isOpen, initialStyle, initialTab]);
 
   useEffect(() => {
       const handleMouseMove = (e: MouseEvent) => {
@@ -91,7 +85,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
 
   const floatingClass = isMobile 
     ? "fixed bottom-4 left-4 right-4 z-[2001] bg-white flex flex-col overflow-hidden rounded-[32px] shadow-2xl border border-slate-200" 
-    : "fixed w-[680px] h-[680px] rounded-[40px] shadow-2xl z-[2001] bg-white border border-slate-200 overflow-hidden flex flex-col";
+    : "relative w-[680px] h-[680px] rounded-[40px] shadow-2xl z-[2001] bg-white border border-slate-200 overflow-hidden flex flex-col";
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/60 backdrop-blur-md">
@@ -102,9 +96,9 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                     animate={isMobile ? { y: 0, opacity: 1 } : { scale: 1, opacity: 1, x: position.x, y: position.y }}
                     exit={isMobile ? { y: '100%', opacity: 0 } : { scale: 0.9, opacity: 0 }}
                     transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                    className={cn(floatingClass, !isMobile && "fixed m-0")}
+                    className={cn(floatingClass)}
                     style={{
-                        ...( !isMobile ? { left: 0, top: 0 } : { height: '80vh' })
+                        ...( isMobile ? { height: '80vh' } : {} )
                     }}
                 >
                     <div 
