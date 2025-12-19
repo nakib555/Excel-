@@ -142,20 +142,13 @@ const Cell = memo(({
        const avail = width - totalPadding;
        
        if (avail > 0) {
-           let textWidth = 0;
+           // Always use canvas measurement for ShrinkToFit to avoid DOM layout constraints (flex-shrink)
+           const fontName = resolvedStyle.fontFamily || 'Inter, sans-serif';
+           const isBold = !!resolvedStyle.bold;
+           const isItalic = !!resolvedStyle.italic;
            
-           // Prefer DOM measurement for exact rendering match via scrollWidth
-           if (spanRef.current) {
-               textWidth = spanRef.current.offsetWidth;
-           }
-           
-           // Fallback or verify with canvas if DOM seems 0 (hidden/detached)
-           if (textWidth <= 0) {
-                const fontName = resolvedStyle.fontFamily || 'Inter, sans-serif';
-                const isBold = !!resolvedStyle.bold;
-                const isItalic = !!resolvedStyle.italic;
-                textWidth = measureTextWidth(displayValue, fontSize, fontName, isBold, isItalic);
-           }
+           // Use measureTextWidth to get the true unconstrained width
+           const textWidth = measureTextWidth(displayValue, fontSize, fontName, isBold, isItalic);
            
            // Calculate Scale
            if (textWidth > 0) {
