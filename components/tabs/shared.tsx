@@ -30,7 +30,7 @@ export interface TabProps {
   onSort?: (direction: 'asc' | 'desc') => void;
   onMergeCenter?: () => void;
   onDataValidation?: () => void;
-  onOpenFormatDialog?: () => void;
+  onOpenFormatDialog?: (tab?: string) => void;
   onToggleAI?: () => void;
   
   // Format Menu Props
@@ -148,7 +148,7 @@ export const RibbonGroup: React.FC<{
     {showLauncher && (
         <button 
             onClick={onLaunch}
-            className="absolute bottom-0.5 right-0.5 p-0.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-sm transition-colors"
+            className="absolute bottom-0.5 right-0.5 p-[0.3rem] text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-sm transition-colors"
             title="See more options"
         >
             <SquareArrowOutDownRight size={10} />

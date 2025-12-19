@@ -10,7 +10,7 @@ import DecreaseDecimal from './DecreaseDecimal';
 
 const NumberGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onOpenFormatDialog }) => {
   return (
-    <RibbonGroup label="Number" showLauncher onLaunch={onOpenFormatDialog}>
+    <RibbonGroup label="Number" showLauncher onLaunch={() => onOpenFormatDialog?.('Number')}>
         <div className="flex flex-col gap-1.5 justify-center h-full py-1 px-1">
             <div className="flex justify-center w-full">
                 <NumberFormatSelector currentStyle={currentStyle} onToggleStyle={onToggleStyle} onOpenFormatDialog={onOpenFormatDialog} />

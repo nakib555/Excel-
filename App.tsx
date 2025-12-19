@@ -154,6 +154,7 @@ const App: React.FC = () => {
   const [showMobileResize, setShowMobileResize] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showFormatCells, setShowFormatCells] = useState(false);
+  const [formatDialogTab, setFormatDialogTab] = useState('Number');
   const [findReplaceState, setFindReplaceState] = useState<{ open: boolean, mode: 'find' | 'replace' | 'goto' }>({ open: false, mode: 'find' });
   const clipboardRef = useRef<{ cells: Record<CellId, CellData>; baseRow: number; baseCol: number } | null>(null);
   
@@ -1106,6 +1107,13 @@ const App: React.FC = () => {
       }
   }, [cells, validations, selectionRange, activeSheetId]);
 
+  const handleOpenFormatDialog = useCallback((tab: string = 'Number') => {
+      // Ensure we receive a string, as events might be passed
+      const targetTab = typeof tab === 'string' ? tab : 'Number';
+      setFormatDialogTab(targetTab);
+      setShowFormatCells(true);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
         if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
@@ -1184,7 +1192,7 @@ const App: React.FC = () => {
             onMoveCopySheet={handleMoveCopySheet}
             onProtectSheet={handleProtectSheet}
             onLockCell={handleLockCell}
-            onOpenFormatDialog={() => setShowFormatCells(true)}
+            onOpenFormatDialog={handleOpenFormatDialog}
             
             onSort={handleSort}
             onMergeCenter={handleMergeCenter}
@@ -1290,6 +1298,7 @@ const App: React.FC = () => {
             onClose={() => setShowFormatCells(false)}
             initialStyle={activeStyle}
             onApply={handleApplyFullStyle}
+            initialTab={formatDialogTab}
         />
       </Suspense>
 

@@ -18,12 +18,13 @@ interface FormatCellsDialogProps {
   onClose: () => void;
   initialStyle: CellStyle;
   onApply: (style: CellStyle) => void;
+  initialTab?: string;
 }
 
 const TABS = ['Number', 'Alignment', 'Font', 'Border', 'Fill', 'Protection'];
 
-const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, initialStyle, onApply }) => {
-  const [activeTab, setActiveTab] = useState('Number');
+const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, initialStyle, onApply, initialTab = 'Number' }) => {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [style, setStyle] = useState<CellStyle>(initialStyle);
   const [isDragging, setIsDragging] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -40,6 +41,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
   useEffect(() => {
       if (isOpen) {
           setStyle(JSON.parse(JSON.stringify(initialStyle)));
+          setActiveTab(initialTab);
           if (!isMobile) {
             const width = 680;
             const height = 680;
@@ -49,7 +51,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
             });
           }
       }
-  }, [isOpen, initialStyle, isMobile]);
+  }, [isOpen, initialStyle, isMobile, initialTab]);
 
   useEffect(() => {
       const handleMouseMove = (e: MouseEvent) => {

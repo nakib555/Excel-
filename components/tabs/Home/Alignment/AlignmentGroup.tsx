@@ -16,7 +16,7 @@ import ShrinkToFit from './ShrinkToFit';
 
 const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onMergeCenter, onOpenFormatDialog }) => {
   return (
-    <RibbonGroup label="Alignment" showLauncher onLaunch={onOpenFormatDialog}>
+    <RibbonGroup label="Alignment" showLauncher onLaunch={() => onOpenFormatDialog?.('Alignment')}>
         <div className="flex h-full py-0.5 gap-2 px-1">
             {/* 1. Alignment Icons (3x2 Grid) */}
             <div className="flex flex-col justify-center h-full gap-1">
