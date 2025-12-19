@@ -252,12 +252,9 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
             {/* Content Pane */}
             <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1 pb-4">
                 {/* Sample Preview */}
-                <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
-                    <div className="absolute right-0 top-0 p-2 opacity-10">
-                        {getCurrentCategoryIcon()}
-                    </div>
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Sample</span>
-                    <div className="text-[15px] font-mono text-slate-800 font-medium truncate">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 shadow-inner relative overflow-hidden flex flex-col items-center justify-center min-h-[100px]">
+                    <div className="absolute left-3 top-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sample</div>
+                    <div className="text-[24px] font-mono text-slate-800 font-medium tracking-tight">
                         {formattedSample}
                     </div>
                 </div>
