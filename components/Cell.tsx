@@ -202,8 +202,8 @@ const Cell = memo(({
     minWidth: width,
     minHeight: height,
     display: 'flex',
-    justifyContent,
-    alignItems,
+    justifyContent: data.isCheckbox ? 'center' : justifyContent, // Force center for checkbox
+    alignItems: data.isCheckbox ? 'center' : alignItems,
     paddingLeft: verticalText ? 0 : paddingLeft,
     paddingRight: verticalText ? 0 : paddingRight,
     backgroundColor,
@@ -281,12 +281,12 @@ const Cell = memo(({
       ) : (
         !isMicroView && (
             data.isCheckbox ? (
-                 <div className="flex items-center justify-center w-full h-full">
+                 <div className="flex items-center justify-center w-full h-full pointer-events-none">
                      <input 
                         type="checkbox" 
-                        checked={data.value === 'TRUE'} 
+                        checked={String(data.value).toUpperCase() === 'TRUE'} 
                         onChange={(e) => onChange(id, e.target.checked ? 'TRUE' : 'FALSE')}
-                        className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                        className="w-4 h-4 accent-emerald-600 cursor-pointer pointer-events-auto"
                         onMouseDown={(e) => e.stopPropagation()} 
                      />
                  </div>

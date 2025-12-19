@@ -39,6 +39,8 @@ interface GridProps {
   onRowResize: (rowIdx: number, height: number) => void;
   onExpandGrid: (direction: 'row' | 'col') => void;
   onZoom: (delta: number) => void;
+  onFill?: (sourceRange: CellId[], targetRange: CellId[]) => void;
+  onAutoFit?: (col: number) => void;
 }
 
 const Grid: React.FC<GridProps> = ({
@@ -60,7 +62,9 @@ const Grid: React.FC<GridProps> = ({
   onColumnResize,
   onRowResize,
   onExpandGrid,
-  onZoom
+  onZoom,
+  onFill,
+  onAutoFit
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const gridLayerRef = useRef<HTMLDivElement>(null);
@@ -69,6 +73,7 @@ const Grid: React.FC<GridProps> = ({
   
   const isMobile = useRef(typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)).current;
   const isDraggingRef = useRef(false);
+  const isFillDraggingRef = useRef(false);
   const selectionStartRef = useRef<string | null>(null);
   const resizingRef = useRef<{ type: 'col' | 'row'; index: number; start: number; initialSize: number; } | null>(null);
   const dragSelectionRef = useRef<{ anchorId: string } | null>(null);
@@ -91,6 +96,9 @@ const Grid: React.FC<GridProps> = ({
   
   const [isExpanding, setIsExpanding] = useState(false);
   const loadingRef = useRef(false);
+
+  // Fill Handle State
+  const [fillRange, setFillRange] = useState<CellId[] | null>(null);
 
   const prevScaleRef = useRef(scale);
   const currentScaleRef = useRef(scale);
@@ -162,6 +170,55 @@ const Grid: React.FC<GridProps> = ({
     };
   }, [selectionRange]);
 
+  // Determine fill selection logic
+  const handleFillHandleMouseDown = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      if (!selectionRange) return;
+      isFillDraggingRef.current = true;
+      setFillRange(selectionRange); // Initial visual state
+      document.body.style.cursor = 'crosshair';
+  };
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+      const target = e.target as HTMLDivElement;
+      const { scrollTop, scrollLeft, clientHeight, clientWidth } = target;
+      
+      // Velocity Calculation
+      const now = Date.now();
+      const dt = now - lastScrollPos.current.time;
+      let velocityFactor = 0;
+
+      if (dt > 0) {
+          const dy = Math.abs(scrollTop - lastScrollPos.current.top);
+          const dx = Math.abs(scrollLeft - lastScrollPos.current.left);
+          const velocity = Math.max(dy, dx) / dt; // pixels per ms
+          velocityFactor = velocity * 2; 
+      }
+
+      setScrollState({ 
+          scrollTop, 
+          scrollLeft, 
+          clientHeight, 
+          clientWidth,
+          velocityFactor
+      });
+
+      lastScrollPos.current = { top: scrollTop, left: scrollLeft, time: now };
+      
+      // Handle Scrolling State for Ghosting
+      setIsScrolling(true);
+      if (offloadTimerRef.current) clearTimeout(offloadTimerRef.current);
+      setIsIdle(false);
+      
+      offloadTimerRef.current = setTimeout(() => {
+          setIsScrolling(false);
+          setIsIdle(true);
+          setScrollState(prev => ({ ...prev, velocityFactor: 0 }));
+      }, 150);
+
+  }, []);
+
   const { 
     visibleRows, visibleCols, 
     spacerTop, spacerBottom, 
@@ -232,193 +289,87 @@ const Grid: React.FC<GridProps> = ({
     backgroundPosition: '0 0'
   }), [scale]);
 
-  useLayoutEffect(() => {
-    if (Math.abs(prevScaleRef.current - scale) > 0.001 && containerRef.current) {
-        const el = containerRef.current;
-        let targetUnscaledCenterX = 0;
-        let targetUnscaledCenterY = 0;
-        let hasTarget = false;
-
-        if (selectionBounds) {
-             const { minRow, maxRow, minCol, maxCol } = selectionBounds;
-             let top = getRowTop(minRow) / scale; // unscale logic moved
-             // Simplified unscale center calc due to re-calc refactor complexity
-             // Reverting to basic scale ratio preservation if not perfect target calc available in this scope
-             const scaleRatio = scale / prevScaleRef.current;
-             const centerY = el.scrollTop + el.clientHeight / 2;
-             const centerX = el.scrollLeft + el.clientHeight / 2;
-             el.scrollTop = (centerY * scaleRatio) - el.clientHeight / 2;
-             el.scrollLeft = (centerX * scaleRatio) - el.clientWidth / 2;
-        } else {
-            const scaleRatio = scale / prevScaleRef.current;
-            const centerY = el.scrollTop + el.clientHeight / 2;
-            const centerX = el.scrollLeft + el.clientHeight / 2;
-            el.scrollTop = (centerY * scaleRatio) - el.clientHeight / 2;
-            el.scrollLeft = (centerX * scaleRatio) - el.clientWidth / 2;
-        }
-        prevScaleRef.current = scale;
-    }
-  }, [scale, selectionBounds, rowHeights, columnWidths, getRowTop, getColLeft]);
-
+  // Global Mouse Handlers for Dragging
   useEffect(() => {
-    if (!activeCell || !containerRef.current) return;
-    const parsed = parseCellId(activeCell);
-    if (!parsed) return;
-    const { row, col } = parsed;
-    
-    const top = getRowTop(row);
-    const left = getColLeft(col);
+      const handleWindowMouseMove = (e: MouseEvent) => {
+          if (isFillDraggingRef.current && selectionBounds && containerRef.current) {
+              const rect = containerRef.current.getBoundingClientRect();
+              
+              // Calculate cell under cursor
+              const x = e.clientX - rect.left + containerRef.current.scrollLeft - headerColW;
+              const y = e.clientY - rect.top + containerRef.current.scrollTop - HEADER_ROW_HEIGHT * scale;
+              
+              let currentTop = 0;
+              let targetRow = 0;
+              while(targetRow < size.rows) {
+                  const h = rowHeights[targetRow] ? rowHeights[targetRow] * scale : DEFAULT_ROW_HEIGHT * scale;
+                  if (y >= currentTop && y < currentTop + h) break;
+                  currentTop += h;
+                  targetRow++;
+              }
+              
+              let currentLeft = 0;
+              let targetCol = 0;
+              while(targetCol < size.cols) {
+                  const w = columnWidths[numToChar(targetCol)] ? columnWidths[numToChar(targetCol)] * scale : DEFAULT_COL_WIDTH * scale;
+                  if (x >= currentLeft && x < currentLeft + w) break;
+                  currentLeft += w;
+                  targetCol++;
+              }
 
-    const el = containerRef.current;
-    const cellH = getRowHeight(row);
-    const cellW = getColWidth(col);
+              // Constrain fill to simple directions
+              const { minRow, maxRow, minCol, maxCol } = selectionBounds;
+              
+              const dDown = targetRow - maxRow;
+              const dUp = minRow - targetRow;
+              const dRight = targetCol - maxCol;
+              const dLeft = minCol - targetCol;
+              
+              const maxDist = Math.max(dDown, dUp, dRight, dLeft);
+              
+              let newRangeStart = getCellId(minCol, minRow);
+              let newRangeEnd = getCellId(maxCol, maxRow);
 
-    if (top < el.scrollTop) el.scrollTop = top;
-    else if (top + cellH > el.scrollTop + el.clientHeight) el.scrollTop = top + cellH - el.clientHeight;
+              if (maxDist > 0) {
+                  if (maxDist === dDown) {
+                      newRangeEnd = getCellId(maxCol, targetRow);
+                  } else if (maxDist === dUp) {
+                      newRangeStart = getCellId(minCol, targetRow);
+                  } else if (maxDist === dRight) {
+                      newRangeEnd = getCellId(targetCol, maxRow);
+                  } else if (maxDist === dLeft) {
+                      newRangeStart = getCellId(targetCol, minRow);
+                  }
+              }
+              
+              const range = getRange(newRangeStart, newRangeEnd);
+              if (range.length > 0) setFillRange(range);
+          }
+      };
 
-    if (left < el.scrollLeft) el.scrollLeft = left;
-    else if (left + cellW > el.scrollLeft + el.clientWidth) el.scrollLeft = left + cellW - el.clientWidth;
+      const handleWindowMouseUp = () => {
+          if (isDraggingRef.current) {
+              isDraggingRef.current = false;
+          }
+          if (isFillDraggingRef.current) {
+              isFillDraggingRef.current = false;
+              document.body.style.cursor = '';
+              if (fillRange && selectionRange && onFill) {
+                  if (fillRange.length > selectionRange.length) {
+                      onFill(selectionRange, fillRange);
+                  }
+              }
+              setFillRange(null);
+          }
+      };
 
-  }, [activeCell, getRowTop, getColLeft, getRowHeight, getColWidth, scale]);
-
-  const isPinchingRef = useRef(false);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handleTouchStart = (e: TouchEvent) => {
-        if (e.touches.length === 2) {
-            e.preventDefault();
-            isPinchingRef.current = true;
-            setIsPinching(true);
-            const dx = e.touches[0].pageX - e.touches[1].pageX;
-            const dy = e.touches[0].pageY - e.touches[1].pageY;
-            touchStartDist.current = Math.sqrt(dx * dx + dy * dy);
-            
-            if (gridLayerRef.current) {
-                 const rect = el.getBoundingClientRect();
-                 const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                 const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                 const originX = el.scrollLeft + (cx - rect.left);
-                 const originY = el.scrollTop + (cy - rect.top);
-                 gridLayerRef.current.style.transition = 'none';
-                 gridLayerRef.current.style.transformOrigin = `${originX}px ${originY}px`;
-                 gridLayerRef.current.style.willChange = 'transform';
-            }
-        }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-        if (e.touches.length === 2 && isPinchingRef.current) {
-            e.preventDefault();
-            const dx = e.touches[0].pageX - e.touches[1].pageX;
-            const dy = e.touches[0].pageY - e.touches[1].pageY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            
-            if (touchStartDist.current > 0) {
-                const ratio = dist / touchStartDist.current;
-                if (rafRef.current) cancelAnimationFrame(rafRef.current);
-                rafRef.current = requestAnimationFrame(() => {
-                    if (gridLayerRef.current) {
-                        gridLayerRef.current.style.transform = `scale(${ratio})`;
-                    }
-                });
-            }
-        }
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-        if (isPinchingRef.current && e.touches.length < 2) {
-            isPinchingRef.current = false;
-            setIsPinching(false);
-            
-            if (gridLayerRef.current) {
-                const currentTransform = gridLayerRef.current.style.transform;
-                const match = currentTransform.match(/scale\(([^)]+)\)/);
-                const ratio = match ? parseFloat(match[1]) : 1;
-                
-                gridLayerRef.current.style.transform = '';
-                gridLayerRef.current.style.transition = ''; 
-                gridLayerRef.current.style.willChange = 'auto';
-                
-                const newScale = Math.max(0.25, Math.min(4, currentScaleRef.current * ratio));
-                onZoom(newScale - currentScaleRef.current);
-            }
-            if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        }
-    };
-
-    el.addEventListener('touchstart', handleTouchStart, { passive: false });
-    el.addEventListener('touchmove', handleTouchMove, { passive: false });
-    el.addEventListener('touchend', handleTouchEnd);
-
-    return () => {
-        el.removeEventListener('touchstart', handleTouchStart);
-        el.removeEventListener('touchmove', handleTouchMove);
-        el.removeEventListener('touchend', handleTouchEnd);
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [onZoom]);
-
-  const checkExpansion = useCallback((vy: number, vx: number) => {
-     if (!containerRef.current || loadingRef.current) return;
-     const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = containerRef.current;
-     const yMultiplier = Math.max(1, vy); 
-     const xMultiplier = Math.max(1, vx);
-     const rowThreshold = clientHeight * (2 + yMultiplier * 1.5); 
-     const colThreshold = clientWidth * (2 + xMultiplier * 1.5); 
-     if ((scrollHeight - (scrollTop + clientHeight)) < rowThreshold) {
-        loadingRef.current = true;
-        setIsExpanding(true);
-        onExpandGrid('row');
-        setTimeout(() => { loadingRef.current = false; setIsExpanding(false); }, 150);
-     } else if ((scrollWidth - (scrollLeft + clientWidth)) < colThreshold) {
-        loadingRef.current = true;
-        setIsExpanding(true);
-        onExpandGrid('col');
-        setTimeout(() => { loadingRef.current = false; setIsExpanding(false); }, 150);
-     }
-  }, [onExpandGrid]);
-
-  const handleScroll = useCallback(() => {
-    if (!containerRef.current) return;
-    const element = containerRef.current;
-    const now = performance.now();
-    const currentTop = element.scrollTop;
-    const currentLeft = element.scrollLeft;
-    
-    const dt = Math.max(1, now - lastScrollPos.current.time);
-    const dy = Math.abs(currentTop - lastScrollPos.current.top);
-    const dx = Math.abs(currentLeft - lastScrollPos.current.left);
-    
-    const vy = dy / dt;
-    const vx = dx / dt;
-    velocityRef.current = { x: vx, y: vy };
-    lastScrollPos.current = { top: currentTop, left: currentLeft, time: now };
-    if (isIdle) setIsIdle(false);
-    setIsScrolling(true);
-    if (offloadTimerRef.current) clearTimeout(offloadTimerRef.current);
-    offloadTimerRef.current = setTimeout(() => {
-        setIsScrolling(false);
-        setIsIdle(true); 
-        setScrollState(prev => ({ ...prev, velocityFactor: 0 }));
-    }, 150); 
-    checkExpansion(vy, vx);
-    const updateThreshold = isMobile ? SCROLL_UPDATE_THRESHOLD * 1.5 : SCROLL_UPDATE_THRESHOLD;
-    if (dy < updateThreshold && dx < updateThreshold) return;
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-        setScrollState(prev => ({ 
-            ...prev,
-            scrollTop: currentTop, 
-            scrollLeft: currentLeft, 
-            clientHeight: element.clientHeight, 
-            clientWidth: element.clientWidth,
-            velocityFactor: Math.max(vy, vx)
-        }));
-    });
-  }, [checkExpansion, isIdle, isMobile]);
+      window.addEventListener('mousemove', handleWindowMouseMove);
+      window.addEventListener('mouseup', handleWindowMouseUp);
+      return () => {
+          window.removeEventListener('mousemove', handleWindowMouseMove);
+          window.removeEventListener('mouseup', handleWindowMouseUp);
+      };
+  }, [selectionBounds, size, rowHeights, columnWidths, headerColW, scale, fillRange, selectionRange, onFill]);
 
   const handleMouseDown = useCallback((id: string, isShift: boolean) => {
       isDraggingRef.current = true;
@@ -440,10 +391,8 @@ const Grid: React.FC<GridProps> = ({
       
       let anchorId;
       if (type === 'topLeft') {
-          // If moving top-left handle, anchor is bottom-right
           anchorId = getCellId(maxCol, maxRow);
       } else {
-          // If moving bottom-right handle, anchor is top-left
           anchorId = getCellId(minCol, minRow);
       }
       dragSelectionRef.current = { anchorId };
@@ -452,10 +401,9 @@ const Grid: React.FC<GridProps> = ({
   useEffect(() => {
       const handleTouchMove = (e: TouchEvent) => {
           if (!dragSelectionRef.current) return;
-          e.preventDefault(); // Stop scrolling while dragging handle
+          e.preventDefault(); 
           
           const touch = e.touches[0];
-          // Use elementsFromPoint to pierce through the handle/overlay
           const elements = document.elementsFromPoint(touch.clientX, touch.clientY);
           const cellEl = elements.find(el => el.hasAttribute('data-cell-id'));
           
@@ -508,6 +456,10 @@ const Grid: React.FC<GridProps> = ({
     return () => { document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
   }, [onColumnResize, onRowResize, scale]);
 
+  const handleAutoFitColumn = useCallback((col: number) => {
+      if(onAutoFit) onAutoFit(col);
+  }, [onAutoFit]);
+
   const handleWheel = (e: React.WheelEvent) => {
       if (e.ctrlKey) {
           e.preventDefault();
@@ -533,6 +485,35 @@ const Grid: React.FC<GridProps> = ({
       }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+        
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+             if (selectionRange && selectionRange.length > 0) {
+                 e.preventDefault();
+                 selectionRange.forEach(id => {
+                     if (onCellChange) onCellChange(id, ''); 
+                 });
+             } else if (activeCell) {
+                 e.preventDefault();
+                 if (onCellChange) onCellChange(activeCell, '');
+             }
+        }
+        
+        if (e.key === ' ' && activeCell) {
+             const cell = cells[activeCell];
+             if (cell && cell.isCheckbox) {
+                 e.preventDefault(); 
+                 const currentVal = String(cell.value).toUpperCase() === 'TRUE';
+                 if (onCellChange) onCellChange(activeCell, currentVal ? 'FALSE' : 'TRUE');
+             }
+        }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeCell, selectionRange, cells, onCellChange]);
+
   const getColW = useCallback((i: number) => (columnWidths[numToChar(i)] || DEFAULT_COL_WIDTH) * scale, [columnWidths, scale]);
   const getRowH = useCallback((i: number) => (rowHeights[i] || DEFAULT_ROW_HEIGHT) * scale, [rowHeights, scale]);
   const headerRowH = HEADER_ROW_HEIGHT * scale;
@@ -541,6 +522,19 @@ const Grid: React.FC<GridProps> = ({
   const arrowOffset = Math.max(2, 4 * scale);
   const velocityThreshold = isMobile ? 0.5 : 2;
   const isScrollingFast = Math.abs(scrollState.velocityFactor) > velocityThreshold;
+
+  const fillBounds = useMemo(() => {
+      if (!fillRange || fillRange.length === 0) return null;
+      const start = parseCellId(fillRange[0]);
+      const end = parseCellId(fillRange[fillRange.length - 1]);
+      if (!start || !end) return null;
+      return {
+          minRow: Math.min(start.row, end.row),
+          maxRow: Math.max(start.row, end.row),
+          minCol: Math.min(start.col, end.col),
+          maxCol: Math.max(start.col, end.col)
+      };
+  }, [fillRange]);
 
   return (
     <div 
@@ -595,6 +589,7 @@ const Grid: React.FC<GridProps> = ({
                             fontSize={headerFontSize}
                             onCellClick={onCellClick}
                             startResize={startResize}
+                            onAutoFit={() => handleAutoFitColumn(col)}
                         />
                     )
                 })}
@@ -649,20 +644,21 @@ const Grid: React.FC<GridProps> = ({
                     let width = 0;
                     for(let c = minCol; c <= maxCol; c++) width += getColWidth(c);
 
+                    // Position micro-adjustments to align perfectly with grid lines
+                    const offset = 1;
+
                     // Determine animation behavior
-                    // We disable animation ('duration: 0') when dragging to keep the box responsive
-                    // We use a spring animation when navigating via keyboard or single clicks
                     const isDragging = isDraggingRef.current;
 
                     return (
                         <motion.div 
-                            className="absolute pointer-events-none z-30 border-[2px] border-primary-500 shadow-glow mix-blend-multiply rounded-[2px]"
+                            className="absolute pointer-events-none z-30 border-[2px] border-primary-600 shadow-glow mix-blend-multiply rounded-[2px]"
                             initial={false}
                             animate={{
-                                top,
-                                left: left + headerColW,
-                                width,
-                                height
+                                top: top - offset,
+                                left: left + headerColW - offset,
+                                width: width + offset,
+                                height: height + offset
                             }}
                             transition={isDragging ? { duration: 0 } : {
                                 type: "spring",
@@ -673,24 +669,48 @@ const Grid: React.FC<GridProps> = ({
                         >
                             {/* Mobile Touch Handles */}
                             <div 
-                                className="absolute -top-3 -left-3 w-6 h-6 bg-white border-2 border-primary-500 rounded-full shadow-md z-50 flex items-center justify-center pointer-events-auto md:hidden touch-none"
+                                className="absolute -top-2.5 -left-2.5 w-5 h-5 bg-white border-2 border-primary-600 rounded-full shadow-md z-50 flex items-center justify-center pointer-events-auto md:hidden touch-none"
                                 onTouchStart={(e) => onHandleTouchStart(e, 'topLeft')}
                             />
                             <div 
-                                className="absolute -bottom-3 -right-3 w-6 h-6 bg-white border-2 border-primary-500 rounded-full shadow-md z-50 flex items-center justify-center pointer-events-auto md:hidden touch-none"
+                                className="absolute -bottom-2.5 -right-2.5 w-5 h-5 bg-white border-2 border-primary-600 rounded-full shadow-md z-50 flex items-center justify-center pointer-events-auto md:hidden touch-none"
                                 onTouchStart={(e) => onHandleTouchStart(e, 'bottomRight')}
                             />
 
                             {/* Fill Handle (Desktop) */}
                             <div 
-                                className="absolute -bottom-[4px] -right-[4px] bg-primary-500 border border-white cursor-crosshair rounded-[2.5px] shadow-sm z-50 pointer-events-auto hover:scale-125 transition-transform hidden md:block"
+                                className="absolute -bottom-[4px] -right-[4px] bg-primary-600 border border-white cursor-crosshair rounded-[2px] shadow-sm z-50 pointer-events-auto hover:scale-125 transition-transform hidden md:block"
                                 style={{ width: Math.max(6, 9 * scale), height: Math.max(6, 9 * scale) }}
-                                onMouseDown={(e) => {
-                                    e.stopPropagation();
-                                    // Drag fill logic would go here
-                                }}
+                                onMouseDown={handleFillHandleMouseDown}
                             />
                         </motion.div>
+                    );
+                })()
+            )}
+
+            {/* GHOST FILL OVERLAY */}
+            {fillBounds && isFillDraggingRef.current && (
+                (() => {
+                    const { minRow, maxRow, minCol, maxCol } = fillBounds;
+                    const top = getRowTop(minRow);
+                    const left = getColLeft(minCol);
+                    
+                    let height = 0;
+                    for(let r = minRow; r <= maxRow; r++) height += getRowHeight(r);
+                    
+                    let width = 0;
+                    for(let c = minCol; c <= maxCol; c++) width += getColWidth(c);
+
+                    return (
+                        <div 
+                            className="absolute pointer-events-none z-20 border-[2px] border-dashed border-slate-400 bg-black/5"
+                            style={{
+                                top,
+                                left: left + headerColW,
+                                width,
+                                height
+                            }}
+                        />
                     );
                 })()
             )}

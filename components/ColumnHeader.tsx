@@ -11,10 +11,11 @@ interface ColumnHeaderProps {
   fontSize: number;
   onCellClick: (id: string, isShift: boolean) => void;
   startResize: (e: React.MouseEvent, type: 'col' | 'row', index: number, currentSize: number) => void;
+  onAutoFit?: () => void;
 }
 
 const ColumnHeader = memo(({ 
-  col, width, height, colChar, isActive, fontSize, onCellClick, startResize 
+  col, width, height, colChar, isActive, fontSize, onCellClick, startResize, onAutoFit 
 }: ColumnHeaderProps) => {
   return (
     <div 
@@ -27,8 +28,12 @@ const ColumnHeader = memo(({
     >
         {colChar}
         <div 
-            className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-emerald-500 z-10"
+            className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-emerald-500 z-10 translate-x-1/2"
             onMouseDown={(e) => startResize(e, 'col', col, width)} 
+            onDoubleClick={(e) => {
+                e.stopPropagation();
+                if(onAutoFit) onAutoFit();
+            }}
         />
     </div>
   );

@@ -3,7 +3,7 @@ import React, { memo } from 'react';
 import { getCellId, parseCellId, cn, formatCellValue } from '../utils';
 import { NavigationDirection } from './Cell';
 import { CellStyle } from '../types';
-import Cell from './Cell'; // Static import
+import Cell from './Cell'; 
 
 interface GridRowProps {
   rowIdx: number;
@@ -17,7 +17,7 @@ interface GridRowProps {
   activeCell: string | null;
   selectionBounds: { minRow: number, maxRow: number, minCol: number, maxCol: number } | null;
   scale: number;
-  mergedCellsSet: Set<string>; // Set of cell IDs that are part of a merge
+  mergedCellsSet: Set<string>; 
   onCellClick: (id: string, isShift: boolean) => void;
   handleMouseDown: (id: string, isShift: boolean) => void;
   handleMouseEnter: (id: string) => void;
@@ -185,7 +185,6 @@ const GridRow = memo(({
     if (prev.styles !== next.styles) return false;
     if (prev.mergedCellsSet !== next.mergedCellsSet) return false;
     
-    // Check if column widths function has changed (indicates column resize)
     if (prev.getColW !== next.getColW) return false;
     
     const isRowInvolvedActive = (id: string | null, rowIdx: number) => {

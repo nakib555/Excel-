@@ -290,3 +290,21 @@ export const getMergeRangeDimensions = (
 
     return { width, height };
 };
+
+// Canvas context for text measurement
+let measureCtx: CanvasRenderingContext2D | null = null;
+
+export const measureTextWidth = (text: string, fontSize: number = 13, fontFamily: string = 'Inter, sans-serif', bold: boolean = false): number => {
+    if (typeof document === 'undefined') return 0;
+    
+    if (!measureCtx) {
+        const canvas = document.createElement('canvas');
+        measureCtx = canvas.getContext('2d');
+    }
+    
+    if (measureCtx) {
+        measureCtx.font = `${bold ? 'bold' : 'normal'} ${fontSize}px ${fontFamily}`;
+        return measureCtx.measureText(text).width;
+    }
+    return 0;
+};

@@ -1,5 +1,6 @@
+
 import { CellData, CellId } from '../types';
-import { parseCellId, getRange } from './helpers';
+import { parseCellId, getRange, getCellId, numToChar, charToNum } from './helpers';
 import { evaluate } from 'mathjs';
 
 // Helper to check if a string is numeric
@@ -88,8 +89,6 @@ export const extractDependencies = (formula: string): string[] => {
   // 1. Extract Ranges first
   const rangeRegex = /([A-Z]+[0-9]+):([A-Z]+[0-9]+)/g;
   let match;
-  let cleanedFormula = upper; // We'll remove ranges to avoid double-matching cells inside them if needed, 
-                              // but Set handles deduplication, so simpler is often better.
   
   while ((match = rangeRegex.exec(upper)) !== null) {
       const range = getRange(match[1], match[2]);
@@ -97,7 +96,6 @@ export const extractDependencies = (formula: string): string[] => {
   }
   
   // 2. Extract Individual Cells
-  // We match things that look like cells. parseCellId verifies they are valid coords.
   const cellRegex = /[A-Z]+[0-9]+/g;
   while ((match = cellRegex.exec(upper)) !== null) {
       if (parseCellId(match[0])) {
@@ -106,4 +104,33 @@ export const extractDependencies = (formula: string): string[] => {
   }
   
   return Array.from(deps);
+};
+
+/**
+ * Adjusts relative cell references in a formula based on row/column deltas.
+ * e.g., adjustFormulaReferences("=A1+1", 1, 0) -> "=A2+1"
+ */
+export const adjustFormulaReferences = (formula: string, rDelta: number, cDelta: number): string => {
+    if (!formula.startsWith('=')) return formula;
+    
+    // Regex to capture cell references with optional absolute ($) markers
+    // Groups: 1: $ (col abs), 2: Col (letters), 3: $ (row abs), 4: Row (digits)
+    const refRegex = /(\$?)([A-Z]+)(\$?)([0-9]+)/g;
+    
+    return formula.replace(refRegex, (match, colAbs, colStr, rowAbs, rowStr) => {
+        // If it's a known function keyword like SUM, MIN, MAX inside a larger string that accidentally matched simple cell regex logic 
+        // (though [A-Z]+[0-9]+ enforces digits, so SUM shouldn't match unless it is SUM1), we are safe.
+        
+        let col = charToNum(colStr);
+        let row = parseInt(rowStr) - 1; // 0-indexed
+        
+        // Adjust if not absolute
+        if (!colAbs) col += cDelta;
+        if (!rowAbs) row += rDelta;
+        
+        // Ensure bounds
+        if (col < 0 || row < 0) return '#REF!';
+        
+        return `${colAbs || ''}${numToChar(col)}${rowAbs || ''}${row + 1}`;
+    });
 };

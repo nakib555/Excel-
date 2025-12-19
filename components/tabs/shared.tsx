@@ -27,6 +27,9 @@ export interface TabProps {
   onInsertCheckbox?: () => void;
   onInsertLink?: () => void;
   onInsertComment?: () => void;
+  // Find & Select
+  onFindReplace?: (mode: 'find' | 'replace' | 'goto') => void;
+  onSelectSpecial?: (type: 'formulas' | 'comments' | 'constants' | 'validation' | 'conditional' | 'blanks') => void;
 }
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {
@@ -251,20 +254,13 @@ export const SmartDropdown = ({
                     if (transformOrigin.includes('right')) transformOrigin = 'bottom right';
                 }
 
-                // If dimensions are suspiciously zero (first render), don't show yet
-                // But generally setStyle will update with whatever we have.
-                // The RAF loop below will catch the updated size.
-                
                 setStyle({ top, left, transformOrigin, opacity: 1 });
             };
 
-            // Force initial measure
             updatePosition();
             
-            // Re-measure after a frame to ensure content is fully laid out (fix for first-open glitch)
             let rafId = requestAnimationFrame(() => {
                 updatePosition();
-                // Double RAF for safety on slower engines/devices
                 rafId = requestAnimationFrame(updatePosition);
             });
             
