@@ -949,6 +949,20 @@ const App: React.FC = () => {
     }
   }, [activeCell, activeSheetId, cells]);
 
+  const handleDeleteComment = useCallback(() => {
+        if (!activeCell) return;
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells: Record<string, CellData> = { ...sheet.cells };
+            const cell = nextCells[activeCell];
+            if (cell && cell.comment) {
+                const { comment, ...rest } = cell;
+                nextCells[activeCell] = rest;
+            }
+            return { ...sheet, cells: nextCells };
+        }));
+  }, [activeCell, activeSheetId]);
+
   const handleAIApply = useCallback((result: { type: 'data' | 'formula', data?: string[][], formula?: string }) => {
     if (!activeCell) return;
     const start = parseCellId(activeCell);
@@ -1180,6 +1194,7 @@ const App: React.FC = () => {
             onInsertCheckbox={handleInsertCheckbox}
             onInsertLink={handleInsertLink}
             onInsertComment={handleInsertComment}
+            onDeleteComment={handleDeleteComment}
             onFindReplace={(mode) => setFindReplaceState({ open: true, mode })}
             onSelectSpecial={handleSelectSpecial}
           />

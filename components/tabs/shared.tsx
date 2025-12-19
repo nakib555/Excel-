@@ -52,6 +52,7 @@ export interface TabProps {
   onInsertCheckbox?: () => void;
   onInsertLink?: () => void;
   onInsertComment?: () => void;
+  onDeleteComment?: () => void;
   // Find & Select
   onFindReplace?: (mode: 'find' | 'replace' | 'goto') => void;
   onSelectSpecial?: (type: 'formulas' | 'comments' | 'constants' | 'validation' | 'conditional' | 'blanks') => void;

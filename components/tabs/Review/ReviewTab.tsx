@@ -22,7 +22,7 @@ const AllowEditRanges = lazy(() => import('./Protect/AllowEditRanges'));
 const UnshareWorkbook = lazy(() => import('./Protect/UnshareWorkbook'));
 const HideInk = lazy(() => import('./Ink/HideInk'));
 
-const ReviewTab: React.FC<TabProps> = () => {
+const ReviewTab: React.FC<TabProps> = ({ onInsertComment, onDeleteComment }) => {
   return (
     <motion.div 
         initial={{ opacity: 0 }}
@@ -61,9 +61,9 @@ const ReviewTab: React.FC<TabProps> = () => {
         <Suspense fallback={<GroupSkeleton width={180} />}>
              <RibbonGroup label="Comments">
                  <div className="flex items-center gap-1 h-full">
-                     <NewComment />
+                     <NewComment onInsertComment={onInsertComment} />
                      <div className="flex flex-col gap-0 justify-center">
-                         <DeleteComment />
+                         <DeleteComment onDeleteComment={onDeleteComment} />
                          <PrevComment />
                          <NextComment />
                      </div>
