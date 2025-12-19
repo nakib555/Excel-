@@ -12,9 +12,9 @@ import Borders from './Borders';
 import FillColor from './FillColor';
 import FontColor from './FontColor';
 
-const FontGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle }) => {
+const FontGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onOpenFormatDialog }) => {
   return (
-    <RibbonGroup label="Font" className="px-3">
+    <RibbonGroup label="Font" className="px-3" showLauncher onLaunch={onOpenFormatDialog}>
         <div className="flex flex-col gap-1 justify-center h-full py-0.5">
             <div className="flex items-center gap-1.5">
                 <FontSelector />

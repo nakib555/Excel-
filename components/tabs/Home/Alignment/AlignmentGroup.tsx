@@ -1,5 +1,4 @@
 
-
 import React, { memo } from 'react';
 import { RibbonGroup, TabProps } from '../../shared';
 import TopAlign from './TopAlign';
@@ -15,9 +14,9 @@ import WrapText from './WrapText';
 import MergeCenter from './MergeCenter';
 import ShrinkToFit from './ShrinkToFit';
 
-const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onMergeCenter }) => {
+const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onMergeCenter, onOpenFormatDialog }) => {
   return (
-    <RibbonGroup label="Alignment">
+    <RibbonGroup label="Alignment" showLauncher onLaunch={onOpenFormatDialog}>
         <div className="flex h-full py-0.5 gap-2 px-1">
             {/* 1. Alignment Icons (3x2 Grid) */}
             <div className="flex flex-col justify-center h-full gap-1">

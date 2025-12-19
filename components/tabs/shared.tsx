@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect, useLayoutEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, SquareArrowOutDownRight } from 'lucide-react';
 import { CellStyle } from '../../types';
 import { cn } from '../../utils';
 
@@ -133,12 +133,27 @@ export const DraggableScrollContainer = memo(({ children, className = "" }: { ch
   );
 });
 
-export const RibbonGroup: React.FC<{ label: string; children: React.ReactNode; className?: string }> = memo(({ label, children, className = "" }) => (
-  <div className={`flex flex-col h-full px-1.5 border-r border-slate-200 last:border-r-0 flex-shrink-0 ${className}`}>
+export const RibbonGroup: React.FC<{ 
+    label: string; 
+    children: React.ReactNode; 
+    className?: string; 
+    showLauncher?: boolean;
+    onLaunch?: () => void;
+}> = memo(({ label, children, className = "", showLauncher, onLaunch }) => (
+  <div className={`flex flex-col h-full px-1.5 border-r border-slate-200 last:border-r-0 flex-shrink-0 relative group/ribbon ${className}`}>
     <div className="flex-1 flex gap-1 items-center justify-center min-h-0">
        {children}
     </div>
-    <div className="h-[18px] flex items-center justify-center text-[10px] text-slate-400 font-medium whitespace-nowrap pb-1">{label}</div>
+    <div className="h-[18px] flex items-center justify-center text-[10px] text-slate-400 font-medium whitespace-nowrap pb-1 cursor-default">{label}</div>
+    {showLauncher && (
+        <button 
+            onClick={onLaunch}
+            className="absolute bottom-0.5 right-0.5 p-0.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-sm transition-colors"
+            title="See more options"
+        >
+            <SquareArrowOutDownRight size={10} />
+        </button>
+    )}
   </div>
 ));
 
