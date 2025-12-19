@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#047857;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#064e3b" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background Container -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#grad)" />
+  
+  <!-- Sheet Paper -->
+  <g filter="url(#shadow)">
+    <rect x="112" y="112" width="288" height="288" rx="24" fill="white"/>
+  </g>
+  
+  <!-- Header Row Background -->
+  <path d="M112 136C112 122.745 122.745 112 136 112H376C389.255 112 400 122.745 400 136V184H112V136Z" fill="#ecfdf5"/>
+  
+  <!-- Grid Lines -->
+  <g stroke="#e2e8f0" stroke-width="12" stroke-linecap="round">
+    <!-- Vertical -->
+    <line x1="208" y1="112" x2="208" y2="400" />
+    <line x1="304" y1="112" x2="304" y2="400" />
+    
+    <!-- Horizontal -->
+    <line x1="112" y1="184" x2="400" y2="184" stroke="#cbd5e1" />
+    <line x1="112" y1="280" x2="400" y2="280" />
+  </g>
+  
+  <!-- Active Cell Selection -->
+  <rect x="220" y="292" width="72" height="76" rx="8" fill="#10b981" fill-opacity="0.15" stroke="#059669" stroke-width="8"/>
+  
+  <!-- Decorative Header Elements (Simulated Text) -->
+  <rect x="140" y="140" width="40" height="12" rx="6" fill="#94a3b8"/>
+  <rect x="236" y="140" width="40" height="12" rx="6" fill="#94a3b8"/>
+  <rect x="332" y="140" width="40" height="12" rx="6" fill="#94a3b8"/>
+
+</svg>
