@@ -1,5 +1,4 @@
 
-
 import React, { memo } from 'react';
 import { getCellId, parseCellId, cn, formatCellValue } from '../utils';
 import { NavigationDirection } from './Cell';
@@ -46,6 +45,7 @@ const EmptyCell = memo(({ width, height, id, onMouseDown, onMouseEnter, onDouble
           minHeight: height,
           visibility: isHidden ? 'hidden' : 'visible'
       }}
+      data-cell-id={id}
       onMouseDown={(e) => !isHidden && onMouseDown(id, e.shiftKey)}
       onMouseEnter={() => !isHidden && onMouseEnter(id)}
       onDoubleClick={() => !isHidden && onDoubleClick(id)}
@@ -118,7 +118,7 @@ const GridRow = memo(({
                 // Merge Check
                 if (mergedCellsSet.has(id)) {
                     // Render hidden placeholder to maintain flex layout
-                    return <EmptyCell key={id} width={getColW(col)} height={height} isHidden={true} />;
+                    return <EmptyCell key={id} width={getColW(col)} height={height} isHidden={true} id={id} />;
                 }
 
                 const data = cells[id];
@@ -184,6 +184,9 @@ const GridRow = memo(({
     if (prev.cells !== next.cells) return false;
     if (prev.styles !== next.styles) return false;
     if (prev.mergedCellsSet !== next.mergedCellsSet) return false;
+    
+    // Check if column widths function has changed (indicates column resize)
+    if (prev.getColW !== next.getColW) return false;
     
     const isRowInvolvedActive = (id: string | null, rowIdx: number) => {
         if (!id) return false;

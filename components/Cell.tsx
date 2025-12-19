@@ -254,9 +254,10 @@ const Cell = memo(({
       className={cn(
         "relative box-border select-none outline-none flex-shrink-0",
         isActive && "z-30",
-        isSelected && !isActive && "z-10",
+        // Removed: isSelected border logic
       )}
       style={containerStyle}
+      data-cell-id={id}
       onMouseDown={(e) => onMouseDown(id, e.shiftKey)}
       onMouseEnter={() => { onMouseEnter(id); setIsHovered(true); }}
       onMouseLeave={() => setIsHovered(false)}
@@ -376,17 +377,6 @@ const Cell = memo(({
                 document.body
             )}
           </>
-      )}
-
-      {isSelected && (
-        <div className="absolute inset-0 pointer-events-none border-[2px] border-primary-500 shadow-glow mix-blend-multiply rounded-[3px]">
-             {isActive && (
-                <div 
-                    className="absolute -bottom-[4px] -right-[4px] bg-primary-500 border border-white cursor-crosshair rounded-[2.5px] shadow-sm z-50 pointer-events-auto hover:scale-110 transition-transform" 
-                    style={{ width: Math.max(6, 9 * scale), height: Math.max(6, 9 * scale) }}
-                />
-             )}
-        </div>
       )}
     </div>
   );
