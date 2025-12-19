@@ -7,17 +7,17 @@ import { CellStyle } from '../../../types';
 interface NumberFormatSelectorProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle' | 'onOpenFormatDialog'> {}
 
 const FORMAT_OPTIONS: { id: CellStyle['format'], label: string, example: string, icon: React.ReactNode }[] = [
-    { id: 'general', label: 'General', example: 'No specific format', icon: <Hash size={14} className="text-slate-400" /> },
-    { id: 'number', label: 'Number', example: '1,234.10', icon: <span className="font-mono text-[10px] font-bold">123</span> },
-    { id: 'currency', label: 'Currency', example: '$1,234.10', icon: <span className="font-mono text-[10px] font-bold">$</span> },
-    { id: 'accounting', label: 'Accounting', example: '$ 1,234.10', icon: <Coins size={14} className="text-yellow-600" /> },
-    { id: 'shortDate', label: 'Short Date', example: '9/23/2024', icon: <Calendar size={14} className="text-slate-400" /> },
-    { id: 'longDate', label: 'Long Date', example: 'Monday, September 23...', icon: <Calendar size={14} className="text-slate-400" /> },
-    { id: 'time', label: 'Time', example: '1:30:55 PM', icon: <Clock size={14} className="text-slate-400" /> },
-    { id: 'percent', label: 'Percentage', example: '25.00%', icon: <Percent size={14} className="text-slate-400" /> },
-    { id: 'fraction', label: 'Fraction', example: '1/4', icon: <span className="font-mono text-[10px] font-bold">½</span> },
-    { id: 'scientific', label: 'Scientific', example: '1.23E+03', icon: <span className="font-mono text-[10px] font-bold">E+</span> },
-    { id: 'text', label: 'Text', example: 'abc', icon: <Type size={14} className="text-slate-400" /> },
+    { id: 'general', label: 'General', example: 'No specific format', icon: <Hash size={14} className="text-blue-500" /> },
+    { id: 'number', label: 'Number', example: '1,234.10', icon: <span className="font-mono text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1 rounded border border-indigo-100">123</span> },
+    { id: 'currency', label: 'Currency', example: '$1,234.10', icon: <span className="font-mono text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 rounded border border-emerald-100">$</span> },
+    { id: 'accounting', label: 'Accounting', example: '$ 1,234.10', icon: <Coins size={14} className="text-amber-500" /> },
+    { id: 'shortDate', label: 'Short Date', example: '9/23/2024', icon: <Calendar size={14} className="text-rose-500" /> },
+    { id: 'longDate', label: 'Long Date', example: 'Monday, September 23...', icon: <Calendar size={14} className="text-purple-500" /> },
+    { id: 'time', label: 'Time', example: '1:30:55 PM', icon: <Clock size={14} className="text-orange-500" /> },
+    { id: 'percent', label: 'Percentage', example: '25.00%', icon: <Percent size={14} className="text-pink-500" /> },
+    { id: 'fraction', label: 'Fraction', example: '1/4', icon: <span className="font-mono text-[10px] font-bold text-cyan-600 bg-cyan-50 px-1 rounded border border-cyan-100">½</span> },
+    { id: 'scientific', label: 'Scientific', example: '1.23E+03', icon: <span className="font-mono text-[10px] font-bold text-teal-600 bg-teal-50 px-0.5 rounded border border-teal-100">E+</span> },
+    { id: 'text', label: 'Text', example: 'abc', icon: <Type size={14} className="text-violet-500" /> },
 ];
 
 const NumberFormatSelector: React.FC<NumberFormatSelectorProps> = ({ currentStyle, onToggleStyle, onOpenFormatDialog }) => {
@@ -64,7 +64,7 @@ const NumberFormatSelector: React.FC<NumberFormatSelectorProps> = ({ currentStyl
                         onClick={() => handleSelect(opt.id)}
                         className={`flex items-center gap-3 px-3 py-2 text-xs cursor-pointer transition-colors ${currentFormat === opt.id ? 'bg-primary-50 text-emerald-800' : 'text-slate-700 hover:bg-slate-100'}`}
                      >
-                        <div className="w-5 flex justify-center opacity-70">{opt.icon}</div>
+                        <div className="w-6 flex justify-center items-center">{opt.icon}</div>
                         <div className="flex-1 flex flex-col">
                             <span className="font-medium">{opt.label}</span>
                             <span className="text-[10px] text-slate-400">{opt.example}</span>
@@ -76,7 +76,7 @@ const NumberFormatSelector: React.FC<NumberFormatSelectorProps> = ({ currentStyl
                         className="px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 cursor-pointer flex items-center gap-3"
                         onClick={() => { setOpen(false); onOpenFormatDialog?.(); }}
                      >
-                        <Calculator size={14} className="text-slate-400" />
+                        <div className="w-6 flex justify-center"><Calculator size={14} className="text-slate-500" /></div>
                         <span>More Number Formats...</span>
                      </div>
                  </div>

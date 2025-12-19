@@ -32,7 +32,7 @@ const Format: React.FC<FormatProps> = ({
             trigger={
                 <RibbonButton 
                     variant="small" 
-                    icon={<Layout size={14} className="text-slate-600" />} 
+                    icon={<Layout size={14} className="text-orange-600" />} 
                     label="Format" 
                     hasDropdown 
                     onClick={() => {}} 
@@ -44,20 +44,20 @@ const Format: React.FC<FormatProps> = ({
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 mb-1 border-b border-slate-100">
                     Cell Size
                 </div>
-                <button onClick={() => handleAction(onFormatRowHeight)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <MoveVertical size={14} className="text-slate-500" />
+                <button onClick={() => handleAction(onFormatRowHeight)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <MoveVertical size={14} className="text-blue-500 group-hover:scale-110 transition-transform" />
                     <span>Row Height...</span>
                 </button>
-                <button onClick={() => handleAction(onAutoFitRowHeight)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <ArrowUpDown size={14} className="text-slate-500" />
+                <button onClick={() => handleAction(onAutoFitRowHeight)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <ArrowUpDown size={14} className="text-blue-400 group-hover:scale-110 transition-transform" />
                     <span>AutoFit Row Height</span>
                 </button>
-                <button onClick={() => handleAction(onFormatColWidth)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <MoveHorizontal size={14} className="text-slate-500" />
+                <button onClick={() => handleAction(onFormatColWidth)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <MoveHorizontal size={14} className="text-purple-500 group-hover:scale-110 transition-transform" />
                     <span>Column Width...</span>
                 </button>
-                <button onClick={() => handleAction(onAutoFitColWidth)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <ArrowLeftRight size={14} className="text-slate-500" />
+                <button onClick={() => handleAction(onAutoFitColWidth)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <ArrowLeftRight size={14} className="text-purple-400 group-hover:scale-110 transition-transform" />
                     <span>AutoFit Column Width</span>
                 </button>
 
@@ -65,20 +65,20 @@ const Format: React.FC<FormatProps> = ({
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 my-1 border-y border-slate-100">
                     Visibility
                 </div>
-                <button onClick={() => handleAction(onHideRow)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <EyeOff size={14} className="text-slate-500" />
+                <button onClick={() => handleAction(onHideRow)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <EyeOff size={14} className="text-slate-400 group-hover:text-slate-600" />
                     <span>Hide Rows</span>
                 </button>
-                <button onClick={() => handleAction(onHideCol)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <EyeOff size={14} className="text-slate-500 rotate-90" />
+                <button onClick={() => handleAction(onHideCol)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <EyeOff size={14} className="text-slate-400 rotate-90 group-hover:text-slate-600" />
                     <span>Hide Columns</span>
                 </button>
-                <button onClick={() => handleAction(onUnhideRow)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <Eye size={14} className="text-slate-500" />
+                <button onClick={() => handleAction(onUnhideRow)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <Eye size={14} className="text-emerald-500 group-hover:scale-110 transition-transform" />
                     <span>Unhide Rows</span>
                 </button>
-                <button onClick={() => handleAction(onUnhideCol)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <Eye size={14} className="text-slate-500 rotate-90" />
+                <button onClick={() => handleAction(onUnhideCol)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <Eye size={14} className="text-emerald-500 rotate-90 group-hover:scale-110 transition-transform" />
                     <span>Unhide Columns</span>
                 </button>
 
@@ -86,12 +86,12 @@ const Format: React.FC<FormatProps> = ({
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 my-1 border-y border-slate-100">
                     Organize Sheets
                 </div>
-                <button onClick={() => handleAction(onRenameSheet)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <Type size={14} className="text-slate-500" />
+                <button onClick={() => handleAction(onRenameSheet)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <Type size={14} className="text-pink-500 group-hover:scale-110 transition-transform" />
                     <span>Rename Sheet</span>
                 </button>
-                <button onClick={() => handleAction(onMoveCopySheet)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <ArrowRight size={14} className="text-slate-500" />
+                <button onClick={() => handleAction(onMoveCopySheet)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <ArrowRight size={14} className="text-cyan-500 group-hover:scale-110 transition-transform" />
                     <span>Move or Copy Sheet...</span>
                 </button>
 
@@ -99,18 +99,18 @@ const Format: React.FC<FormatProps> = ({
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 my-1 border-y border-slate-100">
                     Protection
                 </div>
-                <button onClick={() => handleAction(onProtectSheet)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <Shield size={14} className="text-slate-500" />
+                <button onClick={() => handleAction(onProtectSheet)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <Shield size={14} className="text-amber-500 group-hover:scale-110 transition-transform" />
                     <span>Protect Sheet...</span>
                 </button>
-                <button onClick={() => handleAction(onLockCell)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
-                    <Lock size={14} className="text-slate-500" />
+                <button onClick={() => handleAction(onLockCell)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <Lock size={14} className="text-rose-500 group-hover:scale-110 transition-transform" />
                     <span>Lock Cell</span>
                 </button>
 
                 <div className="border-t border-slate-100 mt-1 pt-1">
-                    <button onClick={() => handleAction(onOpenFormatDialog)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left w-full">
-                        <Layout size={14} className="text-slate-500" />
+                    <button onClick={() => handleAction(onOpenFormatDialog)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left w-full group">
+                        <Layout size={14} className="text-indigo-600 group-hover:scale-110 transition-transform" />
                         <span>Format Cells...</span>
                     </button>
                 </div>

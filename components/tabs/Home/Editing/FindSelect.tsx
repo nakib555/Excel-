@@ -35,25 +35,25 @@ const FindSelect: React.FC<FindSelectProps> = ({ onFindReplace, onSelectSpecial 
             <div className="flex flex-col py-1">
                 <button 
                     onClick={() => handleSelect(() => onFindReplace?.('find'))}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
                 >
-                    <Search size={14} className="text-slate-500" />
+                    <Search size={14} className="text-blue-500 group-hover:scale-110 transition-transform" />
                     <span className="flex-1">Find...</span>
                     <span className="text-[9px] text-slate-400 font-mono">Ctrl+F</span>
                 </button>
                 <button 
                     onClick={() => handleSelect(() => onFindReplace?.('replace'))}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
                 >
-                    <Replace size={14} className="text-slate-500" />
+                    <Replace size={14} className="text-orange-500 group-hover:scale-110 transition-transform" />
                     <span className="flex-1">Replace...</span>
                     <span className="text-[9px] text-slate-400 font-mono">Ctrl+H</span>
                 </button>
                 <button 
                     onClick={() => handleSelect(() => onFindReplace?.('goto'))}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
                 >
-                    <ArrowRight size={14} className="text-slate-500" />
+                    <ArrowRight size={14} className="text-green-500 group-hover:scale-110 transition-transform" />
                     <span className="flex-1">Go To...</span>
                     <span className="text-[9px] text-slate-400 font-mono">Ctrl+G</span>
                 </button>
@@ -62,37 +62,37 @@ const FindSelect: React.FC<FindSelectProps> = ({ onFindReplace, onSelectSpecial 
                 
                 <button 
                     onClick={() => handleSelect(() => onSelectSpecial?.('formulas'))}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
                 >
-                    <Calculator size={14} className="text-slate-500" />
+                    <Calculator size={14} className="text-purple-500 group-hover:scale-110 transition-transform" />
                     <span>Formulas</span>
                 </button>
                 <button 
                     onClick={() => handleSelect(() => onSelectSpecial?.('comments'))}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
                 >
-                    <MessageSquare size={14} className="text-slate-500" />
+                    <MessageSquare size={14} className="text-yellow-500 group-hover:scale-110 transition-transform" />
                     <span>Comments</span>
                 </button>
                 <button 
                     onClick={() => handleSelect(() => onSelectSpecial?.('conditional'))}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
                 >
-                    <LayoutList size={14} className="text-slate-500" />
+                    <LayoutList size={14} className="text-pink-500 group-hover:scale-110 transition-transform" />
                     <span>Conditional Formatting</span>
                 </button>
                 <button 
                     onClick={() => handleSelect(() => onSelectSpecial?.('constants'))}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
                 >
-                    <Lock size={14} className="text-slate-500" />
+                    <Lock size={14} className="text-cyan-500 group-hover:scale-110 transition-transform" />
                     <span>Constants</span>
                 </button>
                 <button 
                     onClick={() => handleSelect(() => onSelectSpecial?.('validation'))}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
                 >
-                    <CheckSquare size={14} className="text-slate-500" />
+                    <CheckSquare size={14} className="text-emerald-500 group-hover:scale-110 transition-transform" />
                     <span>Data Validation</span>
                 </button>
 
@@ -109,10 +109,10 @@ const FindSelect: React.FC<FindSelectProps> = ({ onFindReplace, onSelectSpecial 
                     <span>Select Objects</span>
                 </button>
                 <button 
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
                     onClick={() => setOpen(false)}
                 >
-                    <Layers size={14} className="text-slate-500" />
+                    <Layers size={14} className="text-indigo-400 group-hover:text-indigo-600" />
                     <span>Selection Pane...</span>
                 </button>
             </div>

@@ -6,11 +6,11 @@ import { RibbonButton, SmartDropdown, TabProps } from '../../shared';
 interface CurrencyProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle' | 'onOpenFormatDialog'> {}
 
 const CURRENCY_OPTIONS = [
-    { code: 'USD', symbol: '$', label: 'English (United States)' },
-    { code: 'GBP', symbol: '£', label: 'English (United Kingdom)' },
-    { code: 'EUR', symbol: '€', label: 'Euro' },
-    { code: 'CNY', symbol: '¥', label: 'Chinese (Simplified, China)' },
-    { code: 'CHF', symbol: 'fr.', label: 'French (Switzerland)' },
+    { code: 'USD', symbol: '$', label: 'English (United States)', color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
+    { code: 'GBP', symbol: '£', label: 'English (United Kingdom)', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+    { code: 'EUR', symbol: '€', label: 'Euro', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100' },
+    { code: 'CNY', symbol: '¥', label: 'Chinese (Simplified, China)', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-100' },
+    { code: 'CHF', symbol: 'fr.', label: 'French (Switzerland)', color: 'text-slate-600', bg: 'bg-slate-50', border: 'border-slate-100' },
 ];
 
 const Currency: React.FC<CurrencyProps> = ({ currentStyle, onToggleStyle, onOpenFormatDialog }) => {
@@ -52,7 +52,7 @@ const Currency: React.FC<CurrencyProps> = ({ currentStyle, onToggleStyle, onOpen
             <SmartDropdown
                 open={open}
                 onToggle={() => setOpen(!open)}
-                contentWidth="w-56"
+                contentWidth="w-64"
                 trigger={
                     <button 
                         onClick={() => setOpen(!open)}
@@ -70,10 +70,12 @@ const Currency: React.FC<CurrencyProps> = ({ currentStyle, onToggleStyle, onOpen
                          <button
                             key={opt.code}
                             onClick={() => handleSelect(opt.code)}
-                            className="flex items-center justify-between px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 text-left transition-colors w-full"
+                            className="flex items-center justify-between px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100 text-left transition-colors w-full group"
                          >
-                            <span className="flex items-center gap-2">
-                                <span className="font-mono font-bold w-4 text-center">{opt.symbol}</span>
+                            <span className="flex items-center gap-3">
+                                <span className={`font-mono font-bold w-6 h-6 flex items-center justify-center rounded border ${opt.color} ${opt.bg} ${opt.border}`}>
+                                    {opt.symbol}
+                                </span>
                                 <span>{opt.label}</span>
                             </span>
                          </button>
