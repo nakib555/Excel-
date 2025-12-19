@@ -5,6 +5,7 @@ import { CellStyle } from '../../../types';
 import ModernSelect from './ModernSelect';
 import GroupBox from './GroupBox';
 import { COLORS } from './constants';
+import { Ban, Square } from 'lucide-react';
 
 interface BorderTabProps {
     style: CellStyle;
@@ -121,14 +122,14 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
                 <GroupBox label="Presets" className="pb-4">
                     <div className="flex items-center gap-4 justify-center">
                         <button onClick={() => applyPreset('none')} className="flex flex-col items-center gap-2 p-3 hover:bg-slate-50 rounded-xl group transition-all">
-                            <div className="w-10 h-10 border border-slate-200 rounded-lg flex items-center justify-center bg-white group-hover:border-slate-300 group-hover:shadow-sm transition-all">
-                                <div className="w-4 h-4 border border-slate-300 opacity-30" />
+                            <div className="w-10 h-10 border border-slate-200 rounded-lg flex items-center justify-center bg-white group-hover:border-red-300 group-hover:bg-red-50 group-hover:shadow-sm transition-all">
+                                <Ban size={16} className="text-slate-300 group-hover:text-red-500" />
                             </div>
                             <span className="text-[11px] font-bold text-slate-500 group-hover:text-slate-700">None</span>
                         </button>
                         <button onClick={() => applyPreset('outline')} className="flex flex-col items-center gap-2 p-3 hover:bg-slate-50 rounded-xl group transition-all">
-                            <div className="w-10 h-10 border border-slate-200 rounded-lg flex items-center justify-center bg-white group-hover:border-slate-300 group-hover:shadow-sm transition-all">
-                                <div className="w-6 h-6 border-2 border-slate-800" />
+                            <div className="w-10 h-10 border border-slate-200 rounded-lg flex items-center justify-center bg-white group-hover:border-blue-300 group-hover:bg-blue-50 group-hover:shadow-sm transition-all">
+                                <Square size={18} className="text-slate-800 stroke-[3] group-hover:text-blue-600" />
                             </div>
                             <span className="text-[11px] font-bold text-slate-500 group-hover:text-slate-700">Outline</span>
                         </button>

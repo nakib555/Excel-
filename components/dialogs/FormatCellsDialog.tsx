@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, MousePointer2 } from 'lucide-react';
+import { X, MousePointer2, Hash, AlignLeft, Type, Grid3X3, PaintBucket, Shield } from 'lucide-react';
 import { CellStyle } from '../../types';
 import { cn } from '../../utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,7 +21,14 @@ interface FormatCellsDialogProps {
   initialTab?: string;
 }
 
-const TABS = ['Number', 'Alignment', 'Font', 'Border', 'Fill', 'Protection'];
+const TABS = [
+    { id: 'Number', label: 'Number', icon: Hash, color: 'text-cyan-600', bg: 'bg-cyan-50' },
+    { id: 'Alignment', label: 'Alignment', icon: AlignLeft, color: 'text-orange-500', bg: 'bg-orange-50' },
+    { id: 'Font', label: 'Font', icon: Type, color: 'text-rose-500', bg: 'bg-rose-50' },
+    { id: 'Border', label: 'Border', icon: Grid3X3, color: 'text-emerald-500', bg: 'bg-emerald-50' },
+    { id: 'Fill', label: 'Fill', icon: PaintBucket, color: 'text-violet-500', bg: 'bg-violet-50' },
+    { id: 'Protection', label: 'Protection', icon: Shield, color: 'text-amber-500', bg: 'bg-amber-50' },
+];
 
 const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, initialStyle, onApply, initialTab = 'Number' }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -41,7 +48,9 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
   useEffect(() => {
       if (isOpen) {
           setStyle(JSON.parse(JSON.stringify(initialStyle)));
-          setActiveTab(initialTab);
+          // Validate initialTab exists, fallback if not
+          const tabExists = TABS.find(t => t.id === initialTab);
+          setActiveTab(tabExists ? initialTab : 'Number');
           if (!isMobile) {
             const width = 680;
             const height = 680;
@@ -109,7 +118,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                     >
                         {isMobile && <div className="absolute top-3 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-slate-200 rounded-full opacity-50" />}
                         <div className="flex items-center gap-4 mt-2">
-                             <div className="w-10 h-10 rounded-2xl bg-primary-600 flex items-center justify-center text-white shadow-lg">
+                             <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-lg shadow-slate-900/20">
                                 <MousePointer2 size={20} className="fill-white" />
                              </div>
                              <div className="flex flex-col">
@@ -125,19 +134,26 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                     <div className="px-6 md:px-10 py-1 flex-shrink-0">
                         <div className="w-fit mx-auto max-w-full flex bg-slate-50/50 p-1.5 rounded-[22px] gap-1 overflow-x-auto no-scrollbar border border-slate-100 shadow-inner snap-x scroll-smooth items-center">
                             {TABS.map(tab => {
-                                const active = activeTab === tab;
+                                const active = activeTab === tab.id;
+                                const Icon = tab.icon;
                                 return (
                                     <button
-                                        key={tab}
-                                        onClick={() => setActiveTab(tab)}
+                                        key={tab.id}
+                                        onClick={() => setActiveTab(tab.id)}
                                         className={cn(
-                                            "px-4 md:px-6 py-2.5 md:py-3 text-[12px] md:text-[13px] font-black rounded-[18px] transition-all whitespace-nowrap flex-shrink-0 snap-center min-w-max",
+                                            "pl-3 pr-4 md:pl-3 md:pr-5 py-2.5 md:py-2.5 text-[12px] md:text-[13px] font-bold rounded-[18px] transition-all whitespace-nowrap flex-shrink-0 snap-center min-w-max flex items-center gap-2 group",
                                             active 
-                                                ? "bg-white text-primary-700 shadow-sm border border-slate-100 scale-[1.02]" 
+                                                ? "bg-white text-slate-800 shadow-sm border border-slate-200/60 scale-[1.02]" 
                                                 : "text-slate-400 hover:text-slate-600 hover:bg-white/40"
                                         )}
                                     >
-                                        {tab}
+                                        <div className={cn(
+                                            "w-7 h-7 rounded-full flex items-center justify-center transition-all",
+                                            active ? tab.bg : "bg-white/50 group-hover:bg-white"
+                                        )}>
+                                            <Icon size={14} className={cn(active ? tab.color : "text-slate-400 group-hover:text-slate-500", "stroke-[2.5]")} />
+                                        </div>
+                                        {tab.label}
                                     </button>
                                 );
                             })}
@@ -167,7 +183,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                     <div className="h-24 md:h-28 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end px-6 md:px-10 gap-3 md:gap-5 flex-shrink-0 pb-2 md:pb-4">
                         <button 
                             onClick={onClose} 
-                            className="px-6 md:px-8 py-3 rounded-2xl text-[13px] font-black text-slate-400 hover:text-slate-900"
+                            className="px-6 md:px-8 py-3 rounded-2xl text-[13px] font-black text-slate-400 hover:text-slate-900 transition-colors"
                         >
                             Discard
                         </button>

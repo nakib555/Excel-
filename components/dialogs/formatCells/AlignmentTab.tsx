@@ -1,11 +1,10 @@
 
 import React, { useRef } from 'react';
-import { Check, RotateCw } from 'lucide-react';
+import { Check, RotateCw, AlignLeft, AlignCenter, AlignRight, AlignJustify, AlignHorizontalDistributeCenter, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalDistributeCenter, ArrowLeftRight, Maximize, LayoutList } from 'lucide-react';
 import { cn } from '../../../utils';
 import { CellStyle } from '../../../types';
 import ModernSelect from './ModernSelect';
 import GroupBox from './GroupBox';
-import { HORIZONTAL_ALIGN_OPTIONS, VERTICAL_ALIGN_OPTIONS } from './constants';
 
 interface AlignmentTabProps {
     style: CellStyle;
@@ -40,6 +39,32 @@ const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }
         onChange('verticalText', false);
     };
 
+    const HORIZONTAL_OPTIONS = [
+        { value: 'general', label: 'General', icon: <LayoutList size={14} className="text-slate-500" /> },
+        { value: 'left', label: 'Left (Indent)', icon: <AlignLeft size={14} className="text-blue-500" /> },
+        { value: 'center', label: 'Center', icon: <AlignCenter size={14} className="text-purple-500" /> },
+        { value: 'right', label: 'Right (Indent)', icon: <AlignRight size={14} className="text-green-500" /> },
+        { value: 'fill', label: 'Fill', icon: <Maximize size={14} className="text-orange-500" /> },
+        { value: 'justify', label: 'Justify', icon: <AlignJustify size={14} className="text-red-500" /> },
+        { value: 'centerAcross', label: 'Center Across Selection', icon: <ArrowLeftRight size={14} className="text-cyan-500" /> },
+        { value: 'distributed', label: 'Distributed (Indent)', icon: <AlignHorizontalDistributeCenter size={14} className="text-pink-500" /> },
+    ];
+
+    const VERTICAL_OPTIONS = [
+        { value: 'top', label: 'Top', icon: <AlignVerticalJustifyStart size={14} className="text-blue-500 rotate-180" /> },
+        { value: 'middle', label: 'Center', icon: <AlignVerticalJustifyCenter size={14} className="text-purple-500" /> },
+        { value: 'bottom', label: 'Bottom', icon: <AlignVerticalJustifyEnd size={14} className="text-green-500 rotate-180" /> },
+        { value: 'justify', label: 'Justify', icon: <AlignJustify size={14} className="text-red-500 rotate-90" /> },
+        { value: 'distributed', label: 'Distributed', icon: <AlignVerticalDistributeCenter size={14} className="text-pink-500" /> },
+    ];
+
+    const renderOptionWithIcon = (option: any) => (
+        <div className="flex items-center gap-3">
+            <div className="w-5 flex justify-center items-center">{option.icon}</div>
+            <span>{option.label}</span>
+        </div>
+    );
+
     return (
         <div className={cn("grid h-full", isMobile ? "grid-cols-1 gap-6 pb-20" : "grid-cols-[1fr_260px] gap-10")}>
             <div className="flex flex-col gap-6">
@@ -63,16 +88,18 @@ const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }
                             </div>
                             <ModernSelect 
                                 value={style.align || 'general'}
-                                options={HORIZONTAL_ALIGN_OPTIONS}
+                                options={HORIZONTAL_OPTIONS}
                                 onChange={(val) => onChange('align', val)}
+                                renderOption={renderOptionWithIcon}
                             />
                         </div>
                         <div className="flex flex-col gap-2">
                             <span className="text-[12px] text-slate-500 font-semibold uppercase tracking-wider px-1">Vertical</span>
                             <ModernSelect 
                                 value={style.verticalAlign || 'bottom'}
-                                options={VERTICAL_ALIGN_OPTIONS}
+                                options={VERTICAL_OPTIONS}
                                 onChange={(val) => onChange('verticalAlign', val)}
+                                renderOption={renderOptionWithIcon}
                             />
                         </div>
                     </div>
@@ -81,14 +108,14 @@ const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }
                 <GroupBox label="Text control">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8 py-1">
                         {[
-                            { key: 'wrapText', label: 'Wrap text', desc: 'Auto-adjust row height' },
-                            { key: 'shrinkToFit', label: 'Shrink to fit', desc: 'Downscale text size' },
-                            { key: 'mergeCells', label: 'Merge cells', desc: 'Combine selected' }
+                            { key: 'wrapText', label: 'Wrap text', desc: 'Auto-adjust row height', color: 'bg-emerald-500 border-emerald-500' },
+                            { key: 'shrinkToFit', label: 'Shrink to fit', desc: 'Downscale text size', color: 'bg-blue-500 border-blue-500' },
+                            { key: 'mergeCells', label: 'Merge cells', desc: 'Combine selected', color: 'bg-indigo-500 border-indigo-500' }
                         ].map(item => (
                             <label key={item.key} className="flex items-center gap-4 cursor-pointer group">
                                 <div className={cn(
                                     "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300",
-                                    !!(style as any)[item.key] ? "bg-primary-600 border-primary-600 shadow-md" : "bg-white border-slate-200"
+                                    !!(style as any)[item.key] ? `${item.color} shadow-md` : "bg-white border-slate-200"
                                 )}>
                                     {!!(style as any)[item.key] && <Check size={14} className="text-white stroke-[3]" />}
                                     <input 
@@ -182,7 +209,7 @@ const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }
                                 </button>
                                 <button 
                                     onClick={() => { onChange('textRotation', 0); onChange('verticalText', false); }}
-                                    className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
+                                    className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all hover:bg-slate-200"
                                 >
                                     <RotateCw size={18} />
                                 </button>

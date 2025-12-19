@@ -193,6 +193,13 @@ const Cell = memo(({
     overflow: (hasRotation || verticalText) ? 'visible' : 'hidden', 
   };
 
+  const getCssTextAlign = (): React.CSSProperties['textAlign'] => {
+      if (align === 'center' || align === 'centerAcross') return 'center';
+      if (align === 'right') return 'right';
+      return 'left';
+  };
+  const cssTextAlign = getCssTextAlign();
+
   const textStyle: React.CSSProperties = {
       fontFamily: resolvedStyle.fontFamily || 'Inter, sans-serif',
       fontSize: isMicroView ? 0 : `${fontSize}px`,
@@ -201,6 +208,7 @@ const Cell = memo(({
       textDecoration,
       color,
       whiteSpace,
+      textAlign: cssTextAlign,
       ...(verticalText ? { 
           writingMode: 'vertical-rl', 
           textOrientation: 'upright', 
@@ -217,13 +225,6 @@ const Cell = memo(({
       lineHeight: 1.2
   };
   
-  const getCssTextAlign = (): React.CSSProperties['textAlign'] => {
-      if (align === 'center' || align === 'centerAcross') return 'center';
-      if (align === 'right') return 'right';
-      return 'left';
-  };
-  const cssTextAlign = getCssTextAlign();
-
   return (
     <div
       ref={containerRef}

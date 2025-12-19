@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check, Hash, Coins, Calendar, Clock, Percent, FlaskConical, Type, Settings2, CalendarRange, Calculator } from 'lucide-react';
 import { CellStyle } from '../../../types';
 import ModernSelect from './ModernSelect';
 
@@ -26,11 +26,23 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
 
     const [category, setCategory] = useState(getCategory());
     
-    // Constants for categories
-    const CATEGORIES = [
-        'General', 'Number', 'Currency', 'Accounting', 'Date', 'Time', 
-        'Percentage', 'Fraction', 'Scientific', 'Text', 'Special', 'Custom'
+    // Constants for categories with colorful icons
+    const CATEGORY_OPTIONS = [
+        { value: 'General', label: 'General', icon: <Hash size={14} className="text-cyan-500" /> },
+        { value: 'Number', label: 'Number', icon: <div className="font-mono text-[10px] font-bold text-blue-500 bg-blue-50 w-5 h-5 flex items-center justify-center rounded">123</div> },
+        { value: 'Currency', label: 'Currency', icon: <div className="font-mono text-[10px] font-bold text-emerald-600 bg-emerald-50 w-5 h-5 flex items-center justify-center rounded">$</div> },
+        { value: 'Accounting', label: 'Accounting', icon: <Coins size={14} className="text-amber-500" /> },
+        { value: 'Date', label: 'Date', icon: <Calendar size={14} className="text-rose-500" /> },
+        { value: 'Time', label: 'Time', icon: <Clock size={14} className="text-orange-500" /> },
+        { value: 'Percentage', label: 'Percentage', icon: <Percent size={14} className="text-violet-500" /> },
+        { value: 'Fraction', label: 'Fraction', icon: <div className="font-mono text-[10px] font-bold text-indigo-500 bg-indigo-50 w-5 h-5 flex items-center justify-center rounded">½</div> },
+        { value: 'Scientific', label: 'Scientific', icon: <FlaskConical size={14} className="text-pink-500" /> },
+        { value: 'Text', label: 'Text', icon: <Type size={14} className="text-slate-500" /> },
+        { value: 'Custom', label: 'Custom', icon: <Settings2 size={14} className="text-teal-500" /> }
     ];
+
+    // Helper to find current category icon
+    const getCurrentCategoryIcon = () => CATEGORY_OPTIONS.find(c => c.value === category)?.icon;
 
     // Update local state if external style changes
     useEffect(() => {
@@ -57,6 +69,23 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
             default: onChange('format', 'custom'); break;
         }
     };
+
+    const renderOptionWithIcon = (option: any) => (
+        <div className="flex items-center gap-3">
+            <div className="w-6 flex justify-center items-center">{option.icon}</div>
+            <span>{option.label}</span>
+        </div>
+    );
+
+    // Format options for Date/Time specific lists
+    const DATE_OPTIONS = [
+        { label: '3/14/2012', value: 'shortDate', icon: <Calendar size={14} className="text-rose-400" /> },
+        { label: 'Wednesday, March 14, 2012', value: 'longDate', icon: <CalendarRange size={14} className="text-rose-600" /> },
+        { label: '3/14', value: 'shortDate', icon: <Calendar size={14} className="text-rose-300" /> },
+        { label: '3/14/12 1:30 PM', value: 'custom', icon: <Clock size={14} className="text-orange-400" /> },
+        { label: '13:30', value: 'time', icon: <Clock size={14} className="text-orange-500" /> },
+        { label: '1:30:55 PM', value: 'time', icon: <Clock size={14} className="text-orange-600" /> },
+    ];
 
     const renderRightPane = () => {
         switch (category) {
@@ -106,9 +135,9 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
                                 onChange={() => {}}
                                 options={[
                                     { value: 'default', label: '-1,234.10' },
-                                    { value: 'red', label: <span className="text-red-600">1,234.10</span> },
+                                    { value: 'red', label: <span className="text-red-600 font-medium">1,234.10</span> },
                                     { value: 'parens', label: '(-1,234.10)' },
-                                    { value: 'redParens', label: <span className="text-red-600">(-1,234.10)</span> },
+                                    { value: 'redParens', label: <span className="text-red-600 font-medium">(-1,234.10)</span> },
                                 ]}
                             />
                         </div>
@@ -137,10 +166,10 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
                                     value={style.currencySymbol || '$'}
                                     options={[
                                         { value: 'None', label: 'None' },
-                                        { value: '$', label: '$ English (USA)' },
-                                        { value: '£', label: '£ English (UK)' },
-                                        { value: '€', label: '€ Euro' },
-                                        { value: '¥', label: '¥ Chinese (PRC)' },
+                                        { value: '$', label: <div className="flex items-center gap-2"><span className="text-green-600 font-bold">$</span> English (USA)</div> },
+                                        { value: '£', label: <div className="flex items-center gap-2"><span className="text-blue-600 font-bold">£</span> English (UK)</div> },
+                                        { value: '€', label: <div className="flex items-center gap-2"><span className="text-indigo-600 font-bold">€</span> Euro</div> },
+                                        { value: '¥', label: <div className="flex items-center gap-2"><span className="text-red-600 font-bold">¥</span> Chinese (PRC)</div> },
                                     ]}
                                     onChange={(val) => onChange('currencySymbol', val === 'None' ? '' : val)}
                                 />
@@ -155,9 +184,9 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
                                     onChange={() => {}}
                                     options={[
                                         { value: 'default', label: '-1,234.10' },
-                                        { value: 'red', label: <span className="text-red-600">1,234.10</span> },
+                                        { value: 'red', label: <span className="text-red-600 font-medium">1,234.10</span> },
                                         { value: 'parens', label: '(-1,234.10)' },
-                                        { value: 'redParens', label: <span className="text-red-600">(-1,234.10)</span> },
+                                        { value: 'redParens', label: <span className="text-red-600 font-medium">(-1,234.10)</span> },
                                     ]}
                                 />
                             </div>
@@ -173,14 +202,8 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
                             <ModernSelect 
                                 value={style.format || 'shortDate'}
                                 onChange={(val) => onChange('format', val)}
-                                options={[
-                                    { label: '3/14/2012', value: 'shortDate' },
-                                    { label: 'Wednesday, March 14, 2012', value: 'longDate' },
-                                    { label: '3/14', value: 'shortDate' },
-                                    { label: '3/14/12 1:30 PM', value: 'custom' },
-                                    { label: '13:30', value: 'time' },
-                                    { label: '1:30:55 PM', value: 'time' },
-                                ]}
+                                options={DATE_OPTIONS}
+                                renderOption={renderOptionWithIcon}
                             />
                         </div>
                         <div className="flex flex-col gap-1">
@@ -212,14 +235,18 @@ const NumberTab: React.FC<NumberTabProps> = ({ style, onChange, isMobile }) => {
                 <ModernSelect
                     value={category}
                     onChange={handleCategorySelect}
-                    options={CATEGORIES.map(c => ({ value: c, label: c }))}
+                    options={CATEGORY_OPTIONS}
+                    renderOption={renderOptionWithIcon}
                 />
             </div>
 
             {/* Content Pane */}
             <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-1 pb-4">
                 {/* Sample Preview */}
-                <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm">
+                <div className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-4 shadow-sm relative overflow-hidden">
+                    <div className="absolute right-0 top-0 p-2 opacity-10">
+                        {getCurrentCategoryIcon()}
+                    </div>
                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Sample</span>
                     <div className="text-[15px] font-mono text-slate-800 font-medium truncate">
                         {category === 'Currency' || category === 'Accounting' ? `${style.currencySymbol || '$'}1,234.56` : '1234.56'}
