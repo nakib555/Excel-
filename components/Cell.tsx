@@ -1,4 +1,5 @@
 
+
 import React, { memo, useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
 import { cn, formatCellValue, measureTextWidth } from '../utils';
@@ -115,15 +116,33 @@ const Cell = memo(({
        const avail = width - totalPadding;
        
        if (avail > 0) {
-           const fontName = resolvedStyle.fontFamily || 'Inter, sans-serif';
-           const isBold = !!resolvedStyle.bold;
-           // Measure theoretical width using canvas to avoid layout thrashing and loops
-           const textWidth = measureTextWidth(displayValue, fontSize, fontName, isBold);
+           let textWidth = 0;
            
-           if (textWidth > avail) {
-               // Apply scale if text is wider than available space
-               // Subtract a tiny epsilon to ensure it fits visually
-               setScaleFactor((avail / textWidth) - 0.01);
+           // Prefer DOM measurement for exact rendering match via scrollWidth
+           if (spanRef.current) {
+               textWidth = spanRef.current.offsetWidth;
+           }
+           
+           // Fallback or verify with canvas if DOM seems 0 (hidden/detached)
+           if (textWidth <= 0) {
+                const fontName = resolvedStyle.fontFamily || 'Inter, sans-serif';
+                const isBold = !!resolvedStyle.bold;
+                const isItalic = !!resolvedStyle.italic;
+                textWidth = measureTextWidth(displayValue, fontSize, fontName, isBold, isItalic);
+           }
+           
+           // Calculate Scale
+           if (textWidth > 0) {
+                // Add a small buffer to ensure visual clearance
+                const requiredWidth = textWidth + 1;
+                
+                if (requiredWidth > avail) {
+                    const ratio = avail / requiredWidth;
+                    // Cap scale between 0.1 and 1 to avoid invisibility or scaling up
+                    setScaleFactor(Math.max(0.1, Math.min(1, ratio)));
+                } else {
+                    setScaleFactor(1);
+                }
            } else {
                setScaleFactor(1);
            }
@@ -131,7 +150,7 @@ const Cell = memo(({
            setScaleFactor(1);
        }
     } else {
-        setScaleFactor(1);
+        if (scaleFactor !== 1) setScaleFactor(1);
     }
   }, [displayValue, resolvedStyle, width, fontSize, scale, editing]);
 

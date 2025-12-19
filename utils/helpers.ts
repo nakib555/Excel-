@@ -294,7 +294,7 @@ export const getMergeRangeDimensions = (
 // Canvas context for text measurement
 let measureCtx: CanvasRenderingContext2D | null = null;
 
-export const measureTextWidth = (text: string, fontSize: number = 13, fontFamily: string = 'Inter, sans-serif', bold: boolean = false): number => {
+export const measureTextWidth = (text: string, fontSize: number = 13, fontFamily: string = 'Inter, sans-serif', bold: boolean = false, italic: boolean = false): number => {
     if (typeof document === 'undefined') return 0;
     
     if (!measureCtx) {
@@ -303,7 +303,7 @@ export const measureTextWidth = (text: string, fontSize: number = 13, fontFamily
     }
     
     if (measureCtx) {
-        measureCtx.font = `${bold ? 'bold' : 'normal'} ${fontSize}px ${fontFamily}`;
+        measureCtx.font = `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${fontSize}px ${fontFamily}`;
         return measureCtx.measureText(text).width;
     }
     return 0;
