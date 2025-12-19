@@ -992,6 +992,46 @@ const App: React.FC = () => {
     setShowAI(false);
   }, [activeCell, activeSheetId, handleCellChange]);
 
+  // Enhanced Find Logic for Preview
+  const handleSearchAll = useCallback((query: string, matchCase: boolean) => {
+    const results: { id: string, content: string }[] = [];
+    if (!query) return results;
+    
+    const lowerQuery = matchCase ? query : query.toLowerCase();
+    const maxResults = 50; 
+    let count = 0;
+
+    const ids = Object.keys(cells);
+    ids.sort((a, b) => {
+        const pa = parseCellId(a)!;
+        const pb = parseCellId(b)!;
+        if (pa.row !== pb.row) return pa.row - pb.row;
+        return pa.col - pb.col;
+    });
+
+    for (const id of ids) {
+        if (count >= maxResults) break;
+        const cell = cells[id];
+        const val = String(cell.value);
+        const check = matchCase ? val : val.toLowerCase();
+        
+        if (check.includes(lowerQuery)) {
+            results.push({ id, content: val });
+            count++;
+        }
+    }
+    return results;
+  }, [cells]);
+
+  const handleGetCellData = useCallback((id: string) => {
+      const cell = cells[id];
+      return cell ? { value: cell.value, raw: cell.raw } : null;
+  }, [cells]);
+
+  const handleHighlightCell = useCallback((id: string) => {
+      handleCellClick(id, false);
+  }, [handleCellClick]);
+
   const handleFind = useCallback((query: string, matchCase: boolean, matchEntire: boolean) => {
       const lowerQuery = matchCase ? query : query.toLowerCase();
       let foundId = null;
@@ -1310,6 +1350,9 @@ const App: React.FC = () => {
             onFind={handleFind}
             onReplace={handleReplace}
             onGoTo={handleNameBoxSubmit}
+            onSearchAll={handleSearchAll}
+            onGetCellData={handleGetCellData}
+            onHighlight={handleHighlightCell}
         />
       </Suspense>
     </div>
