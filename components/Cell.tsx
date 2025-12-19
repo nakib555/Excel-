@@ -1,5 +1,4 @@
 
-
 import React, { memo, useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
 import { cn, formatCellValue, measureTextWidth } from '../utils';
@@ -54,7 +53,16 @@ const Cell = memo(({
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [scaleFactor, setScaleFactor] = useState(1);
-  const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number, width: number} | null>(null);
+  
+  // Robust positioning state for dropdown
+  const [dropdownPosition, setDropdownPosition] = useState<{
+      top?: number, 
+      bottom?: number,
+      left: number, 
+      width: number, 
+      maxHeight: number
+  } | null>(null);
+
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => { setEditValue(data.raw); }, [data.raw]);
@@ -72,10 +80,28 @@ const Cell = memo(({
           const update = () => {
               if (containerRef.current) {
                   const rect = containerRef.current.getBoundingClientRect();
+                  const windowHeight = window.innerHeight;
+                  const spaceBelow = windowHeight - rect.bottom;
+                  const spaceAbove = rect.top;
+                  
+                  // Default to downwards
+                  let top: number | undefined = rect.bottom;
+                  let bottom: number | undefined = undefined;
+                  let maxHeight = Math.min(300, spaceBelow - 10);
+
+                  // Flip up if cramped below
+                  if (spaceBelow < 150 && spaceAbove > spaceBelow) {
+                      top = undefined;
+                      bottom = windowHeight - rect.top;
+                      maxHeight = Math.min(300, spaceAbove - 10);
+                  }
+
                   setDropdownPosition({
-                      top: rect.bottom,
+                      top,
+                      bottom,
                       left: rect.left,
-                      width: rect.width
+                      width: rect.width,
+                      maxHeight
                   });
               }
           };
@@ -360,11 +386,13 @@ const Cell = memo(({
             </div>
             {showDropdown && dropdownPosition && createPortal(
                 <div 
-                    className="fixed bg-white border border-slate-300 shadow-xl rounded-sm z-[2000] flex flex-col max-h-48 overflow-y-auto"
+                    className="fixed bg-white border border-slate-300 shadow-xl rounded-sm z-[2000] flex flex-col overflow-y-auto"
                     style={{
                         top: dropdownPosition.top,
+                        bottom: dropdownPosition.bottom,
                         left: dropdownPosition.left,
-                        minWidth: Math.max(120, dropdownPosition.width)
+                        minWidth: Math.max(120, dropdownPosition.width),
+                        maxHeight: dropdownPosition.maxHeight
                     }}
                     ref={dropdownRef}
                     onMouseDown={(e) => e.stopPropagation()} 

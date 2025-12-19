@@ -2,6 +2,7 @@
 import React, { useRef, memo, useState, useEffect } from 'react';
 import { FunctionSquare, X, Check, ChevronDown, ListFilter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 interface FormulaBarProps {
   value: string;
@@ -20,6 +21,8 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
   const nameBoxRef = useRef<HTMLInputElement>(null);
   const [nameBoxValue, setNameBoxValue] = useState(selectedCell || '');
   const [showFunctionMenu, setShowFunctionMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{top: number, left: number, maxHeight: number} | null>(null);
+  const functionButtonRef = useRef<HTMLButtonElement>(null);
 
   // Sync name box with selected cell when selection changes externally
   useEffect(() => {
@@ -60,8 +63,6 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
       if (!newValue || newValue === '=') {
           newValue = `=${fnStr}`;
       } else {
-          // If simply appending, ensure we have an operator or it's the start
-          // For simplicity in this demo, we just append or set.
           newValue = newValue + fnStr;
       }
       
@@ -77,6 +78,21 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
               inputRef.current.setSelectionRange(len - 1, len - 1);
           }
       }, 0);
+  };
+
+  const toggleMenu = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const nextState = !showFunctionMenu;
+      setShowFunctionMenu(nextState);
+      
+      if (nextState && functionButtonRef.current) {
+          const rect = functionButtonRef.current.getBoundingClientRect();
+          setMenuPosition({
+              top: rect.bottom + 4,
+              left: rect.left,
+              maxHeight: Math.min(300, window.innerHeight - rect.bottom - 20)
+          });
+      }
   };
 
   return (
@@ -113,7 +129,8 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
         {/* Function Dropdown */}
         <div className="relative">
             <button 
-                onClick={(e) => { e.stopPropagation(); setShowFunctionMenu(!showFunctionMenu); }}
+                ref={functionButtonRef}
+                onClick={toggleMenu}
                 className={`p-1 hover:bg-slate-100 rounded transition-colors ml-1 flex items-center gap-0.5 ${showFunctionMenu ? 'bg-slate-100 text-slate-700' : 'text-slate-500'}`} 
                 title="Insert Function"
             >
@@ -121,20 +138,27 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
                 <ChevronDown size={10} className="opacity-50" />
             </button>
 
-            <AnimatePresence>
-                {showFunctionMenu && (
+            {/* Portal for menu */}
+            {showFunctionMenu && menuPosition && createPortal(
+                <AnimatePresence>
                     <motion.div 
                         initial={{ opacity: 0, y: -5, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: -5, scale: 0.95 }}
                         transition={{ duration: 0.1 }}
-                        className="absolute top-full left-0 mt-1 w-56 bg-white border border-slate-200 shadow-xl rounded-md z-50 flex flex-col py-1 overflow-hidden origin-top-left ring-1 ring-black/5"
+                        className="fixed bg-white border border-slate-200 shadow-xl rounded-md z-[2000] flex flex-col py-1 overflow-hidden ring-1 ring-black/5 origin-top-left"
+                        style={{
+                            top: menuPosition.top,
+                            left: menuPosition.left,
+                            maxHeight: menuPosition.maxHeight,
+                            width: '14rem' // w-56
+                        }}
                     >
-                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100 mb-1 flex items-center justify-between">
+                        <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 border-b border-slate-100 mb-1 flex items-center justify-between flex-shrink-0">
                             <span>Most Recently Used</span>
                             <ListFilter size={10} />
                         </div>
-                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                        <div className="overflow-y-auto custom-scrollbar flex-1">
                             {RECENT_FUNCTIONS.map(fn => (
                                 <button
                                     key={fn}
@@ -146,14 +170,15 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
                                 </button>
                             ))}
                         </div>
-                        <div className="border-t border-slate-100 mt-1 pt-1">
+                        <div className="border-t border-slate-100 mt-1 pt-1 flex-shrink-0">
                             <button className="w-full text-left px-4 py-2 hover:bg-slate-50 text-xs text-slate-500 italic transition-colors">
                                 More functions...
                             </button>
                         </div>
                     </motion.div>
-                )}
-            </AnimatePresence>
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
       </div>
       

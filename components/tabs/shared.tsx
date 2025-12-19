@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, useLayoutEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, SquareArrowOutDownRight } from 'lucide-react';
@@ -257,59 +258,76 @@ export const SmartDropdown = ({
 }) => {
     const triggerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
-    const [style, setStyle] = useState<{top: number, left: number, transformOrigin: string, opacity: number}>({ top: 0, left: 0, transformOrigin: 'top left', opacity: 0 });
+    const [style, setStyle] = useState<{
+        top: number | string, 
+        left: number, 
+        bottom?: number | string, 
+        transformOrigin: string, 
+        opacity: number,
+        maxHeight?: number
+    }>({ top: 0, left: 0, transformOrigin: 'top left', opacity: 0 });
 
     useLayoutEffect(() => {
         if (open) {
             const updatePosition = () => {
-                if (!triggerRef.current || !contentRef.current) return;
+                if (!triggerRef.current) return;
                 
                 const triggerRect = triggerRef.current.getBoundingClientRect();
-                const contentRect = contentRef.current.getBoundingClientRect();
                 const windowWidth = window.innerWidth;
                 const windowHeight = window.innerHeight;
                 
-                let top = triggerRect.bottom + 4;
+                // Horizontal Position & Collision
                 let left = triggerRect.left;
                 let transformOrigin = 'top left';
-
-                if (left + contentRect.width > windowWidth - 8) {
-                    left = windowWidth - contentRect.width - 8;
-                    transformOrigin = 'top right';
+                
+                // Assume content width based on standard sizes if ref not ready, 
+                // but checking viewport edge generally is enough with approximate width
+                const estimatedWidth = 200; 
+                
+                if (left + estimatedWidth > windowWidth - 8) {
+                    left = Math.max(8, windowWidth - estimatedWidth - 8);
+                    // Use right alignment if we are pushing it
+                    if (left !== triggerRect.left) transformOrigin = 'top right';
+                } else if (left < 8) {
+                    left = 8;
                 }
-                if (left < 8) left = 8;
 
+                // Vertical Position & Collision
                 const spaceBelow = windowHeight - triggerRect.bottom - 8;
                 const spaceAbove = triggerRect.top - 8;
+                
+                let top: number | string = triggerRect.bottom + 4;
+                let bottom: number | string = 'auto';
+                let maxHeight = spaceBelow;
 
-                if (spaceBelow < contentRect.height && spaceAbove > spaceBelow) {
-                    top = triggerRect.top - contentRect.height - 4;
-                    transformOrigin = 'bottom left';
-                    if (transformOrigin.includes('right')) transformOrigin = 'bottom right';
+                // Flip if tight below and spacious above
+                if (spaceBelow < 250 && spaceAbove > spaceBelow) {
+                    top = 'auto';
+                    bottom = windowHeight - triggerRect.top + 4;
+                    maxHeight = spaceAbove;
+                    transformOrigin = transformOrigin.replace('top', 'bottom');
+                } else {
+                    // Default downwards
+                    maxHeight = Math.min(spaceBelow, 500); // Cap at 500px or available space
                 }
 
-                setStyle({ top, left, transformOrigin, opacity: 1 });
+                setStyle({ top, left, bottom, transformOrigin, opacity: 1, maxHeight });
             };
 
             updatePosition();
             
-            let rafId = requestAnimationFrame(() => {
-                updatePosition();
-                rafId = requestAnimationFrame(updatePosition);
-            });
-            
+            // Recalculate on scroll/resize
             window.addEventListener('scroll', updatePosition, true);
             window.addEventListener('resize', updatePosition);
             
             return () => {
                 window.removeEventListener('scroll', updatePosition, true);
                 window.removeEventListener('resize', updatePosition);
-                cancelAnimationFrame(rafId);
             };
         } else {
             setStyle(s => ({ ...s, opacity: 0 }));
         }
-    }, [open, children]);
+    }, [open]);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent | TouchEvent) => {
@@ -340,18 +358,22 @@ export const SmartDropdown = ({
             {open && createPortal(
                 <div 
                     ref={contentRef}
-                    className={`fixed z-[2000] bg-white shadow-xl border border-slate-200 rounded-lg p-1 ${contentWidth} ${className}`}
+                    className={`fixed z-[2000] bg-white shadow-xl border border-slate-200 rounded-lg p-1 ${contentWidth} ${className} flex flex-col`}
                     style={{ 
                         top: style.top, 
+                        bottom: style.bottom,
                         left: style.left, 
+                        maxHeight: style.maxHeight,
                         transformOrigin: style.transformOrigin,
                         opacity: style.opacity,
                         visibility: style.opacity === 0 ? 'hidden' : 'visible',
                         transition: 'opacity 0.15s ease-out, transform 0.15s ease-out',
-                        transform: style.opacity === 1 ? 'scale(1)' : 'scale(0.95)'
+                        transform: style.opacity === 1 ? 'scale(1)' : 'scale(0.95)',
                     }}
                 >
-                    {children}
+                    <div className="overflow-y-auto min-h-0 flex-1 scrollbar-thin">
+                        {children}
+                    </div>
                 </div>,
                 document.body
             )}
