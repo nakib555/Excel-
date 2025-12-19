@@ -39,7 +39,7 @@ const Format: React.FC<FormatProps> = ({
                 />
             }
         >
-            <div className="flex flex-col py-1 overflow-y-auto max-h-[80vh]">
+            <div className="flex flex-col py-1">
                 {/* Cell Size */}
                 <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 mb-1 border-b border-slate-100">
                     Cell Size
