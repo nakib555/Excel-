@@ -15,13 +15,38 @@ export interface TabProps {
   onCut?: () => void;
   onPaste?: () => void;
   onAutoSum?: () => void;
+  
+  // Enhanced Cells Group Props
+  onInsertCells?: () => void;
   onInsertRow?: () => void;
+  onInsertColumn?: () => void;
+  onInsertSheet?: () => void;
+  
+  onDeleteCells?: () => void;
   onDeleteRow?: () => void;
+  onDeleteColumn?: () => void;
+  onDeleteSheet?: () => void;
+
   onSort?: (direction: 'asc' | 'desc') => void;
   onMergeCenter?: () => void;
   onDataValidation?: () => void;
   onOpenFormatDialog?: () => void;
   onToggleAI?: () => void;
+  
+  // Format Menu Props
+  onFormatRowHeight?: () => void;
+  onFormatColWidth?: () => void;
+  onAutoFitRowHeight?: () => void;
+  onAutoFitColWidth?: () => void;
+  onHideRow?: () => void;
+  onHideCol?: () => void;
+  onUnhideRow?: () => void;
+  onUnhideCol?: () => void;
+  onRenameSheet?: () => void;
+  onMoveCopySheet?: () => void;
+  onProtectSheet?: () => void;
+  onLockCell?: () => void;
+
   // Insert Tab Features
   onInsertTable?: () => void;
   onInsertCheckbox?: () => void;
@@ -138,10 +163,9 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-200'
   } ${disabled ? 'opacity-40 cursor-default pointer-events-none' : 'cursor-pointer'}`;
 
-  // Icon sizing logic optimized for 100px toolbar
   const getIconConfig = () => {
     switch(variant) {
-      case 'large': return { size: 24, strokeWidth: 1.5 }; // Reduced slightly to fit
+      case 'large': return { size: 24, strokeWidth: 1.5 };
       case 'small': return { size: 14, strokeWidth: 2 };
       case 'icon-only': return { size: 16, strokeWidth: 2 };
       default: return { size: 16, strokeWidth: 2 };
@@ -149,7 +173,6 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
   }
   const iconConfig = getIconConfig();
 
-  // Apply size and stroke props if icon is a valid React element
   const styledIcon = React.isValidElement(icon) 
     ? React.cloneElement(icon as React.ReactElement<any>, iconConfig) 
     : icon;
@@ -177,7 +200,6 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
     );
   }
 
-  // Icon only
   return (
     <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}>
       {styledIcon}
@@ -236,18 +258,15 @@ export const SmartDropdown = ({
                 let left = triggerRect.left;
                 let transformOrigin = 'top left';
 
-                // Horizontal Constraint
                 if (left + contentRect.width > windowWidth - 8) {
                     left = windowWidth - contentRect.width - 8;
                     transformOrigin = 'top right';
                 }
                 if (left < 8) left = 8;
 
-                // Vertical Constraint
                 const spaceBelow = windowHeight - triggerRect.bottom - 8;
                 const spaceAbove = triggerRect.top - 8;
 
-                // Prefer bottom, flip if needed
                 if (spaceBelow < contentRect.height && spaceAbove > spaceBelow) {
                     top = triggerRect.top - contentRect.height - 4;
                     transformOrigin = 'bottom left';

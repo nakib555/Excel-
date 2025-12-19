@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 
 // --- 1. Imports from sibling files ---
@@ -28,7 +29,6 @@ import {
 } from './components/Skeletons';
 
 // --- 3. Component Imports ---
-// Lazy Load heavy UI components
 const AIAssistant = lazy(() => import('./components/AIAssistant'));
 const Toolbar = lazy(() => import('./components/Toolbar'));
 const FormulaBar = lazy(() => import('./components/FormulaBar'));
@@ -119,7 +119,6 @@ const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap:
     return { cells, dependentsMap, styles };
 };
 
-// Safe API Key retrieval helper
 const getApiKey = () => {
   try {
     if (typeof process !== 'undefined' && process.env) {
@@ -220,7 +219,6 @@ const App: React.FC = () => {
       }
 
       const hasStyle = !!oldCell?.styleId;
-      // Also keep if it has special properties
       const hasSpecial = oldCell?.isCheckbox || oldCell?.link || oldCell?.comment;
 
       if (!rawValue && !hasStyle && !hasSpecial) {
@@ -241,7 +239,6 @@ const App: React.FC = () => {
           });
       }
 
-      // Simple dependency update queue
       const updateQueue = [id];
       const visited = new Set<string>(); 
 
@@ -318,7 +315,6 @@ const App: React.FC = () => {
   }, [activeSheetId]);
 
   const handleApplyFullStyle = useCallback((newStyle: CellStyle) => {
-      // Merge new properties into selection
       setSheets(prevSheets => prevSheets.map(sheet => {
           if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
           
@@ -332,7 +328,6 @@ const App: React.FC = () => {
               const styleId = cell.styleId;
               const currentStyle: CellStyle = styleId && nextStyles[styleId] ? nextStyles[styleId] : {};
               
-              // Merge full style
               const mergedStyle: CellStyle = { ...currentStyle, ...newStyle };
               
               const res = getStyleId(nextStyles, mergedStyle);
@@ -380,38 +375,26 @@ const App: React.FC = () => {
     setSheets(prev => prev.map(s => s.id === activeSheetId ? { ...s, rowHeights: { ...s.rowHeights, [rowIdx]: height } } : s));
   }, [activeSheetId]);
 
-  // --- AUTO FIT LOGIC ---
   const handleAutoFit = useCallback((colIdx: number) => {
       const colChar = numToChar(colIdx);
-      
-      // Filter cells in this column
       let maxWidth = 0;
-      
-      // Only iterate used cells for performance
       Object.values(activeSheet.cells).forEach((cell: CellData) => {
           const { col } = parseCellId(cell.id)!;
           if (col === colIdx) {
-              // Get style to determine font
               const style = cell.styleId ? activeSheet.styles[cell.styleId] : {};
               const fontSize = style.fontSize || 13;
               const fontFamily = style.fontFamily || 'Inter';
               const bold = style.bold || false;
-              
               const val = cell.value || '';
-              // Measure
               const width = measureTextWidth(val, fontSize, fontFamily, bold);
               if (width > maxWidth) maxWidth = width;
           }
       });
-
-      // Clamp dimensions
-      const padding = 12; // Extra breathing room
+      const padding = 12; 
       const finalWidth = Math.max(30, Math.min(500, maxWidth + padding));
-      
       handleColumnResize(colChar, finalWidth);
   }, [activeSheet, handleColumnResize]);
 
-  // --- FILL HANDLE LOGIC ---
   const handleFill = useCallback((sourceRange: CellId[], targetRange: CellId[]) => {
       if (!sourceRange.length || !targetRange.length) return;
 
@@ -419,52 +402,24 @@ const App: React.FC = () => {
           if (sheet.id !== activeSheetId) return sheet;
           
           const nextCells: Record<string, CellData> = { ...sheet.cells };
-          const nextDependents = { ...sheet.dependentsMap };
           const nextValidations = { ...sheet.validations };
 
-          // Determine direction
           const sourceStart = parseCellId(sourceRange[0])!;
           const sourceEnd = parseCellId(sourceRange[sourceRange.length - 1])!;
-          const targetStart = parseCellId(targetRange[0])!;
           const targetEnd = parseCellId(targetRange[targetRange.length - 1])!;
 
-          // We assume simple 1D extension for MVP, complex 2D filling is hard
-          // Check if extending Down or Right (common) or Up/Left
-          
-          let fillDirection: 'down' | 'right' | 'up' | 'left' = 'down';
-          if (targetEnd.row > sourceEnd.row) fillDirection = 'down';
-          else if (targetEnd.col > sourceEnd.col) fillDirection = 'right';
-          else if (targetStart.row < sourceStart.row) fillDirection = 'up';
-          else if (targetStart.col < sourceStart.col) fillDirection = 'left';
-
-          // Identify cells to fill (Target - Source)
-          // We can just iterate the whole target range. If cell is in source range, skip it.
           const sourceSet = new Set(sourceRange);
           
-          // Pattern Detection (Simple Numeric Sequence)
-          // Only supports simple linear regression on numeric values if source has >= 2 cells in the direction
-          let isNumericPattern = false;
-          let step = 0;
-          let startValue = 0;
-
-          // Simplify: Just handle basic fill for now (Copy + Formula Shift)
-          // If we want sequence, we look at the first two valid numbers in the vector
-          
           targetRange.forEach(tid => {
-              if (sourceSet.has(tid)) return; // Don't overwrite source
+              if (sourceSet.has(tid)) return; 
               
               const tCoord = parseCellId(tid)!;
-              
-              // Find corresponding source cell to clone
-              // Map target coordinate back to source coordinate space using modulo
               const height = sourceEnd.row - sourceStart.row + 1;
               const width = sourceEnd.col - sourceStart.col + 1;
               
-              // Relative offsets from source start
               let rOffset = (tCoord.row - sourceStart.row) % height;
               let cOffset = (tCoord.col - sourceStart.col) % width;
               
-              // Handle negative modulo for up/left
               if (rOffset < 0) rOffset += height;
               if (cOffset < 0) cOffset += width;
 
@@ -476,39 +431,29 @@ const App: React.FC = () => {
                   return;
               }
 
-              // CALCULATE NEW VALUE
               let newValue = sourceCell.raw;
-              
-              // 1. Formula Adjustment
               if (newValue.startsWith('=')) {
-                  // Calculate absolute delta from source cell to target cell
                   const rDelta = tCoord.row - (sourceStart.row + rOffset);
                   const cDelta = tCoord.col - (sourceStart.col + cOffset);
                   newValue = adjustFormulaReferences(newValue, rDelta, cDelta);
               } 
-              // 2. Numeric Sequence (Simple increment by 1 if extending a single number? No, Excel copies single numbers. Only 2+ numbers triggers sequence)
-              // For MVP, we stick to COPY for values, ADJUST for formulas.
               
-              // Create new cell
               const newCell: CellData = {
                   id: tid,
                   raw: newValue,
-                  value: newValue, // Will be re-evaluated
-                  styleId: sourceCell.styleId, // Copy Style
+                  value: newValue, 
+                  styleId: sourceCell.styleId, 
                   isCheckbox: sourceCell.isCheckbox,
                   link: sourceCell.link
               };
               
               nextCells[tid] = newCell;
               
-              // Copy Validation
               if (nextValidations[sourceId]) {
                   nextValidations[tid] = nextValidations[sourceId];
               }
           });
 
-          // Re-evaluate everything (simple brute force for consistency)
-          // In production, we'd only evaluate new cells and their dependents
           Object.keys(nextCells).forEach(k => {
               if (nextCells[k].raw.startsWith('=')) {
                   nextCells[k].value = evaluateFormula(nextCells[k].raw, nextCells);
@@ -547,52 +492,6 @@ const App: React.FC = () => {
          return { ...s, columnWidths: newColWidths, rowHeights: newRowHeights };
      }));
   }, [activeCell, activeSheetId]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-        // Skip if typing in an input (like formula bar)
-        if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-        
-        // Find & Select Shortcuts
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key === 'f') {
-                e.preventDefault();
-                setFindReplaceState({ open: true, mode: 'find' });
-            } else if (e.key === 'h') {
-                e.preventDefault();
-                setFindReplaceState({ open: true, mode: 'replace' });
-            } else if (e.key === 'g') {
-                e.preventDefault();
-                setFindReplaceState({ open: true, mode: 'goto' });
-            }
-        }
-
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-             if (selectionRange && selectionRange.length > 0) {
-                 e.preventDefault();
-                 selectionRange.forEach(id => {
-                     // Excel behavior: Delete clears content but preserves formatting (including isCheckbox).
-                     // However, empty string in a checkbox cell usually unchecks it.
-                     handleCellChange(id, ''); 
-                 });
-             } else if (activeCell) {
-                 e.preventDefault();
-                 handleCellChange(activeCell, '');
-             }
-        }
-        
-        if (e.key === ' ' && activeCell) {
-             const cell = cells[activeCell];
-             if (cell && cell.isCheckbox) {
-                 e.preventDefault(); // Prevent scroll
-                 const currentVal = String(cell.value).toUpperCase() === 'TRUE';
-                 handleCellChange(activeCell, currentVal ? 'FALSE' : 'TRUE');
-             }
-        }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeCell, selectionRange, cells, handleCellChange]);
 
   const handleExpandGrid = useCallback((direction: 'row' | 'col') => {
     setGridSize(prev => {
@@ -700,6 +599,7 @@ const App: React.FC = () => {
     }));
   }, [activeCell, activeSheetId]);
 
+  // --- INSERT/DELETE/FORMAT HANDLERS (New) ---
   const handleInsertRow = useCallback(() => {
       if (!activeCell) return;
       const { row: startRow } = parseCellId(activeCell)!;
@@ -716,6 +616,32 @@ const App: React.FC = () => {
           return { ...sheet, cells: newCells };
       }));
   }, [activeCell, activeSheetId]);
+
+  const handleInsertColumn = useCallback(() => {
+      if (!activeCell) return;
+      const { col: startCol } = parseCellId(activeCell)!;
+      setSheets(prev => prev.map(sheet => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const newCells: Record<string, CellData> = {};
+          Object.values(sheet.cells).forEach((cell: CellData) => {
+              const { col, row } = parseCellId(cell.id)!;
+              if (col >= startCol) {
+                  const newId = getCellId(col + 1, row);
+                  newCells[newId] = { ...cell, id: newId };
+              } else newCells[cell.id] = cell;
+          });
+          return { ...sheet, cells: newCells };
+      }));
+  }, [activeCell, activeSheetId]);
+
+  const handleInsertSheet = useCallback(() => {
+      handleAddSheet();
+  }, [handleAddSheet]);
+
+  const handleInsertCells = useCallback(() => {
+      // Simplification: Treat as Insert Row for now, usually triggers a dialog
+      handleInsertRow();
+  }, [handleInsertRow]);
 
   const handleDeleteRow = useCallback(() => {
       if (!activeCell) return;
@@ -735,11 +661,139 @@ const App: React.FC = () => {
       }));
   }, [activeCell, activeSheetId]);
 
-  const handleSort = useCallback((direction: 'asc' | 'desc') => {}, []);
+  const handleDeleteColumn = useCallback(() => {
+      if (!activeCell) return;
+      const { col: startCol } = parseCellId(activeCell)!;
+      setSheets(prev => prev.map(sheet => {
+          if (sheet.id !== activeSheetId) return sheet;
+          const newCells: Record<string, CellData> = {};
+          Object.values(sheet.cells).forEach((cell: CellData) => {
+              const { col, row } = parseCellId(cell.id)!;
+              if (col === startCol) return;
+              if (col > startCol) {
+                  const newId = getCellId(col - 1, row);
+                  newCells[newId] = { ...cell, id: newId };
+              } else newCells[cell.id] = cell;
+          });
+          return { ...sheet, cells: newCells };
+      }));
+  }, [activeCell, activeSheetId]);
 
+  const handleDeleteSheet = useCallback(() => {
+      if (sheets.length <= 1) {
+          alert("A workbook must contain at least one visible worksheet.");
+          return;
+      }
+      if (confirm("Permanently delete this sheet?")) {
+          setSheets(prev => {
+              const newSheets = prev.filter(s => s.id !== activeSheetId);
+              setActiveSheetId(newSheets[0].id);
+              return newSheets;
+          });
+      }
+  }, [sheets.length, activeSheetId]);
+
+  const handleDeleteCells = useCallback(() => {
+      // Simplification: Treat as Delete Row
+      handleDeleteRow();
+  }, [handleDeleteRow]);
+
+  // Format Handlers
+  const handleFormatRowHeight = useCallback(() => {
+      if (!activeCell) return;
+      const { row } = parseCellId(activeCell)!;
+      const current = rowHeights[row] || DEFAULT_ROW_HEIGHT;
+      const input = prompt("Row Height:", String(current));
+      if (input) {
+          const val = parseFloat(input);
+          if (!isNaN(val)) handleRowResize(row, val);
+      }
+  }, [activeCell, rowHeights, handleRowResize]);
+
+  const handleFormatColWidth = useCallback(() => {
+      if (!activeCell) return;
+      const { col } = parseCellId(activeCell)!;
+      const colChar = numToChar(col);
+      const current = columnWidths[colChar] || DEFAULT_COL_WIDTH;
+      const input = prompt("Column Width:", String(current));
+      if (input) {
+          const val = parseFloat(input);
+          if (!isNaN(val)) handleColumnResize(colChar, val);
+      }
+  }, [activeCell, columnWidths, handleColumnResize]);
+
+  const handleAutoFitRowHeight = useCallback(() => {
+      if (!activeCell) return;
+      const { row } = parseCellId(activeCell)!;
+      handleRowResize(row, DEFAULT_ROW_HEIGHT); // Reset to default usually
+  }, [activeCell, handleRowResize]);
+
+  const handleAutoFitColWidth = useCallback(() => {
+      if (!activeCell) return;
+      const { col } = parseCellId(activeCell)!;
+      handleAutoFit(col);
+  }, [activeCell, handleAutoFit]);
+
+  const handleHideRow = useCallback(() => {
+      if (!activeCell) return;
+      const { row } = parseCellId(activeCell)!;
+      handleRowResize(row, 0);
+  }, [activeCell, handleRowResize]);
+
+  const handleHideCol = useCallback(() => {
+      if (!activeCell) return;
+      const { col } = parseCellId(activeCell)!;
+      handleColumnResize(numToChar(col), 0);
+  }, [activeCell, handleColumnResize]);
+
+  const handleUnhideRow = useCallback(() => {
+      if (!activeCell) return;
+      // Heuristic: Unhide rows in range or current? Excel usually unhides rows IN selection
+      // For MVP, if row height is 0, reset to default
+      const { row } = parseCellId(activeCell)!;
+      if ((rowHeights[row] || 0) === 0) {
+          handleRowResize(row, DEFAULT_ROW_HEIGHT);
+      }
+  }, [activeCell, rowHeights, handleRowResize]);
+
+  const handleUnhideCol = useCallback(() => {
+      if (!activeCell) return;
+      const { col } = parseCellId(activeCell)!;
+      const colChar = numToChar(col);
+      if ((columnWidths[colChar] || 0) === 0) {
+          handleColumnResize(colChar, DEFAULT_COL_WIDTH);
+      }
+  }, [activeCell, columnWidths, handleColumnResize]);
+
+  const handleRenameSheet = useCallback(() => {
+      const input = prompt("Rename Sheet:", activeSheet.name);
+      if (input) {
+          setSheets(prev => prev.map(s => s.id === activeSheetId ? { ...s, name: input } : s));
+      }
+  }, [activeSheetId, activeSheet.name]);
+
+  const handleMoveCopySheet = useCallback(() => {
+      // Simple Duplicate Logic
+      setSheets(prev => {
+          const current = prev.find(s => s.id === activeSheetId)!;
+          const copy = JSON.parse(JSON.stringify(current));
+          copy.id = `sheet${Date.now()}`;
+          copy.name = `${current.name} (2)`;
+          return [...prev, copy];
+      });
+  }, [activeSheetId]);
+
+  const handleProtectSheet = useCallback(() => {
+      alert("Sheet protection enabled. (Visual only in MVP)");
+  }, []);
+
+  const handleLockCell = useCallback(() => {
+      handleStyleChange('protection', { locked: true });
+  }, [handleStyleChange]);
+
+  const handleSort = useCallback((direction: 'asc' | 'desc') => {}, []);
   const handleAutoSum = useCallback(() => {}, []);
 
-  // --- MERGE & CENTER FEATURE ---
   const handleMergeCenter = useCallback(() => {
       setSheets(prev => prev.map(sheet => {
           if (sheet.id !== activeSheetId || !sheet.selectionRange || sheet.selectionRange.length < 2) return sheet;
@@ -791,12 +845,10 @@ const App: React.FC = () => {
       }
   }, [activeCell, activeSheetId]);
 
-  // --- NEW INSERT FEATURES ---
   const handleInsertTable = useCallback(() => {
     setSheets(prev => prev.map(sheet => {
         if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
         const range = sheet.selectionRange;
-        // Calculate bounds
         const coords = range.map(id => parseCellId(id)!);
         const minRow = Math.min(...coords.map(c => c.row));
         
@@ -815,8 +867,7 @@ const App: React.FC = () => {
             
             if (isHeader) {
                 newStyle = { ...newStyle, bold: true, bg: '#1e293b', color: '#ffffff' };
-            } else if (!isBand) { // Alternating row
-                 // Check if it already has a bg, if not apply light gray
+            } else if (!isBand) { 
                  if (!newStyle.bg || newStyle.bg === '#ffffff') {
                      newStyle.bg = '#f1f5f9';
                  }
@@ -836,7 +887,6 @@ const App: React.FC = () => {
         const nextCells = { ...sheet.cells };
         sheet.selectionRange.forEach(id => {
            const existingVal = nextCells[id]?.value || '';
-           // Smart Check: Preserve existing truthy values
            const isChecked = ['TRUE', '1', 'YES', 'ON'].includes(String(existingVal).toUpperCase());
            
            const prevCell = nextCells[id];
@@ -862,8 +912,6 @@ const App: React.FC = () => {
             
             sheet.selectionRange.forEach(id => {
                const cell: CellData = nextCells[id] || { id, raw: '', value: '' };
-               
-               // Apply link style
                const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
                const newStyle = { ...currentStyle, color: '#2563eb', underline: true };
                const res = getStyleId(nextStyles, newStyle);
@@ -873,7 +921,7 @@ const App: React.FC = () => {
                    ...cell,
                    styleId: res.id,
                    link: url,
-                   value: cell.value || url // Use URL as text if empty
+                   value: cell.value || url 
                };
             });
             return { ...sheet, cells: nextCells, styles: nextStyles };
@@ -883,17 +931,23 @@ const App: React.FC = () => {
 
   const handleInsertComment = useCallback(() => {
     if (!activeCell) return;
-    const text = prompt("Enter comment:");
-    if (text) {
+    const existing = cells[activeCell]?.comment || "";
+    const text = prompt("Edit Comment:", existing);
+    if (text !== null) {
         setSheets(prev => prev.map(sheet => {
             if (sheet.id !== activeSheetId) return sheet;
             const nextCells: Record<string, CellData> = { ...sheet.cells };
             const cell: CellData = nextCells[activeCell] || { id: activeCell, raw: '', value: '' };
-            nextCells[activeCell] = { ...cell, comment: text };
+            if (text.trim() === "") {
+                const { comment, ...rest } = cell;
+                nextCells[activeCell] = rest;
+            } else {
+                nextCells[activeCell] = { ...cell, comment: text };
+            }
             return { ...sheet, cells: nextCells };
         }));
     }
-  }, [activeCell, activeSheetId]);
+  }, [activeCell, activeSheetId, cells]);
 
   const handleAIApply = useCallback((result: { type: 'data' | 'formula', data?: string[][], formula?: string }) => {
     if (!activeCell) return;
@@ -923,13 +977,10 @@ const App: React.FC = () => {
     setShowAI(false);
   }, [activeCell, activeSheetId, handleCellChange]);
 
-  // --- FIND & SELECT LOGIC ---
   const handleFind = useCallback((query: string, matchCase: boolean, matchEntire: boolean) => {
       const lowerQuery = matchCase ? query : query.toLowerCase();
       let foundId = null;
       
-      // Simple scan: active sheet only for MVP
-      // Start from active cell or A1
       const startIdx = activeCell ? (parseCellId(activeCell)?.row || 0) * 1000 + (parseCellId(activeCell)?.col || 0) : 0;
       
       const allKeys = Object.keys(cells).sort((a,b) => {
@@ -938,7 +989,6 @@ const App: React.FC = () => {
           return (pa.row * 1000 + pa.col) - (pb.row * 1000 + pb.col);
       });
 
-      // Find first occurrence after current
       for (const id of allKeys) {
           const cell = cells[id];
           if (!cell) continue;
@@ -948,13 +998,11 @@ const App: React.FC = () => {
           
           if (match) {
               const currentIdx = (parseCellId(id)?.row || 0) * 1000 + (parseCellId(id)?.col || 0);
-              // Wrap around logic: if we are searching, we look for first match > current index. 
-              // If none, take the first absolute match.
               if (currentIdx > startIdx) {
                   foundId = id;
                   break;
               }
-              if (!foundId) foundId = id; // Backup (first match found from top)
+              if (!foundId) foundId = id; 
           }
       }
 
@@ -981,16 +1029,14 @@ const App: React.FC = () => {
                   match = true;
                   newValue = replaceWith;
               } else if (!matchEntire && val.includes(lowerQuery)) {
-                  // Only replace one instance per cell if not replaceAll? No, standard is global per cell text
                   match = true;
-                  // Regex for case insensitive replace if needed
                   const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), matchCase ? 'g' : 'gi');
                   newValue = cell.raw.replace(regex, replaceWith);
               }
 
               if (match) {
                   if (replaceAll || (!replaceAll && count === 0)) {
-                      nextCells[id] = { ...cell, raw: newValue, value: newValue }; // Basic value update, dependencies updated in next tick usually but we can rely on standard change handler or just brute force update here for MVP
+                      nextCells[id] = { ...cell, raw: newValue, value: newValue }; 
                       changed = true;
                       count++;
                   }
@@ -1002,7 +1048,6 @@ const App: React.FC = () => {
 
       if (count > 0) {
           if (!replaceAll) {
-              // Find the next one?
               handleFind(query, matchCase, matchEntire);
           } else {
               alert(`All done. We made ${count} replacements.`);
@@ -1014,8 +1059,6 @@ const App: React.FC = () => {
 
   const handleSelectSpecial = useCallback((type: 'formulas' | 'comments' | 'constants' | 'validation' | 'conditional' | 'blanks') => {
       const found: string[] = [];
-      
-      // Determine search scope: active selection or entire sheet if selection is single cell
       const isSheetScope = !selectionRange || selectionRange.length <= 1;
       const keysToSearch = isSheetScope ? Object.keys(cells) : selectionRange;
 
@@ -1037,7 +1080,6 @@ const App: React.FC = () => {
                   if (validations[id]) found.push(id);
                   break;
               case 'blanks':
-                  // Complex for sheet scope, usually only within UsedRange or Selection
                   if (!cell || !cell.raw) found.push(id);
                   break;
           }
@@ -1049,6 +1091,48 @@ const App: React.FC = () => {
           alert('No cells found.');
       }
   }, [cells, validations, selectionRange, activeSheetId]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+        if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+        
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'f') {
+                e.preventDefault();
+                setFindReplaceState({ open: true, mode: 'find' });
+            } else if (e.key === 'h') {
+                e.preventDefault();
+                setFindReplaceState({ open: true, mode: 'replace' });
+            } else if (e.key === 'g') {
+                e.preventDefault();
+                setFindReplaceState({ open: true, mode: 'goto' });
+            }
+        }
+
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+             if (selectionRange && selectionRange.length > 0) {
+                 e.preventDefault();
+                 selectionRange.forEach(id => {
+                     handleCellChange(id, ''); 
+                 });
+             } else if (activeCell) {
+                 e.preventDefault();
+                 handleCellChange(activeCell, '');
+             }
+        }
+        
+        if (e.key === ' ' && activeCell) {
+             const cell = cells[activeCell];
+             if (cell && cell.isCheckbox) {
+                 e.preventDefault(); 
+                 const currentVal = String(cell.value).toUpperCase() === 'TRUE';
+                 handleCellChange(activeCell, currentVal ? 'FALSE' : 'TRUE');
+             }
+        }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeCell, selectionRange, cells, handleCellChange]);
 
   return (
     <div className="flex flex-col h-[100dvh] w-screen bg-slate-50 overflow-hidden font-sans text-slate-900 relative">
@@ -1064,19 +1148,38 @@ const App: React.FC = () => {
             onCut={handleCut}
             onPaste={handlePaste}
             onAutoSum={handleAutoSum}
+            // Cells Group Handlers
             onInsertRow={handleInsertRow}
+            onInsertColumn={handleInsertColumn}
+            onInsertSheet={handleInsertSheet}
+            onInsertCells={handleInsertCells}
             onDeleteRow={handleDeleteRow}
+            onDeleteColumn={handleDeleteColumn}
+            onDeleteSheet={handleDeleteSheet}
+            onDeleteCells={handleDeleteCells}
+            // Format Menu Handlers
+            onFormatRowHeight={handleFormatRowHeight}
+            onFormatColWidth={handleFormatColWidth}
+            onAutoFitRowHeight={handleAutoFitRowHeight}
+            onAutoFitColWidth={handleAutoFitColWidth}
+            onHideRow={handleHideRow}
+            onHideCol={handleHideCol}
+            onUnhideRow={handleUnhideRow}
+            onUnhideCol={handleUnhideCol}
+            onRenameSheet={handleRenameSheet}
+            onMoveCopySheet={handleMoveCopySheet}
+            onProtectSheet={handleProtectSheet}
+            onLockCell={handleLockCell}
+            onOpenFormatDialog={() => setShowFormatCells(true)}
+            
             onSort={handleSort}
             onMergeCenter={handleMergeCenter}
             onDataValidation={handleDataValidation}
             onToggleAI={() => setShowAI(true)}
-            onOpenFormatDialog={() => setShowFormatCells(true)}
-            // New Handlers
             onInsertTable={handleInsertTable}
             onInsertCheckbox={handleInsertCheckbox}
             onInsertLink={handleInsertLink}
             onInsertComment={handleInsertComment}
-            // Find Select
             onFindReplace={(mode) => setFindReplaceState({ open: true, mode })}
             onSelectSpecial={handleSelectSpecial}
           />

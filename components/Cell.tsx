@@ -11,7 +11,7 @@ export type NavigationDirection = 'up' | 'down' | 'left' | 'right' | 'none';
 interface CellProps {
   id: string;
   data: CellData;
-  style: CellStyle; // Resolved style passed from parent
+  style: CellStyle;
   isSelected: boolean;
   isActive: boolean;
   isInRange: boolean;
@@ -54,8 +54,6 @@ const Cell = memo(({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [scaleFactor, setScaleFactor] = useState(1);
   const [dropdownPosition, setDropdownPosition] = useState<{top: number, left: number, width: number} | null>(null);
-
-  // New features state
   const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => { setEditValue(data.raw); }, [data.raw]);
@@ -68,7 +66,6 @@ const Cell = memo(({
     if (isActive && editing) inputRef.current?.focus();
   }, [isActive, editing]);
 
-  // Handle dropdown positioning updates
   useLayoutEffect(() => {
       if (showDropdown && containerRef.current) {
           const update = () => {
@@ -91,7 +88,6 @@ const Cell = memo(({
       }
   }, [showDropdown]);
 
-  // Click outside to close dropdown
   useEffect(() => {
       if (!showDropdown) return;
       const handleClickOutside = (e: MouseEvent | TouchEvent) => {
@@ -108,11 +104,9 @@ const Cell = memo(({
       };
   }, [showDropdown]);
 
-  // Shrink to Fit Implementation (Excel Feature)
   useLayoutEffect(() => {
     if (resolvedStyle.shrinkToFit && !resolvedStyle.wrapText && spanRef.current && !editing) {
        const span = spanRef.current;
-       // approximate padding calculation based on indent
        const paddingX = (resolvedStyle.indent || 0) * 10 + 8; 
        const avail = width - paddingX;
        const actual = span.scrollWidth;
@@ -145,48 +139,35 @@ const Cell = memo(({
     }
   };
 
-  // --- LOD (Level of Detail) Optimization ---
   const isMicroView = scale < 0.25; 
   const fontSize = Math.max(scale < 0.6 ? 7 : 9, (resolvedStyle.fontSize || 13) * scale);
 
-  // Ghost Mode - Return optimized skeleton if scrolling fast
   if (isGhost) {
       return <CellSkeleton width={width} height={height} />;
   }
 
-  // --- ALIGNMENT ENGINE ---
-  // Mapping Excel alignment to CSS Flexbox
-  const align = resolvedStyle.align || 'left'; // horizontal
-  const verticalAlign = resolvedStyle.verticalAlign || 'bottom'; // vertical (Excel default is bottom for data)
+  const align = resolvedStyle.align || 'left'; 
+  const verticalAlign = resolvedStyle.verticalAlign || 'bottom';
   const indent = resolvedStyle.indent || 0;
   
-  // X-Axis
   const justifyContent = align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
-  
-  // Y-Axis
   const alignItems = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
 
-  // Indentation Logic (Padding)
-  const indentPx = indent * 10 * scale; // Scale indent visually
-  // Apply indent as padding based on alignment direction
+  const indentPx = indent * 10 * scale; 
   const paddingLeft = align === 'right' ? '4px' : `${4 + indentPx}px`;
   const paddingRight = align === 'right' ? `${4 + indentPx}px` : '4px';
 
-  // Font Styles
   const fontWeight = resolvedStyle.bold ? '600' : '400';
   const fontStyle = resolvedStyle.italic ? 'italic' : 'normal';
   const textDecoration = resolvedStyle.underline ? 'underline' : 'none';
   const color = resolvedStyle.color || '#0f172a';
-  const backgroundColor = resolvedStyle.bg || (isInRange ? 'rgba(16, 185, 129, 0.1)' : '#fff');
+  const backgroundColor = resolvedStyle.bg || (isInRange ? 'rgba(16, 185, 129, 0.08)' : '#fff'); // Lighter selection bg
   
-  // Orientation / Rotation Logic
   const verticalText = resolvedStyle.verticalText;
   const rotation = resolvedStyle.textRotation || 0;
   const cssRotation = rotation ? -rotation : 0; 
   const hasRotation = rotation !== 0;
   
-  // Wrapping
-  // 'pre-wrap' preserves newlines but wraps long text, matching Excel behavior
   const whiteSpace = resolvedStyle.wrapText ? 'pre-wrap' : 'nowrap';
   const displayValue = formatCellValue(data.value, resolvedStyle);
 
@@ -202,48 +183,43 @@ const Cell = memo(({
     minWidth: width,
     minHeight: height,
     display: 'flex',
-    justifyContent: data.isCheckbox ? 'center' : justifyContent, // Force center for checkbox
+    justifyContent: data.isCheckbox ? 'center' : justifyContent, 
     alignItems: data.isCheckbox ? 'center' : alignItems,
     paddingLeft: verticalText ? 0 : paddingLeft,
     paddingRight: verticalText ? 0 : paddingRight,
     backgroundColor,
     borderRight: '1px solid #e2e8f0',
     borderBottom: '1px solid #e2e8f0',
-    overflow: (hasRotation || verticalText) ? 'visible' : 'hidden', // Rotated text usually bleeds in Excel
+    overflow: (hasRotation || verticalText) ? 'visible' : 'hidden', 
   };
 
   const textStyle: React.CSSProperties = {
-      fontFamily: 'inherit',
+      fontFamily: resolvedStyle.fontFamily || 'Inter, sans-serif',
       fontSize: isMicroView ? 0 : `${fontSize}px`,
       fontWeight,
       fontStyle,
       textDecoration,
       color,
       whiteSpace,
-      // Handle vertical text (stacking)
       ...(verticalText ? { 
           writingMode: 'vertical-rl', 
           textOrientation: 'upright', 
           letterSpacing: '1px'
       } : {}),
-      // Handle rotation
       ...(hasRotation ? {
           transform: `rotate(${cssRotation}deg)`,
           transformOrigin: align === 'center' ? 'center' : align === 'right' ? 'center right' : 'center left',
       } : {
-          // Shrink to fit logic
           transform: scaleFactor < 1 ? `scale(${scaleFactor})` : undefined,
           transformOrigin: align === 'right' ? 'right' : align === 'center' ? 'center' : 'left',
-          width: resolvedStyle.wrapText ? '100%' : 'auto' // Allow wrap to fill width
+          width: resolvedStyle.wrapText ? '100%' : 'auto'
       }),
       lineHeight: 1.2
   };
   
-  // Map Excel alignment to CSS textAlign for input field
   const getCssTextAlign = (): React.CSSProperties['textAlign'] => {
       if (align === 'center' || align === 'centerAcross') return 'center';
       if (align === 'right') return 'right';
-      if (align === 'justify' || align === 'distributed') return 'justify';
       return 'left';
   };
   const cssTextAlign = getCssTextAlign();
@@ -254,7 +230,6 @@ const Cell = memo(({
       className={cn(
         "relative box-border select-none outline-none flex-shrink-0",
         isActive && "z-30",
-        // Removed: isSelected border logic
       )}
       style={containerStyle}
       data-cell-id={id}
@@ -270,8 +245,9 @@ const Cell = memo(({
           className="absolute inset-0 w-full h-full px-[2px] outline-none z-50 bg-white text-slate-900 shadow-elevation"
           style={{ 
             fontSize: `${fontSize}px`, 
-            fontFamily: 'inherit',
-            textAlign: cssTextAlign 
+            fontFamily: resolvedStyle.fontFamily || 'inherit',
+            textAlign: cssTextAlign,
+            fontWeight
           }}
           value={editValue}
           onChange={(e) => setEditValue(e.target.value)}
@@ -300,43 +276,43 @@ const Cell = memo(({
                             rel="noopener noreferrer"
                             className="absolute inset-0 z-10"
                             onClick={(e) => {
-                                // Only follow link if holding Ctrl or Meta (Command), otherwise select cell
-                                if (!e.ctrlKey && !e.metaKey) {
-                                    e.preventDefault();
-                                }
+                                if (!e.ctrlKey && !e.metaKey) e.preventDefault();
                             }}
-                            title={`Ctrl+Click to follow link: ${data.link}`}
-                         >
-                            <span className="sr-only">Link</span>
-                         </a>
+                         />
                     )}
                 </span>
             )
         )
       )}
 
-      {/* Link Indicator (small icon if space permits, or implicit by underline/blue) */}
       {data.link && !editing && isActive && (
           <div className="absolute top-0 right-0 p-0.5 bg-blue-50 z-20 cursor-pointer" title={`Go to ${data.link}`} onMouseDown={(e) => { e.stopPropagation(); window.open(data.link, '_blank'); }}>
                <ExternalLink size={10} className="text-blue-500" />
           </div>
       )}
 
-      {/* Comment Indicator */}
+      {/* Visual Comment Indicator (Red Triangle) */}
       {data.comment && (
           <>
-            <div className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-500 z-10" />
+            <div 
+                className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-600 z-10" 
+                style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}
+            />
+            {/* Tooltip on Hover */}
             {(isHovered || isActive) && (
                 createPortal(
                     <div 
-                        className="fixed z-[9999] bg-yellow-50 border border-yellow-200 shadow-xl rounded-sm p-2 text-xs text-slate-800 max-w-[200px] break-words animate-in fade-in zoom-in-95 duration-200 pointer-events-none"
+                        className="fixed z-[9999] bg-[#ffffe1] border border-slate-300 shadow-xl rounded-[2px] p-2 text-xs text-slate-800 max-w-[200px] break-words animate-in fade-in zoom-in-95 duration-150 pointer-events-none flex flex-col gap-1"
                         style={{
-                            top: containerRef.current ? containerRef.current.getBoundingClientRect().top - 10 : 0,
-                            left: containerRef.current ? containerRef.current.getBoundingClientRect().right + 10 : 0,
+                            top: containerRef.current ? containerRef.current.getBoundingClientRect().top : 0,
+                            left: containerRef.current ? containerRef.current.getBoundingClientRect().right + 8 : 0,
                         }}
                     >
-                        <div className="font-bold mb-1 text-slate-500 text-[10px] uppercase">Comment</div>
-                        {data.comment}
+                        <div className="font-bold text-slate-900 border-b border-slate-200/50 pb-1 mb-0.5 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                            Comment
+                        </div>
+                        <span className="leading-relaxed">{data.comment}</span>
                     </div>,
                     document.body
                 )
@@ -344,7 +320,6 @@ const Cell = memo(({
           </>
       )}
 
-      {/* Data Validation Dropdown Arrow */}
       {isActive && validation && validation.type === 'list' && !isGhost && (
           <>
             <div 

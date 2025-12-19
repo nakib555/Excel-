@@ -1,9 +1,122 @@
-import React from 'react';
-import { Layout } from 'lucide-react';
-import { RibbonButton } from '../../shared';
 
-const Format = () => (
-    <RibbonButton variant="small" icon={<Layout size={14} className="text-slate-600" />} label="Format" onClick={() => {}} hasDropdown />
-);
+import React, { useState } from 'react';
+import { 
+    Layout, ArrowUpDown, ArrowLeftRight, EyeOff, Eye, Type, Lock, Shield, 
+    MoveHorizontal, MoveVertical, ArrowRight
+} from 'lucide-react';
+import { RibbonButton, SmartDropdown, TabProps } from '../../shared';
+
+interface FormatProps extends Pick<TabProps, 
+    'onFormatRowHeight' | 'onFormatColWidth' | 'onAutoFitRowHeight' | 'onAutoFitColWidth' |
+    'onHideRow' | 'onHideCol' | 'onUnhideRow' | 'onUnhideCol' | 
+    'onRenameSheet' | 'onMoveCopySheet' | 'onProtectSheet' | 'onLockCell' | 'onOpenFormatDialog'
+> {}
+
+const Format: React.FC<FormatProps> = ({ 
+    onFormatRowHeight, onFormatColWidth, onAutoFitRowHeight, onAutoFitColWidth,
+    onHideRow, onHideCol, onUnhideRow, onUnhideCol,
+    onRenameSheet, onMoveCopySheet, onProtectSheet, onLockCell, onOpenFormatDialog
+}) => {
+    const [open, setOpen] = useState(false);
+
+    const handleAction = (action: (() => void) | undefined) => {
+        if (action) action();
+        setOpen(false);
+    };
+
+    return (
+        <SmartDropdown
+            open={open}
+            onToggle={() => setOpen(!open)}
+            contentWidth="w-64"
+            trigger={
+                <RibbonButton 
+                    variant="small" 
+                    icon={<Layout size={14} className="text-slate-600" />} 
+                    label="Format" 
+                    hasDropdown 
+                    onClick={() => {}} 
+                />
+            }
+        >
+            <div className="flex flex-col py-1 overflow-y-auto max-h-[80vh]">
+                {/* Cell Size */}
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 mb-1 border-b border-slate-100">
+                    Cell Size
+                </div>
+                <button onClick={() => handleAction(onFormatRowHeight)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <MoveVertical size={14} className="text-slate-500" />
+                    <span>Row Height...</span>
+                </button>
+                <button onClick={() => handleAction(onAutoFitRowHeight)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <ArrowUpDown size={14} className="text-slate-500" />
+                    <span>AutoFit Row Height</span>
+                </button>
+                <button onClick={() => handleAction(onFormatColWidth)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <MoveHorizontal size={14} className="text-slate-500" />
+                    <span>Column Width...</span>
+                </button>
+                <button onClick={() => handleAction(onAutoFitColWidth)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <ArrowLeftRight size={14} className="text-slate-500" />
+                    <span>AutoFit Column Width</span>
+                </button>
+
+                {/* Visibility */}
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 my-1 border-y border-slate-100">
+                    Visibility
+                </div>
+                <button onClick={() => handleAction(onHideRow)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <EyeOff size={14} className="text-slate-500" />
+                    <span>Hide Rows</span>
+                </button>
+                <button onClick={() => handleAction(onHideCol)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <EyeOff size={14} className="text-slate-500 rotate-90" />
+                    <span>Hide Columns</span>
+                </button>
+                <button onClick={() => handleAction(onUnhideRow)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <Eye size={14} className="text-slate-500" />
+                    <span>Unhide Rows</span>
+                </button>
+                <button onClick={() => handleAction(onUnhideCol)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <Eye size={14} className="text-slate-500 rotate-90" />
+                    <span>Unhide Columns</span>
+                </button>
+
+                {/* Organize Sheets */}
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 my-1 border-y border-slate-100">
+                    Organize Sheets
+                </div>
+                <button onClick={() => handleAction(onRenameSheet)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <Type size={14} className="text-slate-500" />
+                    <span>Rename Sheet</span>
+                </button>
+                <button onClick={() => handleAction(onMoveCopySheet)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <ArrowRight size={14} className="text-slate-500" />
+                    <span>Move or Copy Sheet...</span>
+                </button>
+
+                {/* Protection */}
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase bg-slate-50 my-1 border-y border-slate-100">
+                    Protection
+                </div>
+                <button onClick={() => handleAction(onProtectSheet)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <Shield size={14} className="text-slate-500" />
+                    <span>Protect Sheet...</span>
+                </button>
+                <button onClick={() => handleAction(onLockCell)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left">
+                    <Lock size={14} className="text-slate-500" />
+                    <span>Lock Cell</span>
+                </button>
+
+                <div className="border-t border-slate-100 mt-1 pt-1">
+                    <button onClick={() => handleAction(onOpenFormatDialog)} className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left w-full">
+                        <Layout size={14} className="text-slate-500" />
+                        <span>Format Cells...</span>
+                    </button>
+                </div>
+            </div>
+        </SmartDropdown>
+    );
+};
 
 export default Format;
