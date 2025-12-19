@@ -45,8 +45,8 @@ export type NavigationDirection = 'up' | 'down' | 'left' | 'right';
 const MAX_ROWS = 1048576; 
 const MAX_COLS = 16384;   
 
-const INITIAL_ROWS = 150; 
-const INITIAL_COLS = 30;
+const INITIAL_ROWS = 200; 
+const INITIAL_COLS = 50;
 
 const EXPANSION_BATCH_ROWS = 300; 
 const EXPANSION_BATCH_COLS = 100; 

@@ -120,6 +120,14 @@ const Grid: React.FC<GridProps> = ({
       }
   }, []);
 
+  // Reset loading state when size changes
+  useEffect(() => {
+      if (loadingRef.current) {
+          loadingRef.current = false;
+          setIsExpanding(false);
+      }
+  }, [size]);
+
   // --- PRE-CALCULATE MERGED CELL SET (Optimization) ---
   const mergedCellsSet = useMemo(() => {
       const set = new Set<string>();
@@ -182,7 +190,7 @@ const Grid: React.FC<GridProps> = ({
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
       const target = e.target as HTMLDivElement;
-      const { scrollTop, scrollLeft, clientHeight, clientWidth } = target;
+      const { scrollTop, scrollLeft, clientHeight, clientWidth, scrollHeight, scrollWidth } = target;
       
       // Velocity Calculation
       const now = Date.now();
@@ -217,7 +225,27 @@ const Grid: React.FC<GridProps> = ({
           setScrollState(prev => ({ ...prev, velocityFactor: 0 }));
       }, 150);
 
-  }, []);
+      // Infinite Scroll Logic
+      if (!loadingRef.current) {
+          const scrollBottom = scrollTop + clientHeight;
+          const scrollRight = scrollLeft + clientWidth;
+          
+          // Threshold: 600px from edge
+          if (scrollHeight - scrollBottom < 600) {
+              loadingRef.current = true;
+              setIsExpanding(true);
+              onExpandGrid('row');
+              // Safety timeout release
+              setTimeout(() => { if(loadingRef.current) { loadingRef.current = false; setIsExpanding(false); } }, 3000);
+          } else if (scrollWidth - scrollRight < 600) {
+              loadingRef.current = true;
+              setIsExpanding(true);
+              onExpandGrid('col');
+              setTimeout(() => { if(loadingRef.current) { loadingRef.current = false; setIsExpanding(false); } }, 3000);
+          }
+      }
+
+  }, [onExpandGrid]);
 
   const { 
     visibleRows, visibleCols, 
@@ -283,8 +311,9 @@ const Grid: React.FC<GridProps> = ({
       });
   }, [merges, viewStartRow, viewEndRow, viewStartCol, viewEndCol]);
 
+  // Use border-slate-200 color (#e2e8f0) for grid lines to match EmptyCell border
   const bgPatternStyle = useMemo(() => ({
-    backgroundImage: `linear-gradient(to right, #f1f5f9 1px, transparent 1px), linear-gradient(to bottom, #f1f5f9 1px, transparent 1px)`,
+    backgroundImage: `linear-gradient(to right, #e2e8f0 1px, transparent 1px), linear-gradient(to bottom, #e2e8f0 1px, transparent 1px)`,
     backgroundSize: `${DEFAULT_COL_WIDTH * scale}px ${DEFAULT_ROW_HEIGHT * scale}px`,
     backgroundPosition: '0 0'
   }), [scale]);
