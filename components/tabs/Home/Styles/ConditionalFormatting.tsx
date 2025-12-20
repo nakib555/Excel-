@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { LayoutList, ChevronRight, Check } from 'lucide-react';
 import { RibbonButton, SmartDropdown } from '../../shared';
@@ -93,6 +94,7 @@ const ConditionalFormatting = () => {
                     hasSubMenu
                     isActive={activeSubMenu === 'iconsets'}
                     onMouseEnter={() => setActiveSubMenu('iconsets')}
+                    menuWidth="w-[340px]"
                 >
                     <IconSetsMenu />
                 </CFMenuItem>
@@ -154,16 +156,17 @@ interface CFMenuItemProps {
     onMouseEnter?: () => void;
     onClick?: () => void;
     children?: React.ReactNode;
+    menuWidth?: string;
 }
 
-const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActive, onMouseEnter, onClick, children }) => {
+const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActive, onMouseEnter, onClick, children, menuWidth }) => {
     const itemRef = useRef<HTMLButtonElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     
     // Position the submenu using horizontal axis smart positioning
     const position = useSmartPosition(isActive || false, itemRef, contentRef, { 
         axis: 'horizontal', 
-        widthClass: 'w-[260px]', // Heuristic width if content not rendered yet
+        widthClass: menuWidth || 'w-[260px]', 
         gap: -1 // Overlap slight border
     });
 
