@@ -38,6 +38,7 @@ const StatusBar = lazy(() => import('./components/StatusBar'));
 const MobileResizeTool = lazy(() => import('./components/MobileResizeTool'));
 const FormatCellsDialog = lazy(() => import('./components/dialogs/FormatCellsDialog'));
 const FindReplaceDialog = lazy(() => import('./components/dialogs/FindReplaceDialog'));
+const MergeStylesDialog = lazy(() => import('./components/dialogs/MergeStylesDialog'));
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -154,6 +155,7 @@ const App: React.FC = () => {
   const [showMobileResize, setShowMobileResize] = useState(false);
   const [showAI, setShowAI] = useState(false);
   const [showFormatCells, setShowFormatCells] = useState(false);
+  const [showMergeStyles, setShowMergeStyles] = useState(false);
   const [formatDialogTab, setFormatDialogTab] = useState('Number');
   const [findReplaceState, setFindReplaceState] = useState<{ open: boolean, mode: 'find' | 'replace' | 'goto' }>({ open: false, mode: 'find' });
   const clipboardRef = useRef<{ cells: Record<CellId, CellData>; baseRow: number; baseCol: number } | null>(null);
@@ -1255,6 +1257,67 @@ const App: React.FC = () => {
       setShowFormatCells(true);
   }, []);
 
+  const handleMergeStyles = useCallback(() => {
+      setShowMergeStyles(true);
+  }, []);
+
+  const handleFormatAsTable = useCallback((stylePreset: any) => {
+      setSheets(prev => prev.map(sheet => {
+          if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
+          const range = sheet.selectionRange;
+          
+          // Determine bounds
+          const coords = range.map(id => parseCellId(id)!);
+          const minRow = Math.min(...coords.map(c => c.row));
+          
+          const nextCells = { ...sheet.cells };
+          let nextStyles = { ...sheet.styles };
+
+          range.forEach(id => {
+              const { row } = parseCellId(id)!;
+              const isHeader = row === minRow;
+              const relativeRow = row - minRow; // 0 for header, 1, 2, ...
+              
+              const cell = nextCells[id] || { id, raw: '', value: '' };
+              const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
+              
+              let newStyle = { ...currentStyle };
+              
+              // Apply Table Style
+              if (isHeader) {
+                  newStyle.bg = stylePreset.headerBg;
+                  newStyle.color = stylePreset.headerColor;
+                  newStyle.bold = true;
+                  // Add border if needed
+                  if (stylePreset.border) {
+                      newStyle.borders = { 
+                          ...(newStyle.borders || {}),
+                          bottom: { style: 'thin', color: stylePreset.border }
+                      };
+                  }
+              } else {
+                  // Body rows
+                  // relativeRow starts at 1 for body
+                  const isEven = relativeRow % 2 === 0;
+                  newStyle.bg = isEven ? stylePreset.rowEvenBg : stylePreset.rowOddBg;
+                  // Keep text color generally black/dark for body unless specified
+                  if (!stylePreset.rowEvenBg && !stylePreset.rowOddBg) {
+                      // If transparent body, keep existing or reset
+                  } else {
+                      newStyle.color = '#000000'; 
+                  }
+              }
+
+              // Update styles registry
+              const res = getStyleId(nextStyles, newStyle);
+              nextStyles = res.registry;
+              nextCells[id] = { ...cell, styleId: res.id };
+          });
+
+          return { ...sheet, cells: nextCells, styles: nextStyles };
+      }));
+  }, [activeSheetId]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
         if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
@@ -1347,6 +1410,8 @@ const App: React.FC = () => {
             onDeleteComment={handleDeleteComment}
             onFindReplace={(mode) => setFindReplaceState({ open: true, mode })}
             onSelectSpecial={handleSelectSpecial}
+            onMergeStyles={handleMergeStyles}
+            onFormatAsTable={handleFormatAsTable}
           />
         </Suspense>
       </div>
@@ -1455,6 +1520,13 @@ const App: React.FC = () => {
             onSearchAll={handleSearchAll}
             onGetCellData={handleGetCellData}
             onHighlight={handleHighlightCell}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <MergeStylesDialog 
+            isOpen={showMergeStyles}
+            onClose={() => setShowMergeStyles(false)}
         />
       </Suspense>
     </div>

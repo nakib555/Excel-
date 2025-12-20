@@ -7,6 +7,7 @@ import { cn } from '../../utils';
 
 interface CellStylesProps {
     onApplyStyle?: (style: CellStyle) => void;
+    onMergeStyles?: () => void;
 }
 
 interface StylePreset {
@@ -115,7 +116,7 @@ const StylePreviewBox: React.FC<{ preset: StylePreset; onClick: () => void }> = 
     );
 };
 
-const CellStyles: React.FC<CellStylesProps> = ({ onApplyStyle }) => {
+const CellStyles: React.FC<CellStylesProps> = ({ onApplyStyle, onMergeStyles }) => {
     const [open, setOpen] = useState(false);
 
     const handleSelect = (preset: StylePreset) => {
@@ -187,7 +188,10 @@ const CellStyles: React.FC<CellStylesProps> = ({ onApplyStyle }) => {
                         <ChevronRight size={16} className="text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
                     </button>
 
-                    <button className="group relative w-full flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-white hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-900/5 transition-all duration-200">
+                    <button 
+                        onClick={() => { onMergeStyles?.(); setOpen(false); }}
+                        className="group relative w-full flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-white hover:border-indigo-200 hover:shadow-md hover:shadow-indigo-900/5 transition-all duration-200"
+                    >
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-500 group-hover:text-white group-hover:border-indigo-600 transition-all duration-200 shadow-sm">
                                 <Layers size={18} strokeWidth={2.5} />

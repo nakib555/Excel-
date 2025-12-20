@@ -8,7 +8,7 @@ import { cn } from '../../utils';
 export interface TabProps {
   currentStyle: CellStyle;
   onToggleStyle: (key: keyof CellStyle, value?: any) => void;
-  onApplyStyle?: (style: CellStyle) => void; // New Prop
+  onApplyStyle?: (style: CellStyle) => void; 
   onExport: () => void;
   onClear: () => void;
   onResetLayout: () => void;
@@ -57,6 +57,10 @@ export interface TabProps {
   // Find & Select
   onFindReplace?: (mode: 'find' | 'replace' | 'goto') => void;
   onSelectSpecial?: (type: 'formulas' | 'comments' | 'constants' | 'validation' | 'conditional' | 'blanks') => void;
+  
+  // Styles
+  onMergeStyles?: () => void;
+  onFormatAsTable?: (stylePreset: any) => void;
 }
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {
