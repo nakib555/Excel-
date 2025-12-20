@@ -14,7 +14,7 @@ export interface TabProps {
   onCopy?: () => void;
   onCut?: () => void;
   onPaste?: () => void;
-  onAutoSum?: () => void;
+  onAutoSum?: (func?: string) => void;
   
   // Enhanced Cells Group Props
   onInsertCells?: () => void;

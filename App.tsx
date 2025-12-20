@@ -795,7 +795,7 @@ const App: React.FC = () => {
   const handleSort = useCallback((direction: 'asc' | 'desc') => {}, []);
   
   // Implemented AutoSum Logic
-  const handleAutoSum = useCallback(() => {
+  const handleAutoSum = useCallback((funcName: string = 'SUM') => {
       if (!activeCell) return;
 
       const { row: activeRow, col: activeCol } = parseCellId(activeCell)!;
@@ -838,7 +838,7 @@ const App: React.FC = () => {
               }
           }
           
-          const formula = formulaRange ? `=SUM(${formulaRange})` : '=SUM()';
+          const formula = formulaRange ? `=${funcName}(${formulaRange})` : `=${funcName}()`;
           handleCellChange(activeCell, formula);
       } 
       // Case 2: Range Selected - Sum each column below the selection
@@ -856,7 +856,7 @@ const App: React.FC = () => {
               const startId = getCellId(c, minRow);
               const endId = getCellId(c, maxRow);
               const targetId = getCellId(c, maxRow + 1);
-              updates[targetId] = `=SUM(${startId}:${endId})`;
+              updates[targetId] = `=${funcName}(${startId}:${endId})`;
           }
 
           setSheets(prevSheets => prevSheets.map(sheet => {
