@@ -52,11 +52,15 @@ const Cell = memo(({
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [scaleFactor, setScaleFactor] = useState(1);
+  const commentRef = useRef<HTMLDivElement>(null);
   
   // Use centralized positioning
   const dropdownPosition = useSmartPosition(showDropdown, containerRef, dropdownRef, { fixedWidth: Math.max(120, width) });
 
   const [isHovered, setIsHovered] = useState(false);
+  
+  const showComment = !!data.comment && (isHovered || isActive);
+  const commentPosition = useSmartPosition(showComment, containerRef, commentRef, { axis: 'horizontal', gap: 8, widthClass: 'max-w-[200px]' });
 
   useEffect(() => { setEditValue(data.raw); }, [data.raw]);
 
@@ -307,13 +311,16 @@ const Cell = memo(({
                 className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-600 z-10" 
                 style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}
             />
-            {(isHovered || isActive) && (
+            {showComment && commentPosition && (
                 createPortal(
                     <div 
+                        ref={commentRef}
                         className="fixed z-[9999] bg-[#ffffe1] border border-slate-300 shadow-xl rounded-[2px] p-2 text-xs text-slate-800 max-w-[200px] break-words animate-in fade-in zoom-in-95 duration-150 pointer-events-none flex flex-col gap-1"
                         style={{
-                            top: containerRef.current ? containerRef.current.getBoundingClientRect().top : 0,
-                            left: containerRef.current ? containerRef.current.getBoundingClientRect().right + 8 : 0,
+                            top: commentPosition.top,
+                            left: commentPosition.left,
+                            bottom: commentPosition.bottom,
+                            transformOrigin: commentPosition.transformOrigin
                         }}
                     >
                         <div className="font-bold text-slate-900 border-b border-slate-200/50 pb-1 mb-0.5 flex items-center gap-1">

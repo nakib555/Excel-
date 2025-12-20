@@ -1,8 +1,8 @@
-
-import React, { useRef, memo, useState, useEffect, useLayoutEffect } from 'react';
+import React, { useRef, memo, useState, useEffect } from 'react';
 import { FunctionSquare, X, Check, ChevronDown, ListFilter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { useSmartPosition, cn } from '../utils';
 
 interface FormulaBarProps {
   value: string;
@@ -21,8 +21,11 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
   const nameBoxRef = useRef<HTMLInputElement>(null);
   const [nameBoxValue, setNameBoxValue] = useState(selectedCell || '');
   const [showFunctionMenu, setShowFunctionMenu] = useState(false);
-  const [menuPosition, setMenuPosition] = useState<{top: number, left: number, maxHeight: number} | null>(null);
   const functionButtonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Use smart positioning for the function menu
+  const menuPosition = useSmartPosition(showFunctionMenu, functionButtonRef, dropdownRef, { fixedWidth: 224 });
 
   // Sync name box with selected cell when selection changes externally
   useEffect(() => {
@@ -33,31 +36,14 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
 
   // Close dropdown when clicking outside
   useEffect(() => {
-      const close = () => setShowFunctionMenu(false);
-      if (showFunctionMenu) window.addEventListener('click', close);
-      return () => window.removeEventListener('click', close);
-  }, [showFunctionMenu]);
-
-  // Dynamic positioning on scroll/resize
-  useLayoutEffect(() => {
-      if (showFunctionMenu && functionButtonRef.current) {
-          const update = () => {
-              if (!functionButtonRef.current) return;
-              const rect = functionButtonRef.current.getBoundingClientRect();
-              setMenuPosition({
-                  top: rect.bottom + 4,
-                  left: rect.left,
-                  maxHeight: Math.min(300, window.innerHeight - rect.bottom - 20)
-              });
+      const handleClickOutside = (e: MouseEvent) => {
+          if (functionButtonRef.current && !functionButtonRef.current.contains(e.target as Node) &&
+              dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+              setShowFunctionMenu(false);
           }
-          update();
-          window.addEventListener('resize', update);
-          window.addEventListener('scroll', update, true);
-          return () => {
-              window.removeEventListener('resize', update);
-              window.removeEventListener('scroll', update, true);
-          }
-      }
+      };
+      if(showFunctionMenu) window.addEventListener('click', handleClickOutside);
+      return () => window.removeEventListener('click', handleClickOutside);
   }, [showFunctionMenu]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -104,8 +90,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
 
   const toggleMenu = (e: React.MouseEvent) => {
       e.stopPropagation();
-      const nextState = !showFunctionMenu;
-      setShowFunctionMenu(nextState);
+      setShowFunctionMenu(!showFunctionMenu);
   };
 
   return (
@@ -144,7 +129,10 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
             <button 
                 ref={functionButtonRef}
                 onClick={toggleMenu}
-                className={`p-1 hover:bg-slate-100 rounded transition-colors ml-1 flex items-center gap-0.5 ${showFunctionMenu ? 'bg-slate-100 text-slate-700' : 'text-slate-500'}`} 
+                className={cn(
+                    "p-1 hover:bg-slate-100 rounded transition-colors ml-1 flex items-center gap-0.5",
+                    showFunctionMenu ? 'bg-slate-100 text-slate-700' : 'text-slate-500'
+                )} 
                 title="Insert Function"
             >
                 <span className="font-serif italic font-bold text-sm px-0.5">fx</span>
@@ -155,15 +143,18 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
             {showFunctionMenu && menuPosition && createPortal(
                 <AnimatePresence>
                     <motion.div 
-                        initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                        ref={dropdownRef}
+                        initial={{ opacity: 0, y: menuPosition.placement === 'bottom' ? -5 : 5, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                        exit={{ opacity: 0, y: menuPosition.placement === 'bottom' ? -5 : 5, scale: 0.95 }}
                         transition={{ duration: 0.1 }}
-                        className="fixed bg-white border border-slate-200 shadow-xl rounded-md z-[2000] flex flex-col py-1 overflow-hidden ring-1 ring-black/5 origin-top-left"
+                        className="fixed bg-white border border-slate-200 shadow-xl rounded-md z-[2000] flex flex-col py-1 overflow-hidden ring-1 ring-black/5"
                         style={{
                             top: menuPosition.top,
+                            bottom: menuPosition.bottom,
                             left: menuPosition.left,
                             maxHeight: menuPosition.maxHeight,
+                            transformOrigin: menuPosition.transformOrigin,
                             width: '14rem' // w-56
                         }}
                     >

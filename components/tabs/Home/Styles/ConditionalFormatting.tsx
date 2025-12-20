@@ -1,9 +1,8 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { LayoutList, ChevronRight, Check } from 'lucide-react';
 import { RibbonButton, SmartDropdown } from '../../shared';
 import { createPortal } from 'react-dom';
-import { cn } from '../../../../utils';
+import { cn, useSmartPosition } from '../../../../utils';
 import { 
   HighlightCellsMenu, 
   TopBottomRulesMenu, 
@@ -159,17 +158,14 @@ interface CFMenuItemProps {
 
 const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActive, onMouseEnter, onClick, children }) => {
     const itemRef = useRef<HTMLButtonElement>(null);
-    const [coords, setCoords] = useState<{ top: number, left: number } | null>(null);
-
-    useEffect(() => {
-        if (isActive && itemRef.current) {
-            const rect = itemRef.current.getBoundingClientRect();
-            setCoords({
-                top: rect.top - 4, // Align slightly up to cover border
-                left: rect.right - 1
-            });
-        }
-    }, [isActive]);
+    const contentRef = useRef<HTMLDivElement>(null);
+    
+    // Position the submenu using horizontal axis smart positioning
+    const position = useSmartPosition(isActive || false, itemRef, contentRef, { 
+        axis: 'horizontal', 
+        widthClass: 'w-[260px]', // Heuristic width if content not rendered yet
+        gap: -1 // Overlap slight border
+    });
 
     return (
         <>
@@ -189,11 +185,18 @@ const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActi
                 {hasSubMenu && <ChevronRight size={10} className="text-slate-400" />}
             </button>
 
-            {isActive && hasSubMenu && coords && createPortal(
+            {isActive && hasSubMenu && position && createPortal(
                 <div 
-                    className="fixed z-[9999] bg-white shadow-xl border border-slate-300 py-1 animate-in fade-in zoom-in-95 duration-100 origin-top-left"
-                    style={{ top: coords.top, left: coords.left }}
-                    onMouseEnter={() => {}} // Keep active if hovered
+                    ref={contentRef}
+                    className="fixed z-[9999] bg-white shadow-xl border border-slate-300 py-1 animate-in fade-in zoom-in-95 duration-100"
+                    style={{ 
+                        top: position.top, 
+                        bottom: position.bottom,
+                        left: position.left,
+                        maxHeight: position.maxHeight,
+                        transformOrigin: position.transformOrigin 
+                    }}
+                    onMouseEnter={() => {}} 
                 >
                     {children}
                 </div>,

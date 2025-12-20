@@ -6,8 +6,15 @@ export interface PositionState {
     left: number;
     maxHeight: number;
     transformOrigin: string;
-    placement: 'top' | 'bottom';
+    placement: 'top' | 'bottom' | 'left' | 'right';
     width?: number;
+}
+
+export interface SmartPositionOptions {
+    widthClass?: string;
+    fixedWidth?: number;
+    gap?: number;
+    axis?: 'vertical' | 'horizontal';
 }
 
 export const calculatePosition = (
@@ -15,52 +22,100 @@ export const calculatePosition = (
     contentWidth: number,
     windowWidth: number,
     windowHeight: number,
-    gap: number = 4
+    gap: number = 4,
+    axis: 'vertical' | 'horizontal' = 'vertical'
 ): PositionState => {
-    // Horizontal Position
-    let left = triggerRect.left;
-    let transformOriginX = 'left';
+    let top: number | string | undefined;
+    let bottom: number | string | undefined;
+    let left: number;
+    let maxHeight: number;
+    let transformOrigin: string;
+    let placement: 'top' | 'bottom' | 'left' | 'right';
 
-    // Check right edge collision
-    if (left + contentWidth > windowWidth - 8) {
-        // Try right alignment relative to trigger
-        const rightAlignedLeft = triggerRect.right - contentWidth;
-        
-        if (rightAlignedLeft > 8) {
-             left = rightAlignedLeft;
-             transformOriginX = 'right';
+    if (axis === 'vertical') {
+        // Horizontal Position (collision detection)
+        left = triggerRect.left;
+        let transformOriginX = 'left';
+
+        if (left + contentWidth > windowWidth - 8) {
+            const rightAlignedLeft = triggerRect.right - contentWidth;
+            if (rightAlignedLeft > 8) {
+                 left = rightAlignedLeft;
+                 transformOriginX = 'right';
+            } else {
+                 left = Math.max(8, windowWidth - contentWidth - 8);
+                 transformOriginX = 'right'; 
+            }
         } else {
-             // Force fit on screen if both fail, prioritizing left edge visibility
-             left = Math.max(8, windowWidth - contentWidth - 8);
-             transformOriginX = 'right'; 
+            if (left < 8) {
+                left = 8;
+                transformOriginX = 'left';
+            }
         }
-    } else {
-        // Check left edge safety
-        if (left < 8) {
-            left = 8;
-            transformOriginX = 'left';
+
+        // Vertical Position
+        const spaceBelow = windowHeight - triggerRect.bottom - 8;
+        const spaceAbove = triggerRect.top - 8;
+        
+        top = triggerRect.bottom + gap;
+        bottom = undefined;
+        maxHeight = Math.min(spaceBelow, 500);
+        let transformOriginY = 'top';
+        placement = 'bottom';
+
+        // Flip to top if cramping
+        if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+            top = undefined;
+            bottom = windowHeight - triggerRect.top + gap;
+            maxHeight = Math.min(spaceAbove, 500);
+            transformOriginY = 'bottom';
+            placement = 'top';
         }
-    }
 
-    // Vertical Position
-    const spaceBelow = windowHeight - triggerRect.bottom - 8;
-    const spaceAbove = triggerRect.top - 8;
-    
-    let top: number | string | undefined = triggerRect.bottom + gap;
-    let bottom: number | string | undefined = undefined;
-    let maxHeight = Math.min(spaceBelow, 500);
-    let transformOriginY = 'top';
-    let placement: 'top' | 'bottom' = 'bottom';
+        transformOrigin = `${transformOriginY} ${transformOriginX}`;
+        
+    } else { // Horizontal Axis (for submenus)
+        // Vertical Alignment (Align Top by default with slight offset)
+        const alignedTop = triggerRect.top - 4;
+        const spaceBelow = windowHeight - alignedTop - 8;
+        
+        // Simple vertical collision check
+        if (spaceBelow < 200) {
+             // Try align bottom
+             const alignedBottom = windowHeight - triggerRect.bottom - 4;
+             // If bottom alignment has more space or current space is tiny
+             if (windowHeight - alignedBottom > spaceBelow) {
+                 top = undefined;
+                 bottom = windowHeight - triggerRect.bottom - 4;
+                 maxHeight = Math.min(triggerRect.bottom, 500);
+                 transformOrigin = 'bottom left';
+             } else {
+                 top = alignedTop;
+                 maxHeight = spaceBelow;
+                 transformOrigin = 'top left';
+             }
+        } else {
+            top = alignedTop;
+            maxHeight = Math.min(spaceBelow, 500);
+            transformOrigin = 'top left';
+        }
 
-    // Flip to top if cramped below (< 200px) AND there is more space above
-    if (spaceBelow < 200 && spaceAbove > spaceBelow) {
-        top = undefined;
-        bottom = windowHeight - triggerRect.top + gap;
-        maxHeight = Math.min(spaceAbove, 500);
-        transformOriginY = 'bottom';
-        placement = 'top';
-    } else {
-        maxHeight = spaceBelow; 
+        // Horizontal Position
+        const spaceRight = windowWidth - triggerRect.right - 8;
+        
+        // Default to right
+        left = triggerRect.right + (gap || 0); // Use gap (e.g. -1 to overlap)
+        placement = 'right';
+
+        // Flip to left if no space on right
+        if (contentWidth > spaceRight) {
+            left = triggerRect.left - contentWidth - (gap || 0);
+            placement = 'left';
+            transformOrigin = transformOrigin.replace('left', 'right');
+        } else {
+            // Ensure origin is left
+            transformOrigin = transformOrigin.replace('right', 'left'); 
+        }
     }
 
     return {
@@ -68,9 +123,9 @@ export const calculatePosition = (
         bottom,
         left,
         maxHeight,
-        transformOrigin: `${transformOriginY} ${transformOriginX}`,
+        transformOrigin,
         placement,
-        width: Math.max(contentWidth, triggerRect.width)
+        width: Math.max(contentWidth, axis === 'vertical' ? triggerRect.width : 0)
     };
 };
 
@@ -78,11 +133,7 @@ export function useSmartPosition(
     isOpen: boolean,
     triggerRef: RefObject<HTMLElement | null>,
     contentRef: RefObject<HTMLElement | null>,
-    options?: { 
-        widthClass?: string; 
-        fixedWidth?: number;
-        gap?: number;
-    }
+    options?: SmartPositionOptions
 ) {
     const [position, setPosition] = useState<PositionState | null>(null);
 
@@ -98,26 +149,28 @@ export function useSmartPosition(
             const triggerRect = triggerRef.current.getBoundingClientRect();
             let width = options?.fixedWidth || triggerRect.width;
 
-            // Estimate width from class if content not mounted or as fallback
             if (options?.widthClass) {
-                if (options.widthClass.includes('w-[520px]')) width = 520;
-                else if (options.widthClass.includes('w-[360px]')) width = 360;
-                else if (options.widthClass.includes('w-[340px]')) width = 340;
-                else if (options.widthClass.includes('w-[325px]')) width = 325;
-                else if (options.widthClass.includes('w-[260px]')) width = 260;
-                else if (options.widthClass.includes('w-[240px]')) width = 240;
-                else if (options.widthClass.includes('w-[200px]')) width = 200;
-                else if (options.widthClass.includes('w-64')) width = 256;
-                else if (options.widthClass.includes('w-56')) width = 224;
-                else if (options.widthClass.includes('w-48')) width = 192;
-                else if (options.widthClass.includes('w-40')) width = 160;
-                else if (options.widthClass.includes('w-16')) width = 64;
+                // Regex parsing for tailwind classes
+                const wArbitrary = options.widthClass.match(/w-\[(\d+)px\]/);
+                if (wArbitrary) {
+                    width = parseInt(wArbitrary[1], 10);
+                } else {
+                    const wTailwind = options.widthClass.match(/w-(\d+)/);
+                    if (wTailwind) {
+                        width = parseInt(wTailwind[1], 10) * 4;
+                    }
+                }
             }
 
-            // Prefer real content width if available
+            // Ref measurement overrides heuristic if available (content is mounted)
             if (contentRef.current) {
                 const rect = contentRef.current.getBoundingClientRect();
-                if (rect.width > 0) width = rect.width;
+                if (rect.width > 0) {
+                    // Use measured width if it seems reasonable (greater than heuristic or heuristic was 0)
+                    // But if widthClass is strictly enforcing width, maybe we should stick to it?
+                    // Generally, actual rendered width is source of truth.
+                    width = rect.width;
+                }
             }
 
             setPosition(calculatePosition(
@@ -125,19 +178,28 @@ export function useSmartPosition(
                 width,
                 window.innerWidth,
                 window.innerHeight,
-                options?.gap
+                options?.gap ?? (options?.axis === 'horizontal' ? -1 : 4),
+                options?.axis
             ));
         };
 
         update();
+        
+        let resizeObserver: ResizeObserver | null = null;
+        if (contentRef.current) {
+            resizeObserver = new ResizeObserver(() => update());
+            resizeObserver.observe(contentRef.current);
+        }
+
         window.addEventListener('scroll', update, true);
         window.addEventListener('resize', update);
         
         return () => {
             window.removeEventListener('scroll', update, true);
             window.removeEventListener('resize', update);
+            if (resizeObserver) resizeObserver.disconnect();
         };
-    }, [isOpen, options?.widthClass, options?.fixedWidth, options?.gap]);
+    }, [isOpen, options?.widthClass, options?.fixedWidth, options?.gap, options?.axis, triggerRef, contentRef]);
 
     return position;
 }
