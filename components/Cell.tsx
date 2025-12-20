@@ -81,10 +81,26 @@ const Cell = memo(({
               if (containerRef.current) {
                   const rect = containerRef.current.getBoundingClientRect();
                   const windowHeight = window.innerHeight;
+                  const windowWidth = window.innerWidth;
+                  
                   const spaceBelow = windowHeight - rect.bottom;
                   const spaceAbove = rect.top;
                   
-                  // Default to downwards
+                  // Dropdown dimensions
+                  const minDropdownWidth = 120;
+                  const desiredWidth = Math.max(minDropdownWidth, rect.width);
+                  
+                  // Horizontal positioning
+                  let left = rect.left;
+                  
+                  // Check right edge
+                  if (left + desiredWidth > windowWidth - 10) {
+                      left = windowWidth - desiredWidth - 10;
+                  }
+                  // Check left edge
+                  if (left < 10) left = 10;
+
+                  // Vertical positioning
                   let top: number | undefined = rect.bottom;
                   let bottom: number | undefined = undefined;
                   let maxHeight = Math.min(300, spaceBelow - 10);
@@ -99,7 +115,7 @@ const Cell = memo(({
                   setDropdownPosition({
                       top,
                       bottom,
-                      left: rect.left,
+                      left,
                       width: rect.width,
                       maxHeight
                   });

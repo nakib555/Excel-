@@ -793,7 +793,108 @@ const App: React.FC = () => {
   }, [handleStyleChange]);
 
   const handleSort = useCallback((direction: 'asc' | 'desc') => {}, []);
-  const handleAutoSum = useCallback(() => {}, []);
+  
+  // Implemented AutoSum Logic
+  const handleAutoSum = useCallback(() => {
+      if (!activeCell) return;
+
+      const { row: activeRow, col: activeCol } = parseCellId(activeCell)!;
+      
+      // Helper to check if a cell is numeric
+      const isNumericCell = (r: number, c: number) => {
+          const id = getCellId(c, r);
+          const cell = cells[id];
+          if (!cell || !cell.value) return false;
+          return !isNaN(parseFloat(String(cell.value).replace(/[^0-9.-]+/g,"")));
+      };
+
+      // Case 1: Single Selection - Auto-guess range from ACTIVE cell position
+      if (!selectionRange || selectionRange.length <= 1) {
+          let formulaRange = '';
+          
+          // Look UP first
+          let startRow = activeRow - 1;
+          while (startRow >= 0 && isNumericCell(startRow, activeCol)) {
+              startRow--;
+          }
+          startRow++; // The first numeric row
+
+          if (startRow < activeRow) {
+              const startId = getCellId(activeCol, startRow);
+              const endId = getCellId(activeCol, activeRow - 1);
+              formulaRange = `${startId}:${endId}`;
+          } else {
+              // Look LEFT
+              let startCol = activeCol - 1;
+              while (startCol >= 0 && isNumericCell(activeRow, startCol)) {
+                  startCol--;
+              }
+              startCol++;
+
+              if (startCol < activeCol) {
+                  const startId = getCellId(startCol, activeRow);
+                  const endId = getCellId(activeCol - 1, activeRow);
+                  formulaRange = `${startId}:${endId}`;
+              }
+          }
+          
+          const formula = formulaRange ? `=SUM(${formulaRange})` : '=SUM()';
+          handleCellChange(activeCell, formula);
+      } 
+      // Case 2: Range Selected - Sum each column below the selection
+      else {
+          const coords = selectionRange.map(id => parseCellId(id)!);
+          const minRow = Math.min(...coords.map(c => c.row));
+          const maxRow = Math.max(...coords.map(c => c.row));
+          const minCol = Math.min(...coords.map(c => c.col));
+          const maxCol = Math.max(...coords.map(c => c.col));
+
+          // For each column in selection, put a sum at maxRow + 1
+          const updates: Record<string, string> = {};
+          
+          for (let c = minCol; c <= maxCol; c++) {
+              const startId = getCellId(c, minRow);
+              const endId = getCellId(c, maxRow);
+              const targetId = getCellId(c, maxRow + 1);
+              updates[targetId] = `=SUM(${startId}:${endId})`;
+          }
+
+          setSheets(prevSheets => prevSheets.map(sheet => {
+              if (sheet.id !== activeSheetId) return sheet;
+              const nextCells = { ...sheet.cells };
+              const nextDependents = { ...sheet.dependentsMap };
+
+              Object.entries(updates).forEach(([id, formula]) => {
+                  const oldCell = nextCells[id];
+                  if (oldCell?.raw.startsWith('=')) {
+                      const oldDeps = extractDependencies(oldCell.raw);
+                      oldDeps.forEach(depId => {
+                          if (nextDependents[depId]) {
+                              nextDependents[depId] = nextDependents[depId].filter(d => d !== id);
+                          }
+                      });
+                  }
+
+                  nextCells[id] = { ...(nextCells[id] || { id }), raw: formula, value: formula }; 
+
+                  const newDeps = extractDependencies(formula);
+                  newDeps.forEach(depId => {
+                      if (!nextDependents[depId]) nextDependents[depId] = [];
+                      if (!nextDependents[depId].includes(id)) nextDependents[depId].push(id);
+                  });
+              });
+              
+              // Simple immediate eval for the new cells
+              Object.keys(updates).forEach(id => {
+                  if (nextCells[id].raw.startsWith('=')) {
+                      nextCells[id].value = evaluateFormula(nextCells[id].raw, nextCells);
+                  }
+              });
+
+              return { ...sheet, cells: nextCells, dependentsMap: nextDependents };
+          }));
+      }
+  }, [activeCell, selectionRange, cells, activeSheetId, handleCellChange]);
 
   const handleMergeCenter = useCallback(() => {
       setSheets(prev => prev.map(sheet => {

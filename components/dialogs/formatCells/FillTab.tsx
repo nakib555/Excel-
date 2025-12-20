@@ -70,8 +70,7 @@ const getPatternCSS = (style: string, color: string) => {
 };
 
 const FillTab: React.FC<FillTabProps> = ({ style, onChange, isMobile }) => {
-    // Local state for Pattern controls (which are not fully persisted in standard cell style usually, but we simulate it)
-    // In a real app, style.fill.patternColor etc would be used.
+    // Local state for Pattern controls
     const [patternColor, setPatternColor] = useState('automatic');
     const [patternStyle, setPatternStyle] = useState('none');
 
@@ -106,8 +105,8 @@ const FillTab: React.FC<FillTabProps> = ({ style, onChange, isMobile }) => {
         <div className={cn("grid h-full w-full", isMobile ? "grid-cols-1 gap-6 pb-24" : "grid-cols-[1.6fr_1fr] gap-8")}>
             
             {/* LEFT PANE: Background Color Section */}
-            <div className="flex flex-col gap-4 h-full overflow-hidden">
-                <GroupBox label="Background Color" className="flex flex-col gap-4 h-full relative overflow-hidden min-h-[350px]">
+            <div className="flex flex-col gap-4 h-full">
+                <GroupBox label="Background Color" className="flex flex-col gap-4 h-full relative min-h-[350px] mt-2">
                     
                     {/* 1. No Color Button */}
                     <button 
@@ -136,7 +135,7 @@ const FillTab: React.FC<FillTabProps> = ({ style, onChange, isMobile }) => {
                     </button>
 
                     {/* 2. Colors Grid Area */}
-                    <div className="flex-1 overflow-y-auto scrollbar-thin px-1 pb-1 flex flex-col gap-5">
+                    <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin px-1 pb-1 flex flex-col gap-5">
                         {/* Theme Colors Grid */}
                         <div className="flex flex-col gap-2">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1 flex items-center gap-1.5 sticky top-0 bg-white/95 backdrop-blur-sm py-1 z-10">
@@ -195,7 +194,7 @@ const FillTab: React.FC<FillTabProps> = ({ style, onChange, isMobile }) => {
             </div>
 
             {/* RIGHT PANE: Pattern & Sample */}
-            <div className="flex flex-col gap-6 h-full">
+            <div className="flex flex-col gap-6 h-full pt-2">
                 
                 {/* Pattern Controls */}
                 <GroupBox label="Pattern" className="flex flex-col gap-5">

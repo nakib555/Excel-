@@ -1,5 +1,5 @@
 
-import React, { useRef, memo, useState, useEffect } from 'react';
+import React, { useRef, memo, useState, useEffect, useLayoutEffect } from 'react';
 import { FunctionSquare, X, Check, ChevronDown, ListFilter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -36,6 +36,28 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
       const close = () => setShowFunctionMenu(false);
       if (showFunctionMenu) window.addEventListener('click', close);
       return () => window.removeEventListener('click', close);
+  }, [showFunctionMenu]);
+
+  // Dynamic positioning on scroll/resize
+  useLayoutEffect(() => {
+      if (showFunctionMenu && functionButtonRef.current) {
+          const update = () => {
+              if (!functionButtonRef.current) return;
+              const rect = functionButtonRef.current.getBoundingClientRect();
+              setMenuPosition({
+                  top: rect.bottom + 4,
+                  left: rect.left,
+                  maxHeight: Math.min(300, window.innerHeight - rect.bottom - 20)
+              });
+          }
+          update();
+          window.addEventListener('resize', update);
+          window.addEventListener('scroll', update, true);
+          return () => {
+              window.removeEventListener('resize', update);
+              window.removeEventListener('scroll', update, true);
+          }
+      }
   }, [showFunctionMenu]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -84,15 +106,6 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
       e.stopPropagation();
       const nextState = !showFunctionMenu;
       setShowFunctionMenu(nextState);
-      
-      if (nextState && functionButtonRef.current) {
-          const rect = functionButtonRef.current.getBoundingClientRect();
-          setMenuPosition({
-              top: rect.bottom + 4,
-              left: rect.left,
-              maxHeight: Math.min(300, window.innerHeight - rect.bottom - 20)
-          });
-      }
   };
 
   return (

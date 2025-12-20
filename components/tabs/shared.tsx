@@ -276,40 +276,34 @@ export const SmartDropdown = ({
                 const windowWidth = window.innerWidth;
                 const windowHeight = window.innerHeight;
                 
-                // Get actual width if rendered, or guess from class
-                let width = 200; // default backup
+                // Determine width
+                let width = 200; 
                 if (contentRef.current) {
-                    width = contentRef.current.offsetWidth;
-                } else {
-                    // Rough parsing for initial frame if ref missing
-                    if (contentWidth.includes('w-56')) width = 224;
-                    else if (contentWidth.includes('w-64')) width = 256;
-                    else if (contentWidth.includes('w-48')) width = 192;
-                    else if (contentWidth.includes('w-40')) width = 160;
-                }
+                    width = contentRef.current.getBoundingClientRect().width;
+                } else if (contentWidth.includes('w-56')) width = 224;
+                else if (contentWidth.includes('w-64')) width = 256;
+                else if (contentWidth.includes('w-48')) width = 192;
+                else if (contentWidth.includes('w-40')) width = 160;
 
-                // Horizontal Position & Collision
+                // Horizontal Position logic
                 let left = triggerRect.left;
                 let transformOrigin = 'top left';
                 
-                // Check if it goes off the right screen edge
+                // If it goes off right edge
                 if (left + width > windowWidth - 8) {
-                    // Try to align the right side of the dropdown with the right side of the trigger
-                    const rightAlignedLeft = triggerRect.right - width;
+                    // Try right align
+                    left = triggerRect.right - width;
+                    transformOrigin = 'top right';
                     
-                    // Does right-align fit on screen?
-                    if (rightAlignedLeft > 8) {
-                        left = rightAlignedLeft;
-                        transformOrigin = 'top right';
-                    } else {
-                        // If it doesn't fit either way, clamp to right edge of screen
-                        left = windowWidth - width - 8;
-                        transformOrigin = 'top right';
+                    // If still off left edge?
+                    if (left < 8) {
+                        left = 8;
+                        transformOrigin = 'top center';
                     }
+                } else {
+                    // Standard left align, verify min
+                    if (left < 8) left = 8;
                 }
-                
-                // Clamp left edge
-                if (left < 8) left = 8;
 
                 // Vertical Position & Collision
                 const spaceBelow = windowHeight - triggerRect.bottom - 8;
@@ -320,7 +314,7 @@ export const SmartDropdown = ({
                 let maxHeight = spaceBelow;
 
                 // Flip if tight below and spacious above
-                if (spaceBelow < 250 && spaceAbove > spaceBelow) {
+                if (spaceBelow < 200 && spaceAbove > spaceBelow) {
                     top = 'auto';
                     bottom = windowHeight - triggerRect.top + 4;
                     maxHeight = spaceAbove;

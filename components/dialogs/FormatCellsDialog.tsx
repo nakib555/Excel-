@@ -100,7 +100,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                 >
                     <div 
                         ref={dragRef}
-                        className={cn("h-18 flex items-center justify-between px-8 pt-6 pb-2 select-none flex-shrink-0 relative", !isMobile && "cursor-move")}
+                        className={cn("h-18 flex items-center justify-between px-8 pt-6 pb-2 select-none flex-shrink-0 relative z-50 bg-white", !isMobile && "cursor-move")}
                         onMouseDown={(e) => {
                             if (!isMobile && (e.target === dragRef.current || (e.target as HTMLElement).tagName === 'SPAN')) {
                                 setIsDragging(true);
@@ -122,7 +122,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                         </button>
                     </div>
 
-                    <div className="px-6 md:px-8 py-3 flex-shrink-0">
+                    <div className="px-6 md:px-8 py-3 flex-shrink-0 z-40 bg-white">
                         <div className="w-fit mx-auto max-w-full flex bg-slate-100/80 p-1 rounded-[16px] gap-1 overflow-x-auto no-scrollbar border border-slate-200/50 shadow-inner snap-x scroll-smooth items-center">
                             {TABS.map(tab => {
                                 const active = activeTab === tab.id;
@@ -151,7 +151,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                         </div>
                     </div>
 
-                    <div className="flex-1 bg-white px-6 md:px-8 py-2 overflow-y-auto scrollbar-thin">
+                    <div className="flex-1 bg-white px-6 md:px-8 pt-10 pb-4 overflow-y-auto scrollbar-thin relative z-0">
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={activeTab}
@@ -171,7 +171,7 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                         </AnimatePresence>
                     </div>
 
-                    <div className="h-20 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end px-6 md:px-8 gap-3 flex-shrink-0">
+                    <div className="h-20 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end px-6 md:px-8 gap-3 flex-shrink-0 z-50">
                         <button 
                             onClick={onClose} 
                             className="px-6 py-2.5 rounded-xl text-[13px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-200/50 transition-colors"
