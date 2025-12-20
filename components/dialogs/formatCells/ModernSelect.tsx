@@ -1,8 +1,7 @@
-
-import React, { useState, useRef, useEffect, useLayoutEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Search } from 'lucide-react';
-import { cn } from '../../../utils';
+import { cn, useSmartPosition } from '../../../utils';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface ModernSelectProps {
@@ -29,52 +28,8 @@ const ModernSelect: React.FC<ModernSelectProps> = ({
     const triggerRef = useRef<HTMLButtonElement>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
     
-    // Positioning State
-    const [coords, setCoords] = useState<{ top: number; left: number; width: number; maxHeight: number; placement: 'top' | 'bottom' } | null>(null);
-
-    // Calculate position before paint to prevent jumping
-    useLayoutEffect(() => {
-        if (isOpen && triggerRef.current) {
-            const updatePosition = () => {
-                if (!triggerRef.current) return;
-                const rect = triggerRef.current.getBoundingClientRect();
-                const windowHeight = window.innerHeight;
-                const windowWidth = window.innerWidth;
-                
-                const spaceBelow = windowHeight - rect.bottom - 10;
-                const spaceAbove = rect.top - 10;
-                
-                // Determine placement (flip if not enough space below)
-                const placement = (spaceBelow < 200 && spaceAbove > spaceBelow) ? 'top' : 'bottom';
-                
-                const maxHeight = placement === 'bottom' ? Math.min(300, spaceBelow) : Math.min(300, spaceAbove);
-
-                // Horizontal clamp
-                let left = rect.left;
-                if (left + rect.width > windowWidth - 10) {
-                    left = windowWidth - rect.width - 10;
-                }
-                if (left < 10) left = 10;
-
-                setCoords({
-                    top: placement === 'bottom' ? rect.bottom + 6 : rect.top - 6,
-                    left,
-                    width: rect.width,
-                    maxHeight,
-                    placement
-                });
-            };
-
-            updatePosition();
-            window.addEventListener('scroll', updatePosition, true);
-            window.addEventListener('resize', updatePosition);
-            
-            return () => {
-                window.removeEventListener('scroll', updatePosition, true);
-                window.removeEventListener('resize', updatePosition);
-            };
-        }
-    }, [isOpen]);
+    // Use centralized positioning
+    const coords = useSmartPosition(isOpen, triggerRef, dropdownRef);
 
     // Close on click outside
     useEffect(() => {
@@ -141,14 +96,15 @@ const ModernSelect: React.FC<ModernSelectProps> = ({
                             transition={{ duration: 0.15, ease: "easeOut" }}
                             className={cn(
                                 "fixed z-[9999] bg-white/95 backdrop-blur-xl border border-slate-200 rounded-xl shadow-2xl flex flex-col overflow-hidden ring-1 ring-black/5 origin-top",
-                                coords.placement === 'top' && "origin-bottom -translate-y-full"
+                                coords.placement === 'top' && "origin-bottom"
                             )}
                             style={{ 
-                                top: coords.placement === 'bottom' ? coords.top : 'auto',
-                                bottom: coords.placement === 'top' ? (window.innerHeight - coords.top) : 'auto', 
+                                top: coords.top, 
+                                bottom: coords.bottom,
                                 left: coords.left, 
                                 width: coords.width,
-                                maxHeight: coords.maxHeight
+                                maxHeight: coords.maxHeight,
+                                transformOrigin: coords.transformOrigin
                             }}
                         >
                             {searchable && (

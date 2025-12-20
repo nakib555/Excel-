@@ -1,9 +1,8 @@
-
 import React, { useRef, useState, useEffect, useLayoutEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, SquareArrowOutDownRight } from 'lucide-react';
 import { CellStyle } from '../../types';
-import { cn } from '../../utils';
+import { cn, useSmartPosition } from '../../utils';
 
 export interface TabProps {
   currentStyle: CellStyle;
@@ -263,90 +262,8 @@ export const SmartDropdown = ({
 }) => {
     const triggerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
-    const [style, setStyle] = useState<{
-        top: number | string, 
-        left: number, 
-        bottom?: number | string, 
-        transformOrigin: string, 
-        opacity: number,
-        maxHeight?: number
-    }>({ top: 0, left: 0, transformOrigin: 'top left', opacity: 0 });
-
-    useLayoutEffect(() => {
-        if (open) {
-            const updatePosition = () => {
-                if (!triggerRef.current) return;
-                
-                const triggerRect = triggerRef.current.getBoundingClientRect();
-                const windowWidth = window.innerWidth;
-                const windowHeight = window.innerHeight;
-                
-                // Determine width
-                let width = 200; 
-                if (contentRef.current) {
-                    width = contentRef.current.getBoundingClientRect().width;
-                } else if (contentWidth.includes('w-[360px]')) width = 360;
-                else if (contentWidth.includes('w-56')) width = 224;
-                else if (contentWidth.includes('w-64')) width = 256;
-                else if (contentWidth.includes('w-48')) width = 192;
-                else if (contentWidth.includes('w-40')) width = 160;
-
-                // Horizontal Position logic
-                let left = triggerRect.left;
-                let transformOrigin = 'top left';
-                
-                // If it goes off right edge
-                if (left + width > windowWidth - 8) {
-                    // Try right align
-                    left = triggerRect.right - width;
-                    transformOrigin = 'top right';
-                    
-                    // If still off left edge?
-                    if (left < 8) {
-                        left = 8;
-                        transformOrigin = 'top center';
-                    }
-                } else {
-                    // Standard left align, verify min
-                    if (left < 8) left = 8;
-                }
-
-                // Vertical Position & Collision
-                const spaceBelow = windowHeight - triggerRect.bottom - 8;
-                const spaceAbove = triggerRect.top - 8;
-                
-                let top: number | string = triggerRect.bottom + 4;
-                let bottom: number | string = 'auto';
-                let maxHeight = spaceBelow;
-
-                // Flip if tight below and spacious above
-                if (spaceBelow < 200 && spaceAbove > spaceBelow) {
-                    top = 'auto';
-                    bottom = windowHeight - triggerRect.top + 4;
-                    maxHeight = spaceAbove;
-                    transformOrigin = transformOrigin.replace('top', 'bottom');
-                } else {
-                    // Default downwards
-                    maxHeight = Math.min(spaceBelow, 500); 
-                }
-
-                setStyle({ top, left, bottom, transformOrigin, opacity: 1, maxHeight });
-            };
-
-            updatePosition();
-            
-            // Recalculate on scroll/resize
-            window.addEventListener('scroll', updatePosition, true);
-            window.addEventListener('resize', updatePosition);
-            
-            return () => {
-                window.removeEventListener('scroll', updatePosition, true);
-                window.removeEventListener('resize', updatePosition);
-            };
-        } else {
-            setStyle(s => ({ ...s, opacity: 0 }));
-        }
-    }, [open, contentWidth]);
+    
+    const position = useSmartPosition(open, triggerRef, contentRef, { widthClass: contentWidth });
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent | TouchEvent) => {
@@ -374,20 +291,18 @@ export const SmartDropdown = ({
             <div ref={triggerRef} onClick={onToggle} className={`inline-block select-none ${triggerClassName}`}>
                 {trigger}
             </div>
-            {open && createPortal(
+            {open && position && createPortal(
                 <div 
                     ref={contentRef}
                     className={`fixed z-[2000] bg-white shadow-xl border border-slate-200 rounded-lg p-1 ${contentWidth} ${className} flex flex-col`}
                     style={{ 
-                        top: style.top, 
-                        bottom: style.bottom,
-                        left: style.left, 
-                        maxHeight: style.maxHeight,
-                        transformOrigin: style.transformOrigin,
-                        opacity: style.opacity,
-                        visibility: style.opacity === 0 ? 'hidden' : 'visible',
-                        transition: 'opacity 0.15s ease-out, transform 0.15s ease-out',
-                        transform: style.opacity === 1 ? 'scale(1)' : 'scale(0.95)',
+                        top: position.top, 
+                        bottom: position.bottom,
+                        left: position.left, 
+                        maxHeight: position.maxHeight,
+                        transformOrigin: position.transformOrigin,
+                        opacity: 1,
+                        animation: 'fadeInScale 0.15s ease-out forwards',
                     }}
                 >
                     <div className="overflow-y-auto min-h-0 flex-1 scrollbar-thin">

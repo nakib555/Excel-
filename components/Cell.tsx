@@ -1,8 +1,6 @@
-
-
 import React, { memo, useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
-import { cn, formatCellValue, measureTextWidth } from '../utils';
+import { cn, formatCellValue, measureTextWidth, useSmartPosition } from '../utils';
 import { CellSkeleton } from './Skeletons';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -55,14 +53,8 @@ const Cell = memo(({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [scaleFactor, setScaleFactor] = useState(1);
   
-  // Robust positioning state for dropdown
-  const [dropdownPosition, setDropdownPosition] = useState<{
-      top?: number, 
-      bottom?: number,
-      left: number, 
-      width: number, 
-      maxHeight: number
-  } | null>(null);
+  // Use centralized positioning
+  const dropdownPosition = useSmartPosition(showDropdown, containerRef, dropdownRef, { fixedWidth: Math.max(120, width) });
 
   const [isHovered, setIsHovered] = useState(false);
 
@@ -75,62 +67,6 @@ const Cell = memo(({
   useEffect(() => {
     if (isActive && editing) inputRef.current?.focus();
   }, [isActive, editing]);
-
-  useLayoutEffect(() => {
-      if (showDropdown && containerRef.current) {
-          const update = () => {
-              if (containerRef.current) {
-                  const rect = containerRef.current.getBoundingClientRect();
-                  const windowHeight = window.innerHeight;
-                  const windowWidth = window.innerWidth;
-                  
-                  const spaceBelow = windowHeight - rect.bottom;
-                  const spaceAbove = rect.top;
-                  
-                  // Dropdown dimensions
-                  const minDropdownWidth = 120;
-                  const desiredWidth = Math.max(minDropdownWidth, rect.width);
-                  
-                  // Horizontal positioning
-                  let left = rect.left;
-                  
-                  // Check right edge
-                  if (left + desiredWidth > windowWidth - 10) {
-                      left = windowWidth - desiredWidth - 10;
-                  }
-                  // Check left edge
-                  if (left < 10) left = 10;
-
-                  // Vertical positioning
-                  let top: number | undefined = rect.bottom;
-                  let bottom: number | undefined = undefined;
-                  let maxHeight = Math.min(300, spaceBelow - 10);
-
-                  // Flip up if cramped below
-                  if (spaceBelow < 150 && spaceAbove > spaceBelow) {
-                      top = undefined;
-                      bottom = windowHeight - rect.top;
-                      maxHeight = Math.min(300, spaceAbove - 10);
-                  }
-
-                  setDropdownPosition({
-                      top,
-                      bottom,
-                      left,
-                      width: rect.width,
-                      maxHeight
-                  });
-              }
-          };
-          update();
-          window.addEventListener('scroll', update, true);
-          window.addEventListener('resize', update);
-          return () => {
-              window.removeEventListener('scroll', update, true);
-              window.removeEventListener('resize', update);
-          };
-      }
-  }, [showDropdown]);
 
   useEffect(() => {
       if (!showDropdown) return;
@@ -428,8 +364,9 @@ const Cell = memo(({
                         top: dropdownPosition.top,
                         bottom: dropdownPosition.bottom,
                         left: dropdownPosition.left,
-                        minWidth: Math.max(120, dropdownPosition.width),
-                        maxHeight: dropdownPosition.maxHeight
+                        minWidth: Math.max(120, dropdownPosition.width || 120),
+                        maxHeight: dropdownPosition.maxHeight,
+                        transformOrigin: dropdownPosition.transformOrigin
                     }}
                     ref={dropdownRef}
                     onMouseDown={(e) => e.stopPropagation()} 
