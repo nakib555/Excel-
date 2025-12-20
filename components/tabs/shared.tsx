@@ -276,21 +276,40 @@ export const SmartDropdown = ({
                 const windowWidth = window.innerWidth;
                 const windowHeight = window.innerHeight;
                 
+                // Get actual width if rendered, or guess from class
+                let width = 200; // default backup
+                if (contentRef.current) {
+                    width = contentRef.current.offsetWidth;
+                } else {
+                    // Rough parsing for initial frame if ref missing
+                    if (contentWidth.includes('w-56')) width = 224;
+                    else if (contentWidth.includes('w-64')) width = 256;
+                    else if (contentWidth.includes('w-48')) width = 192;
+                    else if (contentWidth.includes('w-40')) width = 160;
+                }
+
                 // Horizontal Position & Collision
                 let left = triggerRect.left;
                 let transformOrigin = 'top left';
                 
-                // Assume content width based on standard sizes if ref not ready, 
-                // but checking viewport edge generally is enough with approximate width
-                const estimatedWidth = 200; 
-                
-                if (left + estimatedWidth > windowWidth - 8) {
-                    left = Math.max(8, windowWidth - estimatedWidth - 8);
-                    // Use right alignment if we are pushing it
-                    if (left !== triggerRect.left) transformOrigin = 'top right';
-                } else if (left < 8) {
-                    left = 8;
+                // Check if it goes off the right screen edge
+                if (left + width > windowWidth - 8) {
+                    // Try to align the right side of the dropdown with the right side of the trigger
+                    const rightAlignedLeft = triggerRect.right - width;
+                    
+                    // Does right-align fit on screen?
+                    if (rightAlignedLeft > 8) {
+                        left = rightAlignedLeft;
+                        transformOrigin = 'top right';
+                    } else {
+                        // If it doesn't fit either way, clamp to right edge of screen
+                        left = windowWidth - width - 8;
+                        transformOrigin = 'top right';
+                    }
                 }
+                
+                // Clamp left edge
+                if (left < 8) left = 8;
 
                 // Vertical Position & Collision
                 const spaceBelow = windowHeight - triggerRect.bottom - 8;
@@ -308,7 +327,7 @@ export const SmartDropdown = ({
                     transformOrigin = transformOrigin.replace('top', 'bottom');
                 } else {
                     // Default downwards
-                    maxHeight = Math.min(spaceBelow, 500); // Cap at 500px or available space
+                    maxHeight = Math.min(spaceBelow, 500); 
                 }
 
                 setStyle({ top, left, bottom, transformOrigin, opacity: 1, maxHeight });
@@ -327,7 +346,7 @@ export const SmartDropdown = ({
         } else {
             setStyle(s => ({ ...s, opacity: 0 }));
         }
-    }, [open]);
+    }, [open, contentWidth]);
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent | TouchEvent) => {
