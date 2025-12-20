@@ -8,6 +8,7 @@ import { cn } from '../../utils';
 export interface TabProps {
   currentStyle: CellStyle;
   onToggleStyle: (key: keyof CellStyle, value?: any) => void;
+  onApplyStyle?: (style: CellStyle) => void; // New Prop
   onExport: () => void;
   onClear: () => void;
   onResetLayout: () => void;
@@ -280,7 +281,8 @@ export const SmartDropdown = ({
                 let width = 200; 
                 if (contentRef.current) {
                     width = contentRef.current.getBoundingClientRect().width;
-                } else if (contentWidth.includes('w-56')) width = 224;
+                } else if (contentWidth.includes('w-[360px]')) width = 360;
+                else if (contentWidth.includes('w-56')) width = 224;
                 else if (contentWidth.includes('w-64')) width = 256;
                 else if (contentWidth.includes('w-48')) width = 192;
                 else if (contentWidth.includes('w-40')) width = 160;

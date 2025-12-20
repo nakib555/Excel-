@@ -1304,6 +1304,7 @@ const App: React.FC = () => {
           <Toolbar 
             currentStyle={activeStyle}
             onToggleStyle={handleStyleChange}
+            onApplyStyle={handleApplyFullStyle}
             onExport={handleExport}
             onClear={handleClear}
             onResetLayout={handleResetLayout}
