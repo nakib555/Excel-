@@ -111,7 +111,7 @@ export const TABLE_STYLES: TableStylePreset[] = [
     createStyle('Medium 8', 'Medium', C.DarkGray, '#ffffff', C.MedGray, '#ffffff'),
     createStyle('Medium 9', 'Medium', C.DarkBlue, '#ffffff', C.MedBlue, '#ffffff'),
     createStyle('Medium 10', 'Medium', C.DarkOrange, '#ffffff', C.MedOrange, '#ffffff'),
-    createStyle('Medium 11', 'Medium', C.Gray, '#ffffff', C.MedGray, '#ffffff'), // Repeat gray for symmetry or varying shade
+    createStyle('Medium 11', 'Medium', C.Gray, '#ffffff', C.MedGray, '#ffffff'), 
     createStyle('Medium 12', 'Medium', C.DarkGold, '#ffffff', C.MedGold, '#ffffff'),
     createStyle('Medium 13', 'Medium', C.DarkCyan, '#ffffff', C.MedCyan, '#ffffff'),
     createStyle('Medium 14', 'Medium', C.DarkGreen, '#ffffff', C.MedGreen, '#ffffff'),
@@ -153,8 +153,8 @@ export const StylePreviewItem: React.FC<{ style: TableStylePreset, onClick: () =
         <button 
             onClick={onClick}
             className={cn(
-                "group relative w-[54px] h-[38px] rounded-lg transition-all duration-200 outline-none isolate",
-                "hover:scale-110 hover:z-20 hover:shadow-xl",
+                "group relative w-full aspect-[5/3] rounded-lg transition-all duration-200 outline-none isolate",
+                "hover:scale-105 hover:z-20 hover:shadow-xl",
                 selected 
                     ? "ring-2 ring-primary-500 ring-offset-2 z-10 shadow-md" 
                     : "hover:ring-2 hover:ring-primary-200 hover:ring-offset-2"
@@ -211,7 +211,7 @@ const FormatAsTable: React.FC<FormatAsTableProps> = ({ onFormatAsTable }) => {
                     )} />
                     {cat}
                 </div>
-                <div className="grid grid-cols-5 gap-x-4 gap-y-4 px-5">
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-x-3 gap-y-3 px-5">
                     {styles.map((s, i) => (
                         <StylePreviewItem key={i} style={s} onClick={() => handleSelect(s)} />
                     ))}
@@ -224,7 +224,7 @@ const FormatAsTable: React.FC<FormatAsTableProps> = ({ onFormatAsTable }) => {
         <SmartDropdown
             open={open}
             onToggle={() => setOpen(!open)}
-            contentWidth="w-[380px]"
+            contentWidth="w-[90vw] md:w-[480px] max-w-[640px]"
             triggerClassName="h-full"
             trigger={
                 <RibbonButton 
@@ -238,7 +238,7 @@ const FormatAsTable: React.FC<FormatAsTableProps> = ({ onFormatAsTable }) => {
                 />
             }
         >
-            <div className="flex flex-col bg-white max-h-[500px] overflow-y-auto scrollbar-thin rounded-xl">
+            <div className="flex flex-col bg-white max-h-[70vh] overflow-y-auto scrollbar-thin rounded-xl">
                 <div className="pt-2 pb-4">
                     {renderCategory('Light')}
                     {renderCategory('Medium')}

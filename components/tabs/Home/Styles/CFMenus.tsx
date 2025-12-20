@@ -12,16 +12,16 @@ import { cn } from '../../../../utils';
 const SubMenuItem = ({ label, icon, shortcut, onClick }: { label: string, icon?: React.ReactNode, shortcut?: string, onClick?: () => void }) => (
     <button 
         onClick={onClick}
-        className="flex items-center gap-3 px-3 py-1.5 text-[12px] text-slate-700 hover:bg-[#e6f2ff] hover:border-[#cce8ff] border border-transparent transition-all text-left w-full whitespace-nowrap group"
+        className="flex items-center gap-3 px-4 py-2 text-[13px] text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent transition-all text-left w-full whitespace-nowrap group"
     >
         {icon && <div className="w-5 flex justify-center items-center opacity-80 group-hover:opacity-100">{icon}</div>}
-        <span className="flex-1">{label}</span>
+        <span className="flex-1 font-medium">{label}</span>
         {shortcut && <span className="text-[10px] text-slate-400">{shortcut}</span>}
     </button>
 );
 
 const MenuHeader = ({ label }: { label: string }) => (
-    <div className="px-3 py-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50 border-b border-slate-100 mb-1">
+    <div className="px-4 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50 mb-1 mt-1 first:mt-0">
         {label}
     </div>
 );
@@ -31,14 +31,15 @@ const MenuHeader = ({ label }: { label: string }) => (
 export const HighlightCellsMenu = () => {
     return (
         <div className="flex flex-col py-1">
-            <SubMenuItem label="Greater Than..." icon={<ChevronRight size={14} className="text-rose-600 stroke-[3]" />} />
-            <SubMenuItem label="Less Than..." icon={<ChevronLeft size={14} className="text-rose-600 stroke-[3]" />} />
-            <SubMenuItem label="Between..." icon={<ArrowLeftRight size={14} className="text-rose-600 stroke-[2.5]" />} />
-            <SubMenuItem label="Equal To..." icon={<Equal size={14} className="text-rose-600 stroke-[3]" />} />
-            <SubMenuItem label="Text that Contains..." icon={<Type size={14} className="text-rose-600 stroke-[2.5]" />} />
-            <SubMenuItem label="A Date Occurring..." icon={<Calendar size={14} className="text-rose-600 stroke-[2.5]" />} />
-            <SubMenuItem label="Duplicate Values..." icon={<Copy size={14} className="text-rose-600 stroke-[2.5]" />} />
-            <div className="h-[1px] bg-slate-200 my-1 mx-3" />
+            <MenuHeader label="Highlight Rules" />
+            <SubMenuItem label="Greater Than..." icon={<ChevronRight size={14} className="text-rose-500 stroke-[3]" />} />
+            <SubMenuItem label="Less Than..." icon={<ChevronLeft size={14} className="text-rose-500 stroke-[3]" />} />
+            <SubMenuItem label="Between..." icon={<ArrowLeftRight size={14} className="text-rose-500 stroke-[2.5]" />} />
+            <SubMenuItem label="Equal To..." icon={<Equal size={14} className="text-rose-500 stroke-[3]" />} />
+            <SubMenuItem label="Text that Contains..." icon={<Type size={14} className="text-rose-500 stroke-[2.5]" />} />
+            <SubMenuItem label="A Date Occurring..." icon={<Calendar size={14} className="text-rose-500 stroke-[2.5]" />} />
+            <SubMenuItem label="Duplicate Values..." icon={<Copy size={14} className="text-rose-500 stroke-[2.5]" />} />
+            <div className="h-[1px] bg-slate-100 my-1 mx-4" />
             <SubMenuItem label="More Rules..." />
         </div>
     );
@@ -49,13 +50,16 @@ export const HighlightCellsMenu = () => {
 export const TopBottomRulesMenu = () => {
     return (
         <div className="flex flex-col py-1">
-            <SubMenuItem label="Top 10 Items..." icon={<ArrowUp size={14} className="text-blue-600 stroke-[3]" />} />
-            <SubMenuItem label="Top 10%..." icon={<Percent size={14} className="text-blue-600 stroke-[3]" />} />
-            <SubMenuItem label="Bottom 10 Items..." icon={<ArrowDown size={14} className="text-red-600 stroke-[3]" />} />
-            <SubMenuItem label="Bottom 10%..." icon={<Percent size={14} className="text-red-600 stroke-[3]" />} />
-            <SubMenuItem label="Above Average..." icon={<TrendingUp size={14} className="text-green-600 stroke-[2.5]" />} />
-            <SubMenuItem label="Below Average..." icon={<TrendingDown size={14} className="text-orange-600 stroke-[2.5]" />} />
-            <div className="h-[1px] bg-slate-200 my-1 mx-3" />
+            <MenuHeader label="Top / Bottom" />
+            <SubMenuItem label="Top 10 Items..." icon={<ArrowUp size={14} className="text-blue-500 stroke-[3]" />} />
+            <SubMenuItem label="Top 10%..." icon={<Percent size={14} className="text-blue-500 stroke-[3]" />} />
+            <SubMenuItem label="Bottom 10 Items..." icon={<ArrowDown size={14} className="text-red-500 stroke-[3]" />} />
+            <SubMenuItem label="Bottom 10%..." icon={<Percent size={14} className="text-red-500 stroke-[3]" />} />
+            <div className="h-[1px] bg-slate-100 my-1 mx-4" />
+            <MenuHeader label="Average" />
+            <SubMenuItem label="Above Average..." icon={<TrendingUp size={14} className="text-emerald-500 stroke-[2.5]" />} />
+            <SubMenuItem label="Below Average..." icon={<TrendingDown size={14} className="text-orange-500 stroke-[2.5]" />} />
+            <div className="h-[1px] bg-slate-100 my-1 mx-4" />
             <SubMenuItem label="More Rules..." />
         </div>
     );
@@ -64,8 +68,8 @@ export const TopBottomRulesMenu = () => {
 // --- 3. DATA BARS ---
 
 const BarPreview: React.FC<{ color: string, gradient?: boolean }> = ({ color, gradient = false }) => (
-    <button className="p-1 hover:bg-slate-200 hover:scale-110 transition-all rounded-sm border border-transparent hover:border-slate-300 group" title={color}>
-        <div className="w-8 h-8 bg-white border border-slate-200 p-1 flex flex-col justify-center gap-[2px] shadow-sm">
+    <button className="p-1 hover:bg-slate-100 hover:scale-110 transition-all rounded-md border border-transparent hover:border-slate-200 group">
+        <div className="w-10 h-10 bg-white border border-slate-200 p-1 flex flex-col justify-center gap-[3px] shadow-sm rounded-sm">
             {[0.8, 0.6, 0.4, 0.9].map((w, i) => (
                 <div 
                     key={i} 
@@ -88,16 +92,16 @@ export const DataBarsMenu = () => {
     return (
         <div className="flex flex-col py-1 w-max">
             <MenuHeader label="Gradient Fill" />
-            <div className="grid grid-cols-6 gap-1 px-3 pb-2">
+            <div className="grid grid-cols-6 gap-2 px-4 pb-3">
                 {BAR_COLORS.map(c => <BarPreview key={`grad-${c}`} color={c} gradient />)}
             </div>
             
             <MenuHeader label="Solid Fill" />
-            <div className="grid grid-cols-6 gap-1 px-3 pb-2">
+            <div className="grid grid-cols-6 gap-2 px-4 pb-3">
                 {BAR_COLORS.map(c => <BarPreview key={`solid-${c}`} color={c} />)}
             </div>
             
-            <div className="h-[1px] bg-slate-200 my-1 mx-3" />
+            <div className="h-[1px] bg-slate-100 my-1 mx-4" />
             <SubMenuItem label="More Rules..." />
         </div>
     );
@@ -106,8 +110,8 @@ export const DataBarsMenu = () => {
 // --- 4. COLOR SCALES ---
 
 const ScalePreview: React.FC<{ colors: string[] }> = ({ colors }) => (
-    <button className="p-1 hover:bg-slate-200 hover:scale-110 transition-all rounded-sm border border-transparent hover:border-slate-300 group">
-        <div className="w-8 h-8 bg-white border border-slate-200 p-[2px] grid grid-cols-2 gap-[1px] shadow-sm">
+    <button className="p-1 hover:bg-slate-100 hover:scale-110 transition-all rounded-md border border-transparent hover:border-slate-200 group">
+        <div className="w-10 h-10 bg-white border border-slate-200 p-[2px] grid grid-cols-2 gap-[1px] shadow-sm rounded-sm overflow-hidden">
             {colors.map((c, i) => (
                 <div key={i} className="w-full h-full" style={{ backgroundColor: c }} />
             ))}
@@ -134,10 +138,10 @@ export const ColorScalesMenu = () => {
     return (
         <div className="flex flex-col py-1 w-max">
             <MenuHeader label="Color Scales" />
-            <div className="grid grid-cols-4 gap-1 px-3 pb-2">
+            <div className="grid grid-cols-4 gap-2 px-4 pb-3">
                 {SCALES.map((s, i) => <ScalePreview key={i} colors={s} />)}
             </div>
-            <div className="h-[1px] bg-slate-200 my-1 mx-3" />
+            <div className="h-[1px] bg-slate-100 my-1 mx-4" />
             <SubMenuItem label="More Rules..." />
         </div>
     );
@@ -154,8 +158,8 @@ const Arrow = ({ dir, color, gray }: { dir: 'up'|'down'|'right'|'up-right'|'down
     if (dir === 'down-right') r = 135;
     
     return (
-        <svg width="12" height="12" viewBox="0 0 24 24" fill={gray ? "#6b7280" : "currentColor"} className={gray ? "" : color} style={{ transform: `rotate(${r}deg)` }}>
-            <path d="M12 3L12 21M12 3L4 11M12 3L20 11" stroke={gray ? "#6b7280" : "currentColor"} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+        <svg width="12" height="12" viewBox="0 0 24 24" fill={gray ? "#9ca3af" : "currentColor"} className={gray ? "" : color} style={{ transform: `rotate(${r}deg)` }}>
+            <path d="M12 3L12 21M12 3L4 11M12 3L20 11" stroke={gray ? "#9ca3af" : "currentColor"} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     );
 }
@@ -241,17 +245,15 @@ const BarIcon = ({ level, max }: { level: number, max: number }) => (
 
 // Section Wrapper
 const SetRow = ({ children }: { children?: React.ReactNode }) => (
-    <button className="flex items-center justify-around w-full py-1.5 hover:bg-slate-100 hover:border-slate-300 border border-transparent rounded-[2px] transition-all group">
+    <button className="flex items-center justify-around w-full py-2 hover:bg-slate-50 hover:border-slate-200 border border-transparent rounded-md transition-all group">
         {children}
     </button>
 );
 
 const SetGroup = ({ label, children }: { label: string, children?: React.ReactNode }) => (
     <div className="flex flex-col pb-2">
-        <div className="px-3 py-1.5 text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50/80 border-b border-slate-100 mb-1">
-            {label}
-        </div>
-        <div className="px-1 flex flex-col">
+        <MenuHeader label={label} />
+        <div className="px-2 flex flex-col gap-0.5">
             {children}
         </div>
     </div>
@@ -262,7 +264,7 @@ export const IconSetsMenu = () => {
         <div className="flex flex-col py-1 w-max max-h-[600px] overflow-y-auto">
             
             <SetGroup label="Directional">
-                <div className="flex gap-2">
+                <div className="flex gap-4">
                     <div className="flex-1 flex flex-col gap-0.5">
                         <SetRow>
                             <Arrow dir="up" color="text-green-600" /><Arrow dir="right" color="text-yellow-500" /><Arrow dir="down" color="text-red-600" />
@@ -293,27 +295,31 @@ export const IconSetsMenu = () => {
             </SetGroup>
 
             <SetGroup label="Shapes">
-                <div className="grid grid-cols-2 gap-2">
-                    <SetRow>
-                        <Circle color="text-green-500" /><Circle color="text-yellow-400" /><Circle color="text-red-500" />
-                    </SetRow>
-                    <SetRow>
-                        <Circle color="text-green-500" border /><Circle color="text-yellow-400" border /><Circle color="text-red-500" border />
-                    </SetRow>
-                    <SetRow>
-                        <Circle color="text-green-500" /><Triangle dir="up" color="text-yellow-500" /><Diamond color="text-red-500" />
-                    </SetRow>
-                    <SetRow>
-                        <Circle color="text-green-500" border /><Circle color="text-yellow-400" border /><Circle color="text-red-500" border /><Circle color="text-slate-800" />
-                    </SetRow>
-                    <SetRow>
-                        <Circle color="text-red-500" /><Circle color="text-rose-300" /><Circle color="text-slate-300" /><Circle color="text-slate-500" />
-                    </SetRow>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-0.5">
+                        <SetRow>
+                            <Circle color="text-green-500" /><Circle color="text-yellow-400" /><Circle color="text-red-500" />
+                        </SetRow>
+                        <SetRow>
+                            <Circle color="text-green-500" border /><Circle color="text-yellow-400" border /><Circle color="text-red-500" border />
+                        </SetRow>
+                        <SetRow>
+                            <Circle color="text-green-500" /><Triangle dir="up" color="text-yellow-500" /><Diamond color="text-red-500" />
+                        </SetRow>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                        <SetRow>
+                            <Circle color="text-green-500" border /><Circle color="text-yellow-400" border /><Circle color="text-red-500" border /><Circle color="text-slate-800" />
+                        </SetRow>
+                        <SetRow>
+                            <Circle color="text-red-500" /><Circle color="text-rose-300" /><Circle color="text-slate-300" /><Circle color="text-slate-500" />
+                        </SetRow>
+                    </div>
                 </div>
             </SetGroup>
 
             <SetGroup label="Indicators">
-                <div className="flex gap-2">
+                <div className="flex gap-4">
                     <div className="flex-1 flex flex-col gap-0.5">
                         <SetRow>
                             <SignSymbol type="check" color="text-green-600" circle /><SignSymbol type="exclamation" color="text-yellow-600" circle /><SignSymbol type="cross" color="text-red-600" circle />
@@ -331,7 +337,7 @@ export const IconSetsMenu = () => {
             </SetGroup>
 
             <SetGroup label="Ratings">
-                <div className="flex gap-2">
+                <div className="flex gap-4">
                     <div className="flex-1 flex flex-col gap-0.5">
                         <SetRow><StarIcon fill="full" /><StarIcon fill="half" /><StarIcon fill="empty" /></SetRow>
                         <SetRow><PieIcon level={4} /><PieIcon level={3} /><PieIcon level={2} /><PieIcon level={1} /><PieIcon level={0} /></SetRow>
@@ -344,7 +350,7 @@ export const IconSetsMenu = () => {
                 </div>
             </SetGroup>
 
-            <div className="h-[1px] bg-slate-200 my-1 mx-3" />
+            <div className="h-[1px] bg-slate-100 my-1 mx-4" />
             <SubMenuItem label="More Rules..." />
         </div>
     );

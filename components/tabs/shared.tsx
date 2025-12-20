@@ -150,7 +150,7 @@ export const RibbonGroup: React.FC<{
     onLaunch?: () => void;
 }> = memo(({ label, children, className = "", showLauncher, onLaunch }) => (
   <div className={`flex flex-col h-full px-1.5 border-r border-slate-200 last:border-r-0 flex-shrink-0 relative group/ribbon ${className}`}>
-    <div className="flex-1 flex gap-1 items-center justify-center min-h-0">
+    <div className="flex-1 flex gap-1 items-center justify-center min-h-0 pt-2 pb-0.5">
        {children}
     </div>
     <div className="h-[18px] flex items-center justify-center text-[10px] text-slate-400 font-medium whitespace-nowrap pb-1 cursor-default">{label}</div>
