@@ -1,6 +1,18 @@
 
 import React, { useState, memo, lazy, Suspense } from 'react';
-import { Sparkles } from 'lucide-react';
+import { 
+  Sparkles, 
+  File, 
+  Home, 
+  PlusCircle, 
+  PenTool, 
+  LayoutTemplate, 
+  FunctionSquare, 
+  Database, 
+  CheckSquare, 
+  Eye, 
+  Workflow 
+} from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { DraggableScrollContainer, TabProps } from './tabs/shared';
 import { cn } from '../utils';
@@ -19,7 +31,19 @@ const AutomateTab = lazy(() => import('./tabs/Automate/AutomateTab'));
 const FileTab = lazy(() => import('./tabs/File/FileTab'));
 const AIAssistantTab = lazy(() => import('./tabs/AIAssistant/AIAssistantTab'));
 
-const TABS = ['File', 'Home', 'Insert', 'Draw', 'Page Layout', 'Formulas', 'Data', 'Review', 'View', 'Automate', 'AI Assistant'];
+const TABS = [
+  { id: 'File', label: 'File', icon: File, color: 'text-emerald-400' },
+  { id: 'Home', label: 'Home', icon: Home, color: 'text-blue-400' },
+  { id: 'Insert', label: 'Insert', icon: PlusCircle, color: 'text-orange-400' },
+  { id: 'Draw', label: 'Draw', icon: PenTool, color: 'text-rose-400' },
+  { id: 'Page Layout', label: 'Page Layout', icon: LayoutTemplate, color: 'text-cyan-400' },
+  { id: 'Formulas', label: 'Formulas', icon: FunctionSquare, color: 'text-purple-400' },
+  { id: 'Data', label: 'Data', icon: Database, color: 'text-green-400' },
+  { id: 'Review', label: 'Review', icon: CheckSquare, color: 'text-yellow-400' },
+  { id: 'View', label: 'View', icon: Eye, color: 'text-sky-400' },
+  { id: 'Automate', label: 'Automate', icon: Workflow, color: 'text-teal-400' },
+  { id: 'AI Assistant', label: 'AI Assistant', icon: Sparkles, color: 'text-indigo-400' },
+];
 
 interface ToolbarProps extends TabProps {
     onToggleAI?: () => void;
@@ -34,23 +58,35 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
       <div className="bg-[#0f172a] px-2 md:px-4 flex items-end justify-between pt-2">
         <DraggableScrollContainer className="flex items-end gap-1">
             {TABS.map(tab => {
-                const isActive = activeTab === tab;
-                const isSpecial = tab === 'AI Assistant';
+                const isActive = activeTab === tab.id;
+                const isSpecial = tab.id === 'AI Assistant';
+                const Icon = tab.icon;
+                
                 return (
                     <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab)}
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                            "relative px-4 py-2 text-[13px] transition-all duration-150 whitespace-nowrap flex-shrink-0 select-none rounded-t-md outline-none",
+                            "relative px-3 md:px-4 py-2 text-[13px] transition-all duration-150 whitespace-nowrap flex-shrink-0 select-none rounded-t-md outline-none flex items-center gap-2 group",
                             isActive 
-                                ? "bg-[#f8fafc] text-[#4f46e5] font-bold shadow-none z-10 pb-2.5 -mb-0.5" 
-                                : "text-slate-200 hover:bg-white/10 hover:text-white mb-1 font-medium",
+                                ? "bg-[#f8fafc] text-slate-800 font-bold shadow-none z-10 pb-2.5 -mb-0.5" 
+                                : "text-slate-300 hover:bg-white/10 hover:text-white mb-1 font-medium",
                             isSpecial && !isActive && "text-indigo-300 hover:text-indigo-200",
-                            isSpecial && isActive && "text-indigo-600"
+                            isSpecial && isActive && "text-indigo-700"
                         )}
                     >
-                        {isSpecial && <Sparkles size={12} className={cn("inline-block mr-1.5 mb-0.5", isActive ? "text-indigo-600 fill-indigo-100" : "text-indigo-400")} />}
-                        {tab}
+                        <Icon 
+                            size={14} 
+                            className={cn(
+                                "mb-0.5 transition-colors", 
+                                isActive 
+                                    ? (isSpecial ? "text-indigo-600 fill-indigo-100" : tab.color.replace('400', '600')) 
+                                    : (isSpecial ? "text-indigo-400" : tab.color)
+                            )} 
+                        />
+                        <span className={cn(isActive && !isSpecial ? tab.color.replace('400', '700') : "")}>
+                            {tab.label}
+                        </span>
                     </button>
                 );
             })}
