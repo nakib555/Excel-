@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, Calculator, Calendar, Clock, Percent, Type, Hash, Coins } from 'lucide-react';
 import { SmartDropdown, TabProps } from '../../shared';
-import { CellStyle } from '../../../types';
+import { CellStyle } from '../../../../types';
 
 interface NumberFormatSelectorProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle' | 'onOpenFormatDialog'> {}
 

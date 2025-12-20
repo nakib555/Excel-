@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { Palette, ChevronRight, Plus, Layers } from 'lucide-react';
 import { RibbonButton, SmartDropdown } from '../../shared';
-import { CellStyle } from '../../../types';
-import { cn } from '../../utils';
+import { CellStyle } from '../../../../types';
+import { cn } from '../../../../utils';
 
 interface CellStylesProps {
     onApplyStyle?: (style: CellStyle) => void;

@@ -220,9 +220,15 @@ const Cell = memo(({
   const justifyContent = align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
   const alignItems = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
 
+  // Calculate dynamic filter button size and padding
+  const filterBtnSize = Math.max(14, 18 * scale);
+  const showFilter = !!data.filterButton && !editing && !isMicroView && height > (filterBtnSize - 4);
+  const filterPadding = showFilter ? (filterBtnSize + 4 * scale) : 0;
+
   const indentPx = indent * 10 * scale; 
   const paddingLeft = align === 'right' ? '4px' : `${4 + indentPx}px`;
-  const paddingRight = align === 'right' ? `${4 + indentPx}px` : '4px';
+  // Add extra padding to the right to prevent text overlapping the filter button
+  const paddingRight = align === 'right' ? `${4 + indentPx + filterPadding}px` : `${4 + filterPadding}px`;
 
   const fontWeight = resolvedStyle.bold ? '600' : '400';
   const fontStyle = resolvedStyle.italic ? 'italic' : 'normal';
@@ -386,13 +392,24 @@ const Cell = memo(({
           </>
       )}
 
-      {/* Filter Button for Table Headers */}
-      {data.filterButton && !editing && (
+      {/* Filter Button for Table Headers - Beautiful Version */}
+      {showFilter && (
           <div 
-            className="absolute right-0.5 bottom-0.5 p-[1px] bg-gradient-to-b from-slate-100 to-slate-200 hover:from-slate-200 hover:to-slate-300 border border-slate-400/50 rounded-[2px] cursor-pointer z-20 shadow-sm active:shadow-inner active:scale-95 transition-all"
+            className="absolute z-20 flex items-center justify-center bg-gradient-to-b from-white to-slate-50 border border-slate-300 rounded-[3px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] cursor-pointer hover:border-slate-400 hover:shadow-md hover:to-white active:bg-slate-100 active:shadow-inner active:scale-95 transition-all duration-200 group/filter"
+            style={{
+                width: filterBtnSize,
+                height: filterBtnSize,
+                right: 3 * scale,
+                top: '50%',
+                marginTop: -filterBtnSize / 2
+            }}
             onMouseDown={(e) => { e.stopPropagation(); alert('Filter menu would open here'); }}
           >
-              <ChevronDown size={10} className="text-slate-600" strokeWidth={2.5} />
+              <ChevronDown 
+                size={Math.max(8, 10 * scale)} 
+                className="text-slate-400 group-hover/filter:text-slate-600 transition-colors" 
+                strokeWidth={2.5} 
+              />
           </div>
       )}
 

@@ -101,7 +101,8 @@ const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap:
         id: s.id,
         raw: s.val,
         value: s.val, 
-        styleId
+        styleId,
+        filterButton: (s as any).filterButton
       };
     });
     
