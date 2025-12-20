@@ -203,6 +203,7 @@ const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActi
             {isActive && hasSubMenu && position && createPortal(
                 <div 
                     ref={contentRef}
+                    data-submenu-portal="true"
                     className={cn(
                         "fixed z-[9999] bg-white shadow-xl border border-slate-200 py-1.5 rounded-lg ring-1 ring-black/5 min-w-[max-content]",
                         "overflow-y-auto scrollbar-thin",

@@ -28,6 +28,7 @@ const SmartSubMenuContent = ({ children, parentRef }: SmartSubMenuContentProps) 
     return createPortal(
         <div 
             ref={menuRef}
+            data-submenu-portal="true"
             className={cn(
                 "z-[2020] bg-white border border-slate-200 shadow-xl rounded-lg py-1.5 min-w-[220px] flex flex-col fixed scrollbar-thin ring-1 ring-black/5 overflow-y-auto",
                 position.ready && "animate-in fade-in zoom-in-95 slide-in-from-left-1 duration-100"
@@ -133,8 +134,11 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-            if (menuRef.current && !menuRef.current.contains(e.target as Node) && 
-                triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
+            const target = e.target as HTMLElement;
+            // Ignore clicks inside the menu, the trigger, OR any open submenu portals
+            if (menuRef.current && !menuRef.current.contains(target) && 
+                triggerRef.current && !triggerRef.current.contains(target) &&
+                !target.closest('[data-submenu-portal="true"]')) {
                 onClose();
             }
         };
@@ -297,7 +301,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
                             )}>
                                 {item.checked && <Check size={10} className="text-white stroke-[4]" />}
                             </div>
-                            <span className={cn("text-[13px] text-slate-700 leading-none pt-0.5", item.bold && "font-bold")}>
+                            <span className="text-[13px] text-slate-700 leading-none pt-0.5 font-medium">
                                 {item.label}
                             </span>
                         </div>

@@ -64,6 +64,9 @@ const ModernSelect: React.FC<ModernSelectProps> = ({
 
     const selectedOption = options.find(o => o.value === value);
 
+    // Calculate min width to match trigger
+    const minWidth = triggerRef.current ? triggerRef.current.offsetWidth : undefined;
+
     return (
         <div className={cn("relative w-full", className)}>
             <button
@@ -103,7 +106,8 @@ const ModernSelect: React.FC<ModernSelectProps> = ({
                                 top: coords.top, 
                                 bottom: coords.bottom,
                                 left: coords.left, 
-                                width: coords.width,
+                                width: coords.width, // Usually undefined now unless constrained
+                                minWidth: minWidth,  // Ensure it's at least as wide as trigger
                                 maxHeight: coords.maxHeight,
                                 transformOrigin: coords.transformOrigin,
                                 // Wait for ready state before showing

@@ -195,11 +195,20 @@ export function useSmartPosition(
             // If we are using fallback dimensions (content not mounted yet), keep it invisible
             const ready = hasContent;
 
-            let finalWidth = pos.width;
+            let finalWidth: string | number | undefined = undefined;
             if (options?.fixedWidth) {
                 finalWidth = options.fixedWidth;
             } else if (options?.widthClass) {
                 finalWidth = undefined; 
+            } else {
+                // Important: Only lock width if calculatePosition constrained it (e.g. hitting screen edge)
+                // Otherwise leave it undefined so the element can size naturally (e.g. grow with content)
+                // This prevents "jumping" and layout thrashing when content changes.
+                if (pos.width !== undefined && typeof pos.width === 'number' && contentRect.width > 0 && pos.width < contentRect.width - 0.5) {
+                    finalWidth = pos.width;
+                } else {
+                    finalWidth = undefined;
+                }
             }
 
             setPosition({
@@ -209,7 +218,7 @@ export function useSmartPosition(
             });
         };
 
-        // Initial update (likely with fallback if contentRef is not attached yet)
+        // Initial update
         update();
 
         const checkForContent = () => {
@@ -231,6 +240,7 @@ export function useSmartPosition(
             resizeObserver.observe(contentRef.current);
         }
 
+        // Capture phase scroll listener to detect scrolling of parent containers
         window.addEventListener('scroll', update, true);
         window.addEventListener('resize', update);
         
