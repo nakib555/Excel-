@@ -60,7 +60,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu 
                         isActive={activeSubMenu === 'highlight'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('highlight')}
-                        onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'highlight' ? null : 'highlight')}
+                        onClick={() => setActiveSubMenu('highlight')}
                         isMobile={isMobile}
                     >
                         <HighlightCellsMenu />
@@ -72,7 +72,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu
                         isActive={activeSubMenu === 'topbottom'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('topbottom')}
-                        onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'topbottom' ? null : 'topbottom')}
+                        onClick={() => setActiveSubMenu('topbottom')}
                         isMobile={isMobile}
                     >
                         <TopBottomRulesMenu />
@@ -84,7 +84,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu
                         isActive={activeSubMenu === 'databars'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('databars')}
-                        onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'databars' ? null : 'databars')}
+                        onClick={() => setActiveSubMenu('databars')}
                         isMobile={isMobile}
                     >
                         <DataBarsMenu />
@@ -96,7 +96,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu
                         isActive={activeSubMenu === 'colorscales'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('colorscales')}
-                        onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'colorscales' ? null : 'colorscales')}
+                        onClick={() => setActiveSubMenu('colorscales')}
                         isMobile={isMobile}
                     >
                         <ColorScalesMenu />
@@ -108,7 +108,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu
                         isActive={activeSubMenu === 'iconsets'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('iconsets')}
-                        onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'iconsets' ? null : 'iconsets')}
+                        onClick={() => setActiveSubMenu('iconsets')}
                         isMobile={isMobile}
                     >
                         <IconSetsMenu />
@@ -131,7 +131,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu
                         isActive={activeSubMenu === 'clear'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('clear')}
-                        onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'clear' ? null : 'clear')}
+                        onClick={() => setActiveSubMenu('clear')}
                         isMobile={isMobile}
                     >
                         <div className="flex flex-col py-1 min-w-[max-content]">

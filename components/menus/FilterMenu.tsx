@@ -30,7 +30,8 @@ const SmartSubMenuContent = ({ children, parentRef }: SmartSubMenuContentProps) 
             ref={menuRef}
             data-submenu-portal="true"
             className={cn(
-                "z-[2020] bg-white border border-slate-200 shadow-xl rounded-lg py-1.5 min-w-[220px] flex flex-col fixed scrollbar-thin ring-1 ring-black/5 overflow-y-auto",
+                "z-[2020] bg-white border border-slate-200 shadow-xl rounded-lg py-1.5 flex flex-col fixed scrollbar-thin ring-1 ring-black/5 overflow-y-auto",
+                "min-w-[max-content]", // Auto width based on content
                 position.ready && "animate-in fade-in zoom-in-95 slide-in-from-left-1 duration-100"
             )}
             style={{
@@ -39,7 +40,8 @@ const SmartSubMenuContent = ({ children, parentRef }: SmartSubMenuContentProps) 
                 opacity: position.ready ? 1 : 0,
                 maxHeight: position.maxHeight,
                 transformOrigin: position.transformOrigin,
-                maxWidth: 'calc(100vw - 16px)'
+                maxWidth: 'calc(100vw - 16px)',
+                width: position.width // Apply calculated width if constrained
             }}
             onMouseDown={(e) => e.stopPropagation()} 
         >
@@ -154,8 +156,9 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
 
     if (!isOpen || !position) return null;
 
-    const toggleSubMenu = (id: string) => {
-        setActiveSubMenu(prev => prev === id ? null : id);
+    // Modified to be idempotent (clicking open menu keeps it open)
+    const openSubMenu = (id: string) => {
+        setActiveSubMenu(id);
     };
 
     const toggleItem = (id: string) => {
@@ -205,7 +208,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
                     hasSubMenu 
                     isActive={activeSubMenu === 'color_sort'}
                     onMouseEnter={() => setActiveSubMenu('color_sort')}
-                    onClick={() => toggleSubMenu('color_sort')}
+                    onClick={() => openSubMenu('color_sort')}
                     icon={<Palette size={16} className="text-pink-500" />}
                 >
                     <div className="py-2 w-48">
@@ -235,7 +238,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
                     hasSubMenu 
                     isActive={activeSubMenu === 'color_filter'}
                     onMouseEnter={() => setActiveSubMenu('color_filter')}
-                    onClick={() => toggleSubMenu('color_filter')}
+                    onClick={() => openSubMenu('color_filter')}
                     icon={<PaintBucket size={16} className="text-orange-500" />}
                 >
                      <div className="py-2 w-48">
@@ -256,7 +259,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
                     hasSubMenu 
                     isActive={activeSubMenu === 'number_filter'}
                     onMouseEnter={() => setActiveSubMenu('number_filter')}
-                    onClick={() => toggleSubMenu('number_filter')}
+                    onClick={() => openSubMenu('number_filter')}
                     icon={<Calculator size={16} className="text-cyan-600" />}
                 >
                     <div className="py-1 w-56">
