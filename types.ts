@@ -49,6 +49,7 @@ export interface CellData {
   value: string;    // The computed display value (e.g., "500")
   styleId?: string; // Memory Optimization: Reference to a style in the Sheet's style registry
   isCheckbox?: boolean; // If true, renders as a checkbox
+  filterButton?: boolean; // If true, renders a filter dropdown button
   link?: string;    // URL if the cell is a hyperlink
   comment?: string; // Comment text
 }

@@ -1,4 +1,5 @@
 
+
 import React, { memo, useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
 import { cn, formatCellValue, measureTextWidth } from '../utils';
@@ -383,6 +384,16 @@ const Cell = memo(({
                 )
             )}
           </>
+      )}
+
+      {/* Filter Button for Table Headers */}
+      {data.filterButton && !editing && (
+          <div 
+            className="absolute right-0.5 bottom-0.5 p-[1px] bg-gradient-to-b from-slate-100 to-slate-200 hover:from-slate-200 hover:to-slate-300 border border-slate-400/50 rounded-[2px] cursor-pointer z-20 shadow-sm active:shadow-inner active:scale-95 transition-all"
+            onMouseDown={(e) => { e.stopPropagation(); alert('Filter menu would open here'); }}
+          >
+              <ChevronDown size={10} className="text-slate-600" strokeWidth={2.5} />
+          </div>
       )}
 
       {isActive && validation && validation.type === 'list' && !isGhost && (

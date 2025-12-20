@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 
 // --- 1. Imports from sibling files ---
@@ -39,6 +40,7 @@ const MobileResizeTool = lazy(() => import('./components/MobileResizeTool'));
 const FormatCellsDialog = lazy(() => import('./components/dialogs/FormatCellsDialog'));
 const FindReplaceDialog = lazy(() => import('./components/dialogs/FindReplaceDialog'));
 const MergeStylesDialog = lazy(() => import('./components/dialogs/MergeStylesDialog'));
+const CreateTableDialog = lazy(() => import('./components/dialogs/CreateTableDialog'));
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -156,6 +158,7 @@ const App: React.FC = () => {
   const [showAI, setShowAI] = useState(false);
   const [showFormatCells, setShowFormatCells] = useState(false);
   const [showMergeStyles, setShowMergeStyles] = useState(false);
+  const [createTableState, setCreateTableState] = useState<{ isOpen: boolean, preset: any | null, range: string }>({ isOpen: false, preset: null, range: '' });
   const [formatDialogTab, setFormatDialogTab] = useState('Number');
   const [findReplaceState, setFindReplaceState] = useState<{ open: boolean, mode: 'find' | 'replace' | 'goto' }>({ open: false, mode: 'find' });
   const clipboardRef = useRef<{ cells: Record<CellId, CellData>; baseRow: number; baseCol: number } | null>(null);
@@ -222,7 +225,7 @@ const App: React.FC = () => {
       }
 
       const hasStyle = !!oldCell?.styleId;
-      const hasSpecial = oldCell?.isCheckbox || oldCell?.link || oldCell?.comment;
+      const hasSpecial = oldCell?.isCheckbox || oldCell?.link || oldCell?.comment || oldCell?.filterButton;
 
       if (!rawValue && !hasStyle && !hasSpecial) {
          delete nextCells[id];
@@ -950,40 +953,17 @@ const App: React.FC = () => {
   }, [activeCell, activeSheetId]);
 
   const handleInsertTable = useCallback(() => {
-    setSheets(prev => prev.map(sheet => {
-        if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
-        const range = sheet.selectionRange;
-        const coords = range.map(id => parseCellId(id)!);
-        const minRow = Math.min(...coords.map(c => c.row));
-        
-        const nextCells: Record<string, CellData> = { ...sheet.cells };
-        let nextStyles: Record<string, CellStyle> = { ...sheet.styles };
-
-        range.forEach(id => {
-            const { row } = parseCellId(id)!;
-            const isHeader = row === minRow;
-            const isBand = (row - minRow) % 2 === 0;
-
-            const cell: CellData = nextCells[id] || { id, raw: '', value: '' };
-            const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
-            
-            let newStyle = { ...currentStyle };
-            
-            if (isHeader) {
-                newStyle = { ...newStyle, bold: true, bg: '#1e293b', color: '#ffffff' };
-            } else if (!isBand) { 
-                 if (!newStyle.bg || newStyle.bg === '#ffffff') {
-                     newStyle.bg = '#f1f5f9';
-                 }
-            }
-
-            const res = getStyleId(nextStyles, newStyle);
-            nextStyles = res.registry;
-            nextCells[id] = { ...cell, styleId: res.id };
-        });
-        return { ...sheet, cells: nextCells, styles: nextStyles };
-    }));
-  }, [activeSheetId]);
+    // Basic Table - just format as default Table Style Light 1 for now if triggered from Insert tab
+    // Ideally this would open the same dialog as Format as Table
+    handleFormatAsTable({
+        name: 'TableStyleMedium2',
+        headerBg: '#3b82f6',
+        headerColor: '#ffffff',
+        rowOddBg: '#eff6ff',
+        rowEvenBg: '#ffffff',
+        category: 'Medium'
+    });
+  }, []);
 
   const handleInsertCheckbox = useCallback(() => {
       setSheets(prev => prev.map(sheet => {
@@ -1262,61 +1242,114 @@ const App: React.FC = () => {
   }, []);
 
   const handleFormatAsTable = useCallback((stylePreset: any) => {
-      setSheets(prev => prev.map(sheet => {
-          if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
-          const range = sheet.selectionRange;
-          
-          // Determine bounds
-          const coords = range.map(id => parseCellId(id)!);
-          const minRow = Math.min(...coords.map(c => c.row));
-          
-          const nextCells = { ...sheet.cells };
-          let nextStyles = { ...sheet.styles };
+      if (!selectionRange) return;
+      // Convert selection range to string representation for dialog (e.g. A1:C5)
+      const start = selectionRange[0];
+      const end = selectionRange[selectionRange.length - 1];
+      const rangeStr = selectionRange.length > 1 ? `${start}:${end}` : start;
+      
+      setCreateTableState({ isOpen: true, preset: stylePreset, range: rangeStr });
+  }, [selectionRange]);
 
-          range.forEach(id => {
+  const handleCreateTableConfirm = useCallback((rangeStr: string, hasHeaders: boolean) => {
+      if (!createTableState.preset) return;
+      const preset = createTableState.preset;
+
+      // Parse range string back to coordinates
+      const parts = rangeStr.split(':');
+      const startId = parts[0];
+      const endId = parts[1] || startId;
+      
+      const s = parseCellId(startId);
+      const e = parseCellId(endId);
+      
+      if (!s || !e) return; // Invalid range
+
+      const minCol = Math.min(s.col, e.col);
+      const maxCol = Math.max(s.col, e.col);
+      const minRow = Math.min(s.row, e.row);
+      const maxRow = Math.max(s.row, e.row);
+
+      const rangeCells: string[] = [];
+      for (let r = minRow; r <= maxRow; r++) {
+          for (let c = minCol; c <= maxCol; c++) {
+              rangeCells.push(getCellId(c, r));
+          }
+      }
+
+      setSheets(prev => prev.map(sheet => {
+          if (sheet.id !== activeSheetId) return sheet;
+          
+          const nextCells: Record<string, CellData> = { ...sheet.cells };
+          let nextStyles: Record<string, CellStyle> = { ...sheet.styles };
+
+          rangeCells.forEach(id => {
               const { row } = parseCellId(id)!;
-              const isHeader = row === minRow;
-              const relativeRow = row - minRow; // 0 for header, 1, 2, ...
+              
+              // If has headers, the FIRST row of selection is the header
+              const isHeader = hasHeaders && row === minRow;
+              
+              // Calculate relative row index for banding (0-based relative to table body)
+              // If hasHeaders, body starts at minRow + 1. If not, body starts at minRow.
+              const bodyRowIndex = hasHeaders ? row - (minRow + 1) : row - minRow;
+              
+              // If it's a header row, apply header style
+              // If it's a body row (index >= 0), apply banding
               
               const cell = nextCells[id] || { id, raw: '', value: '' };
               const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
               
               let newStyle = { ...currentStyle };
-              
-              // Apply Table Style
+              let filterButton = false;
+
               if (isHeader) {
-                  newStyle.bg = stylePreset.headerBg;
-                  newStyle.color = stylePreset.headerColor;
+                  newStyle.bg = preset.headerBg;
+                  newStyle.color = preset.headerColor;
                   newStyle.bold = true;
-                  // Add border if needed
-                  if (stylePreset.border) {
+                  if (preset.border) {
                       newStyle.borders = { 
                           ...(newStyle.borders || {}),
-                          bottom: { style: 'thin', color: stylePreset.border }
+                          bottom: { style: 'thin', color: preset.border }
                       };
                   }
-              } else {
-                  // Body rows
-                  // relativeRow starts at 1 for body
-                  const isEven = relativeRow % 2 === 0;
-                  newStyle.bg = isEven ? stylePreset.rowEvenBg : stylePreset.rowOddBg;
-                  // Keep text color generally black/dark for body unless specified
-                  if (!stylePreset.rowEvenBg && !stylePreset.rowOddBg) {
-                      // If transparent body, keep existing or reset
+                  filterButton = true;
+              } else if (bodyRowIndex >= 0) {
+                  // Body Logic
+                  const isEven = bodyRowIndex % 2 === 0; // 0, 2, 4... relative to body start
+                  // Note: Excel standard banding usually starts with FIRST row of DATA being formatted if specific style,
+                  // or alternating. Often "Banded Rows" means Odd/Even difference.
+                  // Let's assume standard odd/even banding from the style preset.
+                  // Usually first data row is "odd" visually (1st), second is "even" (2nd).
+                  // So index 0 is Odd, index 1 is Even.
+                  
+                  const isOddRow = bodyRowIndex % 2 === 0; // 0th index = 1st row = Odd
+                  
+                  newStyle.bg = isOddRow ? preset.rowOddBg : preset.rowEvenBg;
+                  
+                  // Text color logic
+                  if (!preset.rowEvenBg && !preset.rowOddBg) {
+                      // Transparent body, keep existing
                   } else {
-                      newStyle.color = '#000000'; 
+                      newStyle.color = '#000000'; // Default black for data
                   }
+                  
+                  // Clean up filter button if overwriting existing header
+                  filterButton = false;
               }
 
-              // Update styles registry
               const res = getStyleId(nextStyles, newStyle);
               nextStyles = res.registry;
-              nextCells[id] = { ...cell, styleId: res.id };
+              
+              nextCells[id] = { 
+                  ...cell, 
+                  styleId: res.id,
+                  filterButton: filterButton ? true : undefined // Set or clear filter button
+              };
           });
 
           return { ...sheet, cells: nextCells, styles: nextStyles };
       }));
-  }, [activeSheetId]);
+  }, [activeSheetId, createTableState.preset]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1527,6 +1560,15 @@ const App: React.FC = () => {
         <MergeStylesDialog 
             isOpen={showMergeStyles}
             onClose={() => setShowMergeStyles(false)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <CreateTableDialog 
+            isOpen={createTableState.isOpen}
+            initialRange={createTableState.range}
+            onClose={() => setCreateTableState(prev => ({ ...prev, isOpen: false }))}
+            onConfirm={handleCreateTableConfirm}
         />
       </Suspense>
     </div>
