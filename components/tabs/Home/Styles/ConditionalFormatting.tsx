@@ -16,6 +16,14 @@ const ConditionalFormatting = () => {
     const [open, setOpen] = useState(false);
     const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 640);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Close submenus when main menu closes
     useEffect(() => {
@@ -46,7 +54,9 @@ const ConditionalFormatting = () => {
                     icon={<div className="w-4 h-4 border border-slate-300 bg-white flex items-center justify-center text-[10px] text-red-500 font-bold shadow-sm rounded-[2px]">&lt;</div>}
                     hasSubMenu 
                     isActive={activeSubMenu === 'highlight'}
-                    onMouseEnter={() => setActiveSubMenu('highlight')}
+                    onMouseEnter={() => !isMobile && setActiveSubMenu('highlight')}
+                    onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'highlight' ? null : 'highlight')}
+                    isMobile={isMobile}
                 >
                     <HighlightCellsMenu />
                 </CFMenuItem>
@@ -56,7 +66,9 @@ const ConditionalFormatting = () => {
                     icon={<div className="w-4 h-4 border border-slate-300 bg-white flex items-center justify-center text-[8px] text-blue-500 font-bold shadow-sm rounded-[2px]">%</div>}
                     hasSubMenu
                     isActive={activeSubMenu === 'topbottom'}
-                    onMouseEnter={() => setActiveSubMenu('topbottom')}
+                    onMouseEnter={() => !isMobile && setActiveSubMenu('topbottom')}
+                    onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'topbottom' ? null : 'topbottom')}
+                    isMobile={isMobile}
                 >
                     <TopBottomRulesMenu />
                 </CFMenuItem>
@@ -68,7 +80,9 @@ const ConditionalFormatting = () => {
                     icon={<div className="w-4 h-4 flex items-end gap-[1px] opacity-80"><div className="w-1 h-2 bg-blue-400 rounded-[1px]"></div><div className="w-1 h-3 bg-blue-400 rounded-[1px]"></div><div className="w-1 h-1.5 bg-blue-400 rounded-[1px]"></div></div>}
                     hasSubMenu
                     isActive={activeSubMenu === 'databars'}
-                    onMouseEnter={() => setActiveSubMenu('databars')}
+                    onMouseEnter={() => !isMobile && setActiveSubMenu('databars')}
+                    onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'databars' ? null : 'databars')}
+                    isMobile={isMobile}
                 >
                     <DataBarsMenu />
                 </CFMenuItem>
@@ -78,7 +92,9 @@ const ConditionalFormatting = () => {
                     icon={<div className="w-4 h-4 bg-gradient-to-br from-red-400 via-yellow-300 to-green-400 rounded-[2px] shadow-sm border border-slate-200"></div>}
                     hasSubMenu
                     isActive={activeSubMenu === 'colorscales'}
-                    onMouseEnter={() => setActiveSubMenu('colorscales')}
+                    onMouseEnter={() => !isMobile && setActiveSubMenu('colorscales')}
+                    onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'colorscales' ? null : 'colorscales')}
+                    isMobile={isMobile}
                 >
                     <ColorScalesMenu />
                 </CFMenuItem>
@@ -93,8 +109,9 @@ const ConditionalFormatting = () => {
                     }
                     hasSubMenu
                     isActive={activeSubMenu === 'iconsets'}
-                    onMouseEnter={() => setActiveSubMenu('iconsets')}
-                    menuWidth="w-[340px]"
+                    onMouseEnter={() => !isMobile && setActiveSubMenu('iconsets')}
+                    onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'iconsets' ? null : 'iconsets')}
+                    isMobile={isMobile}
                 >
                     <IconSetsMenu />
                 </CFMenuItem>
@@ -116,19 +133,21 @@ const ConditionalFormatting = () => {
                     </div>}
                     hasSubMenu
                     isActive={activeSubMenu === 'clear'}
-                    onMouseEnter={() => setActiveSubMenu('clear')}
+                    onMouseEnter={() => !isMobile && setActiveSubMenu('clear')}
+                    onClick={() => isMobile && setActiveSubMenu(activeSubMenu === 'clear' ? null : 'clear')}
+                    isMobile={isMobile}
                 >
-                    <div className="flex flex-col py-1 w-[260px]">
-                        <button className="flex items-center gap-3 px-6 py-1.5 text-[12px] text-slate-700 hover:bg-[#e6f2ff] hover:border-[#cce8ff] border border-transparent transition-all text-left w-full group">
+                    <div className="flex flex-col py-1 min-w-[260px]">
+                        <button className="flex items-center gap-3 px-6 py-1.5 text-[12px] text-slate-700 hover:bg-[#e6f2ff] hover:border-[#cce8ff] border border-transparent transition-all text-left w-full group whitespace-nowrap">
                             <span>Clear Rules from <span className="underline">S</span>elected Cells</span>
                         </button>
-                        <button className="flex items-center gap-3 px-6 py-1.5 text-[12px] text-slate-700 hover:bg-[#e6f2ff] hover:border-[#cce8ff] border border-transparent transition-all text-left w-full group">
+                        <button className="flex items-center gap-3 px-6 py-1.5 text-[12px] text-slate-700 hover:bg-[#e6f2ff] hover:border-[#cce8ff] border border-transparent transition-all text-left w-full group whitespace-nowrap">
                             <span>Clear Rules from <span className="underline">E</span>ntire Sheet</span>
                         </button>
-                        <button disabled className="flex items-center gap-3 px-6 py-1.5 text-[12px] text-slate-400 cursor-default border border-transparent text-left w-full">
+                        <button disabled className="flex items-center gap-3 px-6 py-1.5 text-[12px] text-slate-400 cursor-default border border-transparent text-left w-full whitespace-nowrap">
                             <span>Clear Rules from <span className="underline">T</span>his Table</span>
                         </button>
-                        <button disabled className="flex items-center gap-3 px-6 py-1.5 text-[12px] text-slate-400 cursor-default border border-transparent text-left w-full">
+                        <button disabled className="flex items-center gap-3 px-6 py-1.5 text-[12px] text-slate-400 cursor-default border border-transparent text-left w-full whitespace-nowrap">
                             <span>Clear Rules from This <span className="underline">P</span>ivotTable</span>
                         </button>
                     </div>
@@ -157,17 +176,20 @@ interface CFMenuItemProps {
     onClick?: () => void;
     children?: React.ReactNode;
     menuWidth?: string;
+    isMobile?: boolean;
 }
 
-const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActive, onMouseEnter, onClick, children, menuWidth }) => {
+const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActive, onMouseEnter, onClick, children, menuWidth, isMobile }) => {
     const itemRef = useRef<HTMLButtonElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     
     // Position the submenu using horizontal axis smart positioning
+    // We pass undefined/null for widthClass to let useSmartPosition determine width naturally from DOM
+    // but we add a min-w class for aesthetics.
     const position = useSmartPosition(isActive || false, itemRef, contentRef, { 
         axis: 'horizontal', 
-        widthClass: menuWidth || 'w-[260px]', 
-        gap: -1 // Overlap slight border
+        widthClass: isMobile ? `w-[${window.innerWidth - 32}px]` : undefined, 
+        gap: -2 
     });
 
     return (
@@ -191,13 +213,20 @@ const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActi
             {isActive && hasSubMenu && position && createPortal(
                 <div 
                     ref={contentRef}
-                    className="fixed z-[9999] bg-white shadow-xl border border-slate-300 py-1 animate-in fade-in zoom-in-95 duration-100"
+                    className={cn(
+                        "fixed z-[9999] bg-white shadow-xl border border-slate-300 py-1 animate-in fade-in zoom-in-95 duration-100 rounded-md ring-1 ring-black/5 min-w-[max-content]",
+                        // Fallback min-width if not mobile to ensure it doesn't look too skinny
+                        !isMobile && "min-w-[200px]"
+                    )}
                     style={{ 
                         top: position.top, 
                         bottom: position.bottom,
                         left: position.left,
                         maxHeight: position.maxHeight,
-                        transformOrigin: position.transformOrigin 
+                        transformOrigin: position.transformOrigin,
+                        // Ensure it overrides default width if mobile
+                        width: isMobile ? 'calc(100vw - 20px)' : (position.width ? position.width : undefined),
+                        maxWidth: '100vw'
                     }}
                     onMouseEnter={() => {}} 
                 >

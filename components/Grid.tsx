@@ -99,6 +99,9 @@ const Grid: React.FC<GridProps> = ({
 
   // Fill Handle State
   const [fillRange, setFillRange] = useState<CellId[] | null>(null);
+  
+  // Filter Menu State (Exclusive opening)
+  const [activeFilterId, setActiveFilterId] = useState<string | null>(null);
 
   const prevScaleRef = useRef(scale);
   const currentScaleRef = useRef(scale);
@@ -655,6 +658,8 @@ const Grid: React.FC<GridProps> = ({
                     isGhost={isScrolling && Math.abs(scrollState.velocityFactor) > 6} 
                     isScrollingFast={isScrollingFast}
                     bgPatternStyle={bgPatternStyle}
+                    activeFilterId={activeFilterId}
+                    onToggleFilter={setActiveFilterId}
                 />
             ))}
             
@@ -785,6 +790,8 @@ const Grid: React.FC<GridProps> = ({
                             onDoubleClick={onCellDoubleClick}
                             onChange={onCellChange}
                             onNavigate={(dir) => onNavigate(dir, false)}
+                            isFilterActive={activeFilterId === id}
+                            onToggleFilter={setActiveFilterId}
                         />
                     </div>
                 );

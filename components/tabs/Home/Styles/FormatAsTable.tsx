@@ -4,7 +4,7 @@ import { Table, Plus, LayoutTemplate } from 'lucide-react';
 import { RibbonButton, SmartDropdown } from '../../shared';
 import { cn } from '../../../../utils';
 
-interface TableStylePreset {
+export interface TableStylePreset {
     name: string;
     headerBg: string;
     headerColor: string;
@@ -32,7 +32,7 @@ const createStyle = (
 });
 
 // Authentic Excel Colors
-const C = {
+export const C = {
     Black: '#000000',
     White: '#FFFFFF',
     Blue: '#4472C4',
@@ -67,7 +67,7 @@ const C = {
     DarkGreen: '#548235',
 };
 
-const TABLE_STYLES: TableStylePreset[] = [
+export const TABLE_STYLES: TableStylePreset[] = [
     // --- LIGHT ---
     // Row 1: None + Banded options without headers
     createStyle('None', 'Light', '#ffffff', '#000000', '#ffffff', '#ffffff'),
@@ -148,7 +148,7 @@ const TABLE_STYLES: TableStylePreset[] = [
     createStyle('Dark 11', 'Dark', '#C00000', '#ffffff', '#940000', '#630000'),
 ];
 
-const StylePreviewItem: React.FC<{ style: TableStylePreset, onClick: () => void }> = ({ style, onClick }) => {
+export const StylePreviewItem: React.FC<{ style: TableStylePreset, onClick: () => void, selected?: boolean }> = ({ style, onClick, selected }) => {
     // Determine borders for CSS
     const borderColor = style.border || 'transparent'; 
     const hasBorder = !!style.border;
@@ -156,7 +156,10 @@ const StylePreviewItem: React.FC<{ style: TableStylePreset, onClick: () => void 
     return (
         <button 
             onClick={onClick}
-            className="group box-border p-[2px] border-2 border-transparent hover:border-[#f29423] hover:bg-[#ffeec2] rounded-sm transition-all w-[44px] h-[32px] flex items-center justify-center"
+            className={cn(
+                "group box-border p-[2px] border-2 rounded-sm transition-all w-[44px] h-[32px] flex items-center justify-center flex-shrink-0",
+                selected ? "border-[#f29423] bg-[#ffeec2]" : "border-transparent hover:border-[#f29423] hover:bg-[#ffeec2]"
+            )}
             title={style.name}
         >
             <div 

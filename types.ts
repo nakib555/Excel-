@@ -59,6 +59,27 @@ export interface ValidationRule {
   options: string[];
 }
 
+export interface TableStylePreset {
+    name: string;
+    headerBg: string;
+    headerColor: string;
+    rowEvenBg: string;
+    rowOddBg: string;
+    border?: string;
+    category: 'Light' | 'Medium' | 'Dark';
+}
+
+export interface Table {
+  id: string;
+  name: string;
+  range: string; // e.g. "A1:C5"
+  headerRow: boolean;
+  totalRow: boolean;
+  bandedRows: boolean;
+  filterButton: boolean;
+  style: TableStylePreset;
+}
+
 export interface SheetState {
   cells: Record<CellId, CellData>;
   selectedCell: CellId | null;
@@ -76,6 +97,7 @@ export interface Sheet {
   merges: string[]; // Array of range strings e.g. ["A1:B2"]
   validations: Record<CellId, ValidationRule>;
   dependentsMap: Record<CellId, CellId[]>; // Dependency Graph: Cell -> [Dependents]
+  tables: Record<string, Table>; // Registry of tables
   activeCell: CellId | null;
   selectionRange: CellId[] | null;
   columnWidths: Record<string, number>;

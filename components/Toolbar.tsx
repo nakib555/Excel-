@@ -1,5 +1,5 @@
 
-import React, { useState, memo, lazy, Suspense } from 'react';
+import React, { useState, memo, lazy, Suspense, useEffect } from 'react';
 import { 
   Sparkles, 
   File, 
@@ -11,7 +11,8 @@ import {
   Database, 
   CheckSquare, 
   Eye, 
-  Workflow 
+  Workflow,
+  TableProperties
 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { DraggableScrollContainer, TabProps } from './tabs/shared';
@@ -30,6 +31,7 @@ const ViewTab = lazy(() => import('./tabs/View/ViewTab'));
 const AutomateTab = lazy(() => import('./tabs/Automate/AutomateTab'));
 const FileTab = lazy(() => import('./tabs/File/FileTab'));
 const AIAssistantTab = lazy(() => import('./tabs/AIAssistant/AIAssistantTab'));
+const TableDesignTab = lazy(() => import('./tabs/TableDesign/TableDesignTab'));
 
 const TABS = [
   { id: 'File', label: 'File', icon: File, color: 'text-emerald-400' },
@@ -51,15 +53,21 @@ interface ToolbarProps extends TabProps {
 
 const Toolbar: React.FC<ToolbarProps> = (props) => {
   const [activeTab, setActiveTab] = useState('Home');
-  const { onToggleAI, ...tabProps } = props;
+  const { onToggleAI, activeTable, ...tabProps } = props;
+
+  const displayedTabs = [...TABS];
+  if (activeTable) {
+      displayedTabs.push({ id: 'Table Design', label: 'Table Design', icon: TableProperties, color: 'text-emerald-600' });
+  }
 
   return (
     <div className="flex flex-col bg-[#0f172a] z-40 select-none shadow-soft transition-all">
       <div className="bg-[#0f172a] px-2 md:px-4 flex items-end justify-between pt-2">
         <DraggableScrollContainer className="flex items-end gap-1">
-            {TABS.map(tab => {
+            {displayedTabs.map(tab => {
                 const isActive = activeTab === tab.id;
                 const isSpecial = tab.id === 'AI Assistant';
+                const isTable = tab.id === 'Table Design';
                 const Icon = tab.icon;
                 
                 return (
@@ -72,7 +80,9 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
                                 ? "bg-[#f8fafc] text-slate-800 font-bold shadow-none z-10 pb-2.5 -mb-0.5" 
                                 : "text-slate-300 hover:bg-white/10 hover:text-white mb-1 font-medium",
                             isSpecial && !isActive && "text-indigo-300 hover:text-indigo-200",
-                            isSpecial && isActive && "text-indigo-700"
+                            isSpecial && isActive && "text-indigo-700",
+                            isTable && !isActive && "text-emerald-300",
+                            isTable && isActive && "text-emerald-700"
                         )}
                     >
                         <Icon 
@@ -80,13 +90,17 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
                             className={cn(
                                 "mb-0.5 transition-colors", 
                                 isActive 
-                                    ? (isSpecial ? "text-indigo-600 fill-indigo-100" : tab.color.replace('400', '600')) 
-                                    : (isSpecial ? "text-indigo-400" : tab.color)
+                                    ? (isSpecial ? "text-indigo-600 fill-indigo-100" : isTable ? "text-emerald-600" : tab.color.replace('400', '600')) 
+                                    : (isSpecial ? "text-indigo-400" : isTable ? "text-emerald-400" : tab.color)
                             )} 
                         />
-                        <span className={cn(isActive && !isSpecial ? tab.color.replace('400', '700') : "")}>
+                        <span className={cn(
+                            isActive && !isSpecial ? tab.color.replace('400', '700') : "",
+                            isActive && isTable ? "text-emerald-700" : ""
+                        )}>
                             {tab.label}
                         </span>
+                        {isTable && !isActive && <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />}
                     </button>
                 );
             })}
@@ -157,6 +171,11 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
                 {activeTab === 'AI Assistant' && (
                     <Suspense key="ai-suspense" fallback={<RibbonSkeleton />}>
                         <AIAssistantTab {...tabProps} onToggleAI={onToggleAI} />
+                    </Suspense>
+                )}
+                {activeTab === 'Table Design' && activeTable && (
+                    <Suspense key="table-design-suspense" fallback={<RibbonSkeleton />}>
+                        <TableDesignTab {...tabProps} activeTable={activeTable} onTableOptionChange={props.onTableOptionChange} />
                     </Suspense>
                 )}
           </AnimatePresence>

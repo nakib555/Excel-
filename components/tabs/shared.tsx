@@ -1,7 +1,8 @@
+
 import React, { useRef, useState, useEffect, useLayoutEffect, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, SquareArrowOutDownRight } from 'lucide-react';
-import { CellStyle } from '../../types';
+import { CellStyle, Table } from '../../types';
 import { cn, useSmartPosition } from '../../utils';
 
 export interface TabProps {
@@ -60,6 +61,10 @@ export interface TabProps {
   // Styles
   onMergeStyles?: () => void;
   onFormatAsTable?: (stylePreset: any) => void;
+
+  // Table Design
+  activeTable?: Table | null;
+  onTableOptionChange?: (tableId: string, key: keyof Table, value: any) => void;
 }
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {
@@ -141,7 +146,7 @@ export const RibbonGroup: React.FC<{
     label: string; 
     children: React.ReactNode; 
     className?: string; 
-    showLauncher?: boolean;
+    showLauncher?: boolean; 
     onLaunch?: () => void;
 }> = memo(({ label, children, className = "", showLauncher, onLaunch }) => (
   <div className={`flex flex-col h-full px-1.5 border-r border-slate-200 last:border-r-0 flex-shrink-0 relative group/ribbon ${className}`}>
@@ -263,6 +268,7 @@ export const SmartDropdown = ({
     const triggerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     
+    // Pass widthClass to allow CSS width or specific pixel width override
     const position = useSmartPosition(open, triggerRef, contentRef, { widthClass: contentWidth });
 
     useEffect(() => {
@@ -294,11 +300,17 @@ export const SmartDropdown = ({
             {open && position && createPortal(
                 <div 
                     ref={contentRef}
-                    className={`fixed z-[2000] bg-white shadow-xl border border-slate-200 rounded-lg p-1 ${contentWidth} ${className} flex flex-col`}
+                    className={cn(
+                        "fixed z-[2000] bg-white shadow-xl border border-slate-200 rounded-lg p-1 flex flex-col",
+                        contentWidth, 
+                        className
+                    )}
                     style={{ 
                         top: position.top, 
                         bottom: position.bottom,
                         left: position.left, 
+                        // If width is calculated by smartPosition (auto), apply it. Otherwise let classes handle it.
+                        width: position.width,
                         maxHeight: position.maxHeight,
                         transformOrigin: position.transformOrigin,
                         opacity: 1,

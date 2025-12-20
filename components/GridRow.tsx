@@ -29,6 +29,8 @@ interface GridRowProps {
   isGhost: boolean;
   isScrollingFast: boolean;
   bgPatternStyle: React.CSSProperties;
+  activeFilterId?: string | null;
+  onToggleFilter?: (id: string | null) => void;
 }
 
 // Lightweight component for Empty/Hidden Cells
@@ -74,7 +76,9 @@ const GridRow = memo(({
     startResize,
     headerColW,
     isGhost,
-    bgPatternStyle
+    bgPatternStyle,
+    activeFilterId,
+    onToggleFilter
 }: GridRowProps) => {
     const isActiveRow = activeCell && parseInt(activeCell.replace(/[A-Z]+/, '')) === rowIdx + 1;
     const headerFontSize = Math.max(7, 12 * scale);
@@ -151,6 +155,8 @@ const GridRow = memo(({
                             onDoubleClick={onCellDoubleClick}
                             onChange={onCellChange}
                             onNavigate={(dir) => onNavigate(dir, false)}
+                            isFilterActive={activeFilterId === id}
+                            onToggleFilter={onToggleFilter}
                         />
                     );
                 }
@@ -202,14 +208,20 @@ const GridRow = memo(({
     const b1 = prev.selectionBounds;
     const b2 = next.selectionBounds;
     
-    if (b1 === b2) return true;
-    if (!b1 || !b2) return false;
-    
-    if (b1.minRow !== b2.minRow || b1.maxRow !== b2.maxRow || b1.minCol !== b2.minCol || b1.maxCol !== b2.maxCol) {
+    if (b1 === b2) {
+        // Continue to check filter changes
+    } else if (!b1 || !b2) {
+        return false;
+    } else if (b1.minRow !== b2.minRow || b1.maxRow !== b2.maxRow || b1.minCol !== b2.minCol || b1.maxCol !== b2.maxCol) {
         const row = prev.rowIdx;
         const wasIn = row >= b1.minRow && row <= b1.maxRow;
         const isIn = row >= b2.minRow && row <= b2.maxRow;
         if (wasIn || isIn) return false;
+    }
+
+    // Check filter ID changes for this row only (if current or next filter active id is in this row)
+    if (prev.activeFilterId !== next.activeFilterId) {
+        return false; // Safest for now, could optimize
     }
 
     return true; 

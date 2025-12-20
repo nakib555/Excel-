@@ -1,9 +1,13 @@
-import React, { memo, useState, useRef, useEffect, useLayoutEffect } from 'react';
+
+import React, { memo, useState, useRef, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
 import { cn, formatCellValue, measureTextWidth, useSmartPosition } from '../utils';
 import { CellSkeleton } from './Skeletons';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
+
+// Lazy load the new FilterMenu
+const FilterMenu = lazy(() => import('./menus/FilterMenu'));
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right' | 'none';
 
@@ -24,6 +28,8 @@ interface CellProps {
   onDoubleClick: (id: string) => void;
   onChange: (id: string, value: string) => void;
   onNavigate: (direction: NavigationDirection) => void;
+  isFilterActive?: boolean;
+  onToggleFilter?: (id: string | null) => void;
 }
 
 const Cell = memo(({ 
@@ -42,7 +48,9 @@ const Cell = memo(({
   onMouseEnter, 
   onDoubleClick, 
   onChange,
-  onNavigate
+  onNavigate,
+  isFilterActive,
+  onToggleFilter
 }: CellProps) => {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(data.raw);
@@ -53,6 +61,7 @@ const Cell = memo(({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [scaleFactor, setScaleFactor] = useState(1);
   const commentRef = useRef<HTMLDivElement>(null);
+  const filterBtnRef = useRef<HTMLDivElement>(null);
   
   // Use centralized positioning
   const dropdownPosition = useSmartPosition(showDropdown, containerRef, dropdownRef, { fixedWidth: Math.max(120, width) });
@@ -337,23 +346,44 @@ const Cell = memo(({
 
       {/* Filter Button for Table Headers - Beautiful Version */}
       {showFilter && (
-          <div 
-            className="absolute z-20 flex items-center justify-center bg-gradient-to-b from-white to-slate-50 border border-slate-300 rounded-[3px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] cursor-pointer hover:border-slate-400 hover:shadow-md hover:to-white active:bg-slate-100 active:shadow-inner active:scale-95 transition-all duration-200 group/filter"
-            style={{
-                width: filterBtnSize,
-                height: filterBtnSize,
-                right: 3 * scale,
-                top: '50%',
-                marginTop: -filterBtnSize / 2
-            }}
-            onMouseDown={(e) => { e.stopPropagation(); alert('Filter menu would open here'); }}
-          >
-              <ChevronDown 
-                size={Math.max(8, 10 * scale)} 
-                className="text-slate-400 group-hover/filter:text-slate-600 transition-colors" 
-                strokeWidth={2.5} 
-              />
-          </div>
+          <>
+            <div 
+                ref={filterBtnRef}
+                className={cn(
+                    "absolute z-20 flex items-center justify-center bg-gradient-to-b from-white to-slate-50 border border-slate-300 rounded-[3px] shadow-[0_1px_2px_rgba(0,0,0,0.05)] cursor-pointer hover:border-slate-400 hover:shadow-md hover:to-white active:bg-slate-100 active:shadow-inner active:scale-95 transition-all duration-200 group/filter",
+                    isFilterActive && "bg-slate-200 border-slate-400"
+                )}
+                style={{
+                    width: filterBtnSize,
+                    height: filterBtnSize,
+                    right: 3 * scale,
+                    top: '50%',
+                    marginTop: -filterBtnSize / 2
+                }}
+                onMouseDown={(e) => { 
+                    e.stopPropagation(); 
+                    if (onToggleFilter) {
+                        onToggleFilter(isFilterActive ? null : id);
+                    }
+                }}
+            >
+                <ChevronDown 
+                    size={Math.max(8, 10 * scale)} 
+                    className="text-slate-400 group-hover/filter:text-slate-600 transition-colors" 
+                    strokeWidth={2.5} 
+                />
+            </div>
+            {/* Lazy Loaded Filter Menu */}
+            {isFilterActive && (
+                <Suspense fallback={null}>
+                    <FilterMenu 
+                        isOpen={true} 
+                        onClose={() => onToggleFilter && onToggleFilter(null)} 
+                        triggerRef={filterBtnRef}
+                    />
+                </Suspense>
+            )}
+          </>
       )}
 
       {isActive && validation && validation.type === 'list' && !isGhost && (
@@ -405,7 +435,8 @@ const Cell = memo(({
     prev.height === next.height &&
     prev.scale === next.scale &&
     prev.isGhost === next.isGhost &&
-    prev.validation === next.validation
+    prev.validation === next.validation &&
+    prev.isFilterActive === next.isFilterActive // Add this check
   );
 });
 
