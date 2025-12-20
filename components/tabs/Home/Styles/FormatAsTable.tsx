@@ -149,47 +149,41 @@ export const TABLE_STYLES: TableStylePreset[] = [
 ];
 
 export const StylePreviewItem: React.FC<{ style: TableStylePreset, onClick: () => void, selected?: boolean }> = ({ style, onClick, selected }) => {
-    // Determine borders for CSS
-    const borderColor = style.border || 'transparent'; 
-    const hasBorder = !!style.border;
-
     return (
         <button 
             onClick={onClick}
             className={cn(
-                "group box-border p-[2px] border-2 rounded-sm transition-all w-[44px] h-[32px] flex items-center justify-center flex-shrink-0",
-                selected ? "border-[#f29423] bg-[#ffeec2]" : "border-transparent hover:border-[#f29423] hover:bg-[#ffeec2]"
+                "group relative w-[54px] h-[38px] rounded-lg transition-all duration-200 outline-none isolate",
+                "hover:scale-110 hover:z-20 hover:shadow-xl",
+                selected 
+                    ? "ring-2 ring-primary-500 ring-offset-2 z-10 shadow-md" 
+                    : "hover:ring-2 hover:ring-primary-200 hover:ring-offset-2"
             )}
             title={style.name}
         >
-            <div 
-                className="w-full h-full flex flex-col overflow-hidden shadow-[0_0_0_1px_rgba(0,0,0,0.1)]"
-                style={{ 
-                    border: hasBorder ? `1px solid ${borderColor}` : 'none' 
-                }}
-            >
+            <div className="w-full h-full flex flex-col overflow-hidden rounded-[6px] shadow-sm bg-white ring-1 ring-black/5 group-hover:ring-black/10">
                 {/* Header Row */}
                 <div 
-                    className="h-[30%] w-full flex items-center gap-[1px] px-[1px] justify-center"
+                    className="h-[32%] w-full flex items-center justify-center relative"
                     style={{ backgroundColor: style.headerBg }}
                 >
-                    {/* Tiny visual representation of text in header */}
-                    <div className="w-[80%] h-[2px] rounded-full opacity-60" style={{ backgroundColor: style.headerColor }} />
+                    {/* Abstract Text Line */}
+                    <div className="w-[60%] h-[2px] rounded-full opacity-60" style={{ backgroundColor: style.headerColor === '#ffffff' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.2)' }} />
                 </div>
                 
-                {/* Body Rows (4 rows to show banding pattern: Odd, Even, Odd, Even) */}
+                {/* Body Rows */}
                 <div className="flex-1 flex flex-col">
-                    <div className="flex-1 w-full flex items-center justify-start px-[2px]" style={{ backgroundColor: style.rowOddBg }}>
-                        <div className="w-[40%] h-[1.5px] bg-black/20" />
+                    <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowOddBg }}>
+                        <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
                     </div>
-                    <div className="flex-1 w-full flex items-center justify-start px-[2px]" style={{ backgroundColor: style.rowEvenBg }}>
-                        <div className="w-[40%] h-[1.5px] bg-black/20" />
+                    <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowEvenBg }}>
+                        <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
                     </div>
-                    <div className="flex-1 w-full flex items-center justify-start px-[2px]" style={{ backgroundColor: style.rowOddBg }}>
-                        <div className="w-[40%] h-[1.5px] bg-black/20" />
+                    <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowOddBg }}>
+                        <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
                     </div>
-                    <div className="flex-1 w-full flex items-center justify-start px-[2px]" style={{ backgroundColor: style.rowEvenBg }}>
-                        <div className="w-[40%] h-[1.5px] bg-black/20" />
+                    <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowEvenBg }}>
+                        <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
                     </div>
                 </div>
             </div>
@@ -209,9 +203,15 @@ const FormatAsTable: React.FC<FormatAsTableProps> = ({ onFormatAsTable }) => {
         const styles = TABLE_STYLES.filter(s => s.category === cat);
         if (styles.length === 0) return null;
         return (
-            <div className="flex flex-col mb-2">
-                <div className="px-3 py-1.5 text-[11px] font-bold text-[#444444] select-none">{cat}</div>
-                <div className="grid grid-cols-7 gap-x-1 gap-y-1 px-2">
+            <div className="flex flex-col mb-5">
+                <div className="px-5 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-white/95 backdrop-blur-sm sticky top-0 z-10 flex items-center gap-2 border-b border-slate-50 mb-3">
+                    <div className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        cat === 'Light' ? "bg-slate-300" : cat === 'Medium' ? "bg-slate-400" : "bg-slate-600"
+                    )} />
+                    {cat}
+                </div>
+                <div className="grid grid-cols-5 gap-x-4 gap-y-4 px-5">
                     {styles.map((s, i) => (
                         <StylePreviewItem key={i} style={s} onClick={() => handleSelect(s)} />
                     ))}
@@ -224,7 +224,7 @@ const FormatAsTable: React.FC<FormatAsTableProps> = ({ onFormatAsTable }) => {
         <SmartDropdown
             open={open}
             onToggle={() => setOpen(!open)}
-            contentWidth="w-[360px]"
+            contentWidth="w-[380px]"
             triggerClassName="h-full"
             trigger={
                 <RibbonButton 
@@ -238,21 +238,23 @@ const FormatAsTable: React.FC<FormatAsTableProps> = ({ onFormatAsTable }) => {
                 />
             }
         >
-            <div className="flex flex-col py-1 bg-white max-h-[600px] overflow-y-auto scrollbar-thin shadow-xl border border-[#b1b1b1]">
-                {renderCategory('Light')}
-                {renderCategory('Medium')}
-                {renderCategory('Dark')}
+            <div className="flex flex-col bg-white max-h-[500px] overflow-y-auto scrollbar-thin rounded-xl">
+                <div className="pt-2 pb-4">
+                    {renderCategory('Light')}
+                    {renderCategory('Medium')}
+                    {renderCategory('Dark')}
+                </div>
                 
-                <div className="border-t border-slate-200 mt-2 pt-1 pb-1">
-                    <button className="w-full text-left px-9 py-1.5 text-[11px] font-bold text-slate-800 hover:bg-[#ffeec2] hover:border-[#f29423] border border-transparent transition-colors flex items-center gap-2 group relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center">
-                            <Plus size={14} className="text-emerald-600" />
+                <div className="border-t border-slate-100 p-2 bg-slate-50/50 sticky bottom-0 z-20 backdrop-blur-sm flex flex-col gap-1">
+                    <button className="w-full text-left px-4 py-2 text-[11px] font-bold text-slate-700 hover:bg-white hover:text-emerald-700 hover:shadow-sm border border-transparent hover:border-slate-200 rounded-lg transition-all flex items-center gap-3 group">
+                        <div className="w-5 h-5 flex items-center justify-center rounded-md bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
+                            <Plus size={14} />
                         </div>
                         New Table Style...
                     </button>
-                    <button className="w-full text-left px-9 py-1.5 text-[11px] font-bold text-slate-800 hover:bg-[#ffeec2] hover:border-[#f29423] border border-transparent transition-colors flex items-center gap-2 group relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center">
-                            <LayoutTemplate size={14} className="text-blue-600" />
+                    <button className="w-full text-left px-4 py-2 text-[11px] font-bold text-slate-700 hover:bg-white hover:text-blue-700 hover:shadow-sm border border-transparent hover:border-slate-200 rounded-lg transition-all flex items-center gap-3 group">
+                        <div className="w-5 h-5 flex items-center justify-center rounded-md bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+                            <LayoutTemplate size={14} />
                         </div>
                         New PivotTable Style...
                     </button>

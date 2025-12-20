@@ -172,7 +172,8 @@ const Cell = memo(({
   // Calculate dynamic filter button size and padding
   const filterBtnSize = Math.max(14, 18 * scale);
   const showFilter = !!data.filterButton && !editing && !isMicroView && height > (filterBtnSize - 4);
-  const filterPadding = showFilter ? (filterBtnSize + 4 * scale) : 0;
+  // Increased padding buffer slightly to avoid visual cramp
+  const filterPadding = showFilter ? (filterBtnSize + 6 * scale) : 0;
 
   const indentPx = indent * 10 * scale; 
   const paddingLeft = align === 'right' ? '4px' : `${4 + indentPx}px`;
@@ -348,7 +349,7 @@ const Cell = memo(({
           </>
       )}
 
-      {/* Filter Button for Table Headers - Beautiful Version */}
+      {/* Filter Button for Table Headers - Improved Layout */}
       {showFilter && (
           <>
             <div 
@@ -362,7 +363,7 @@ const Cell = memo(({
                     height: filterBtnSize,
                     right: 3 * scale,
                     top: '50%',
-                    marginTop: -filterBtnSize / 2
+                    transform: 'translateY(-50%)' // Precise vertical centering
                 }}
                 onMouseDown={(e) => { 
                     e.stopPropagation(); 

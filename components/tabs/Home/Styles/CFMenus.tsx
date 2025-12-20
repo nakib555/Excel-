@@ -1,14 +1,18 @@
 
-import React, { useRef } from 'react';
-import { cn, useSmartPosition } from '../../../../utils';
-import { createPortal } from 'react-dom';
+import React from 'react';
+import { 
+    ChevronRight, ChevronLeft, ArrowLeftRight, Equal, 
+    Type, Calendar, Copy, ArrowUp, ArrowDown, Percent,
+    TrendingUp, TrendingDown
+} from 'lucide-react';
+import { cn } from '../../../../utils';
 
 // --- HELPER COMPONENTS ---
 
 const SubMenuItem = ({ label, icon, shortcut, onClick }: { label: string, icon?: React.ReactNode, shortcut?: string, onClick?: () => void }) => (
     <button 
         onClick={onClick}
-        className="flex items-center gap-3 px-3 py-1.5 text-[12px] text-slate-700 hover:bg-[#e6f2ff] hover:border-[#cce8ff] border border-transparent transition-all text-left w-full whitespace-nowrap min-w-[180px] group"
+        className="flex items-center gap-3 px-3 py-1.5 text-[12px] text-slate-700 hover:bg-[#e6f2ff] hover:border-[#cce8ff] border border-transparent transition-all text-left w-full whitespace-nowrap group"
     >
         {icon && <div className="w-5 flex justify-center items-center opacity-80 group-hover:opacity-100">{icon}</div>}
         <span className="flex-1">{label}</span>
@@ -27,13 +31,13 @@ const MenuHeader = ({ label }: { label: string }) => (
 export const HighlightCellsMenu = () => {
     return (
         <div className="flex flex-col py-1">
-            <SubMenuItem label="Greater Than..." icon={<span className="font-serif font-bold text-slate-500 text-[13px]">&gt;</span>} />
-            <SubMenuItem label="Less Than..." icon={<span className="font-serif font-bold text-slate-500 text-[13px]">&lt;</span>} />
-            <SubMenuItem label="Between..." icon={<span className="font-serif font-bold text-slate-500 text-[10px] border border-slate-400 px-0.5 rounded-sm">...</span>} />
-            <SubMenuItem label="Equal To..." icon={<span className="font-serif font-bold text-slate-500 text-[13px]">=</span>} />
-            <SubMenuItem label="Text that Contains..." icon={<span className="font-serif text-slate-500 text-[10px] border border-slate-300 px-0.5 bg-white">ab</span>} />
-            <SubMenuItem label="A Date Occurring..." icon={<div className="w-3.5 h-3.5 border border-slate-400 rounded-[1px] relative"><div className="absolute top-0 w-full h-1 bg-red-400"></div></div>} />
-            <SubMenuItem label="Duplicate Values..." icon={<div className="flex text-[8px] border border-slate-300 rounded-[1px] divide-x divide-slate-300"><span className="px-0.5 bg-red-100">1</span><span className="px-0.5 bg-red-100">1</span></div>} />
+            <SubMenuItem label="Greater Than..." icon={<ChevronRight size={14} className="text-rose-600 stroke-[3]" />} />
+            <SubMenuItem label="Less Than..." icon={<ChevronLeft size={14} className="text-rose-600 stroke-[3]" />} />
+            <SubMenuItem label="Between..." icon={<ArrowLeftRight size={14} className="text-rose-600 stroke-[2.5]" />} />
+            <SubMenuItem label="Equal To..." icon={<Equal size={14} className="text-rose-600 stroke-[3]" />} />
+            <SubMenuItem label="Text that Contains..." icon={<Type size={14} className="text-rose-600 stroke-[2.5]" />} />
+            <SubMenuItem label="A Date Occurring..." icon={<Calendar size={14} className="text-rose-600 stroke-[2.5]" />} />
+            <SubMenuItem label="Duplicate Values..." icon={<Copy size={14} className="text-rose-600 stroke-[2.5]" />} />
             <div className="h-[1px] bg-slate-200 my-1 mx-3" />
             <SubMenuItem label="More Rules..." />
         </div>
@@ -45,12 +49,12 @@ export const HighlightCellsMenu = () => {
 export const TopBottomRulesMenu = () => {
     return (
         <div className="flex flex-col py-1">
-            <SubMenuItem label="Top 10 Items..." icon={<div className="w-4 h-4 border border-slate-300 flex items-center justify-center bg-white"><div className="w-2 h-2 bg-blue-200 border-t-2 border-blue-500"></div></div>} />
-            <SubMenuItem label="Top 10%..." icon={<div className="w-4 h-4 border border-slate-300 flex items-center justify-center bg-white text-[9px] font-bold text-blue-500">%</div>} />
-            <SubMenuItem label="Bottom 10 Items..." icon={<div className="w-4 h-4 border border-slate-300 flex items-center justify-center bg-white"><div className="w-2 h-2 bg-blue-200 border-b-2 border-blue-500"></div></div>} />
-            <SubMenuItem label="Bottom 10%..." icon={<div className="w-4 h-4 border border-slate-300 flex items-center justify-center bg-white text-[9px] font-bold text-blue-500">%</div>} />
-            <SubMenuItem label="Above Average..." icon={<div className="w-4 h-4 border-b-2 border-slate-300 flex items-end justify-center gap-[1px] pb-[1px]"><div className="w-1 h-2 bg-slate-300"></div><div className="w-1 h-3 bg-green-500"></div><div className="w-1 h-1.5 bg-slate-300"></div></div>} />
-            <SubMenuItem label="Below Average..." icon={<div className="w-4 h-4 border-b-2 border-slate-300 flex items-end justify-center gap-[1px] pb-[1px]"><div className="w-1 h-3 bg-slate-300"></div><div className="w-1 h-1 bg-red-500"></div><div className="w-1 h-2 bg-slate-300"></div></div>} />
+            <SubMenuItem label="Top 10 Items..." icon={<ArrowUp size={14} className="text-blue-600 stroke-[3]" />} />
+            <SubMenuItem label="Top 10%..." icon={<Percent size={14} className="text-blue-600 stroke-[3]" />} />
+            <SubMenuItem label="Bottom 10 Items..." icon={<ArrowDown size={14} className="text-red-600 stroke-[3]" />} />
+            <SubMenuItem label="Bottom 10%..." icon={<Percent size={14} className="text-red-600 stroke-[3]" />} />
+            <SubMenuItem label="Above Average..." icon={<TrendingUp size={14} className="text-green-600 stroke-[2.5]" />} />
+            <SubMenuItem label="Below Average..." icon={<TrendingDown size={14} className="text-orange-600 stroke-[2.5]" />} />
             <div className="h-[1px] bg-slate-200 my-1 mx-3" />
             <SubMenuItem label="More Rules..." />
         </div>
@@ -82,7 +86,7 @@ const BAR_COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#06b6d4', '#d94
 
 export const DataBarsMenu = () => {
     return (
-        <div className="flex flex-col py-1 w-[260px]">
+        <div className="flex flex-col py-1 w-max">
             <MenuHeader label="Gradient Fill" />
             <div className="grid grid-cols-6 gap-1 px-3 pb-2">
                 {BAR_COLORS.map(c => <BarPreview key={`grad-${c}`} color={c} gradient />)}
@@ -128,7 +132,7 @@ const SCALES = [
 
 export const ColorScalesMenu = () => {
     return (
-        <div className="flex flex-col py-1 w-[200px]">
+        <div className="flex flex-col py-1 w-max">
             <MenuHeader label="Color Scales" />
             <div className="grid grid-cols-4 gap-1 px-3 pb-2">
                 {SCALES.map((s, i) => <ScalePreview key={i} colors={s} />)}
@@ -255,7 +259,7 @@ const SetGroup = ({ label, children }: { label: string, children?: React.ReactNo
 
 export const IconSetsMenu = () => {
     return (
-        <div className="flex flex-col py-1 w-full max-h-[600px] overflow-y-auto">
+        <div className="flex flex-col py-1 w-max max-h-[600px] overflow-y-auto">
             
             <SetGroup label="Directional">
                 <div className="flex gap-2">
