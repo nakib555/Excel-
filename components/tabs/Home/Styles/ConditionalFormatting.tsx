@@ -214,7 +214,9 @@ const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActi
                 <div 
                     ref={contentRef}
                     className={cn(
-                        "fixed z-[9999] bg-white shadow-xl border border-slate-300 py-1 animate-in fade-in zoom-in-95 duration-100 rounded-md ring-1 ring-black/5 min-w-[max-content]",
+                        "fixed z-[9999] bg-white shadow-xl border border-slate-300 py-1 rounded-md ring-1 ring-black/5 min-w-[max-content]",
+                        "overflow-y-auto scrollbar-thin",
+                        position.ready && "animate-in fade-in zoom-in-95 duration-100",
                         // Fallback min-width if not mobile to ensure it doesn't look too skinny
                         !isMobile && "min-w-[200px]"
                     )}
@@ -225,8 +227,9 @@ const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActi
                         maxHeight: position.maxHeight,
                         transformOrigin: position.transformOrigin,
                         // Ensure it overrides default width if mobile
-                        width: isMobile ? 'calc(100vw - 20px)' : (position.width ? position.width : undefined),
-                        maxWidth: '100vw'
+                        width: isMobile ? 'calc(100vw - 32px)' : (position.width ? position.width : undefined),
+                        maxWidth: '100vw',
+                        opacity: position.ready ? 1 : 0
                     }}
                     onMouseEnter={() => {}} 
                 >

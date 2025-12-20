@@ -324,12 +324,16 @@ const Cell = memo(({
                 createPortal(
                     <div 
                         ref={commentRef}
-                        className="fixed z-[9999] bg-[#ffffe1] border border-slate-300 shadow-xl rounded-[2px] p-2 text-xs text-slate-800 max-w-[200px] break-words animate-in fade-in zoom-in-95 duration-150 pointer-events-none flex flex-col gap-1"
+                        className={cn(
+                            "fixed z-[9999] bg-[#ffffe1] border border-slate-300 shadow-xl rounded-[2px] p-2 text-xs text-slate-800 max-w-[200px] break-words pointer-events-none flex flex-col gap-1",
+                            commentPosition.ready && "animate-in fade-in zoom-in-95 duration-150"
+                        )}
                         style={{
                             top: commentPosition.top,
                             left: commentPosition.left,
                             bottom: commentPosition.bottom,
-                            transformOrigin: commentPosition.transformOrigin
+                            transformOrigin: commentPosition.transformOrigin,
+                            opacity: commentPosition.ready ? 1 : 0
                         }}
                     >
                         <div className="font-bold text-slate-900 border-b border-slate-200/50 pb-1 mb-0.5 flex items-center gap-1">
@@ -396,14 +400,18 @@ const Cell = memo(({
             </div>
             {showDropdown && dropdownPosition && createPortal(
                 <div 
-                    className="fixed bg-white border border-slate-300 shadow-xl rounded-sm z-[2000] flex flex-col overflow-y-auto"
+                    className={cn(
+                        "fixed bg-white border border-slate-300 shadow-xl rounded-sm z-[2000] flex flex-col overflow-y-auto",
+                        dropdownPosition.ready && "animate-in fade-in zoom-in-95 duration-100"
+                    )}
                     style={{
                         top: dropdownPosition.top,
                         bottom: dropdownPosition.bottom,
                         left: dropdownPosition.left,
-                        minWidth: Math.max(120, dropdownPosition.width || 120),
+                        minWidth: Math.max(120, dropdownPosition.width ? (typeof dropdownPosition.width === 'number' ? dropdownPosition.width : 120) : 120),
                         maxHeight: dropdownPosition.maxHeight,
-                        transformOrigin: dropdownPosition.transformOrigin
+                        transformOrigin: dropdownPosition.transformOrigin,
+                        opacity: dropdownPosition.ready ? 1 : 0
                     }}
                     ref={dropdownRef}
                     onMouseDown={(e) => e.stopPropagation()} 
@@ -436,7 +444,7 @@ const Cell = memo(({
     prev.scale === next.scale &&
     prev.isGhost === next.isGhost &&
     prev.validation === next.validation &&
-    prev.isFilterActive === next.isFilterActive // Add this check
+    prev.isFilterActive === next.isFilterActive
   );
 });
 

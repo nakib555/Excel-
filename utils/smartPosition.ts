@@ -9,6 +9,8 @@ export interface PositionState {
     maxHeight: number;
     transformOrigin: string;
     width?: number | string;
+    placement?: 'top' | 'bottom' | 'left' | 'right';
+    ready: boolean;
 }
 
 export interface SmartPositionOptions {
@@ -25,21 +27,33 @@ export const calculatePosition = (
     windowHeight: number,
     gap: number = 4,
     axis: 'vertical' | 'horizontal' = 'vertical'
-): PositionState => {
-    // 1. Determine Width
-    // If specific width provided via logic, use it. Otherwise, use content's natural width.
+): Omit<PositionState, 'ready'> => {
+    // 1. Mobile Detection & Override
+    const isMobile = windowWidth < 640; 
+    
+    let finalAxis = axis;
+    let finalGap = gap;
+
+    if (isMobile && axis === 'horizontal') {
+        finalAxis = 'vertical';
+        // Ensure positive gap so it doesn't cover the button (requested behavior: "not on the button")
+        finalGap = Math.abs(gap) < 4 ? 4 : Math.abs(gap);
+    }
+
     let finalWidth = contentRect.width; 
 
-    // 2. Initial Coordinate Calculation
+    // 3. Initial Coordinate Calculation
     let left: number;
     let top: number;
     let transformOriginX = 'left';
     let transformOriginY = 'top';
+    let placement: PositionState['placement'] = 'bottom';
+    let maxHeight = 600; // Default cap
 
-    if (axis === 'vertical') {
-        // --- Vertical Axis (Main Dropdowns) ---
+    if (finalAxis === 'vertical') {
+        // --- Vertical Axis ---
         
-        // Align Left
+        // Align Left/Right horizontally
         left = triggerRect.left;
         
         // Check Right Boundary
@@ -50,47 +64,63 @@ export const calculatePosition = (
                 left = rightAligned;
                 transformOriginX = 'right';
             } else {
-                // If neither fits perfectly, force it inside screen
+                // Force inside screen
                 left = windowWidth - finalWidth - 8;
-                // Clamp left to 8px
                 if (left < 8) {
                     left = 8;
-                    // Shrink width if it exceeds viewport
-                    finalWidth = windowWidth - 16;
+                    // On mobile, maximize width if tight
+                    if (isMobile) finalWidth = windowWidth - 16;
                 }
             }
         }
 
-        // Top/Bottom
-        const spaceBelow = windowHeight - triggerRect.bottom - 8;
-        const spaceAbove = triggerRect.top - 8;
+        // Top/Bottom Placement
+        const spaceBelow = windowHeight - triggerRect.bottom - 8; // Available space below
+        const spaceAbove = triggerRect.top - 8; // Available space above
 
-        // Prefer Bottom
-        top = triggerRect.bottom + gap;
-        
-        // Flip to Top if not enough space below AND more space above
-        if (spaceBelow < Math.min(contentRect.height, 200) && spaceAbove > spaceBelow) {
-            top = triggerRect.top - contentRect.height - gap;
+        // Determine if we should flip to top
+        // Flip if:
+        // 1. Content is taller than space below AND
+        // 2. There is MORE space above than below
+        // OR
+        // 3. Space below is critically small (< 100px) and top is better
+        const preferTop = (contentRect.height > spaceBelow - finalGap && spaceAbove > spaceBelow) || (spaceBelow < 100 && spaceAbove > 100);
+
+        if (preferTop) {
+            placement = 'top';
             transformOriginY = 'bottom';
+            const availableHeight = Math.max(100, spaceAbove - finalGap);
+            maxHeight = availableHeight;
             
-            // Adjust if top goes off screen
-            if (top < 8) {
-                top = 8;
-                // Recalculate height to fit
-            }
+            // For 'top' placement, we must calculate 'top' coordinate such that the bottom of the content
+            // sits at (triggerRect.top - gap).
+            // We use the effective height (clamped by maxHeight) for this calculation to ensure the 
+            // container bottom is anchored correctly even if content is scrollable.
+            const effectiveHeight = Math.min(contentRect.height, availableHeight);
+            top = triggerRect.top - finalGap - effectiveHeight;
+        } else {
+            placement = 'bottom';
+            transformOriginY = 'top';
+            const availableHeight = Math.max(100, spaceBelow - finalGap);
+            maxHeight = availableHeight;
+            top = triggerRect.bottom + finalGap;
         }
+
     } else {
-        // --- Horizontal Axis (Submenus) ---
+        // --- Horizontal Axis ---
         
         // Prefer Right Side
-        left = triggerRect.right + gap;
+        left = triggerRect.right + finalGap;
         top = triggerRect.top - 4; // Slight offset for submenus
 
         // Check Right Boundary
         if (left + finalWidth > windowWidth - 8) {
             // Flip to Left
-            left = triggerRect.left - finalWidth - gap;
+            left = triggerRect.left - finalWidth - finalGap;
             transformOriginX = 'right';
+            placement = 'left';
+        } else {
+            placement = 'right';
         }
 
         // Clamp Horizontal
@@ -99,33 +129,28 @@ export const calculatePosition = (
             if (left + finalWidth > windowWidth - 8) {
                 finalWidth = windowWidth - 16;
             }
-        } else if (left + finalWidth > windowWidth - 8) {
-             left = windowWidth - finalWidth - 8;
         }
 
-        // Check Bottom Boundary
+        // Check Bottom Boundary and shift vertically if needed
         if (top + contentRect.height > windowHeight - 8) {
-            // Shift Up
+            // Shift Up to fit
             const shiftUp = (top + contentRect.height) - (windowHeight - 8);
             top -= shiftUp;
             transformOriginY = 'bottom';
         }
         
-        // Clamp Vertical
         top = Math.max(8, top);
+        // Cap height if it still doesn't fit
+        maxHeight = windowHeight - top - 8;
     }
-
-    // 3. Max Height Calculation
-    const availableHeightBelow = windowHeight - top - 8;
-    // Ensure we have at least some height, but don't overflow screen
-    const maxHeight = Math.min(600, windowHeight - 16); 
 
     return {
         top,
         left,
         maxHeight,
         transformOrigin: `${transformOriginY} ${transformOriginX}`,
-        width: finalWidth
+        width: finalWidth,
+        placement
     };
 };
 
@@ -139,6 +164,7 @@ export function useSmartPosition(
 
     useLayoutEffect(() => {
         if (!isOpen || !triggerRef.current) {
+            if (position !== null) setPosition(null);
             return;
         }
 
@@ -150,17 +176,12 @@ export function useSmartPosition(
             
             const triggerRect = triggerRef.current.getBoundingClientRect();
             
-            // Default to a dummy rect if content isn't mounted yet to start the first paint
-            const contentRect = contentRef.current 
-                ? contentRef.current.getBoundingClientRect() 
+            // Check if we have the real element to measure
+            const hasContent = !!contentRef.current;
+            
+            const contentRect = hasContent
+                ? contentRef.current!.getBoundingClientRect() 
                 : { width: options?.fixedWidth || 200, height: 200 } as DOMRect;
-
-            // Handle widthClass override for the calculation simulation
-            if (options?.widthClass) {
-                // If widthClass is set, we assume the CSS handles the width, 
-                // but we need a rough estimate for positioning logic if contentRef is not ready.
-                // Once contentRef is ready, getBoundingClientRect gives exact size.
-            }
 
             const pos = calculatePosition(
                 triggerRect,
@@ -171,31 +192,34 @@ export function useSmartPosition(
                 options?.axis
             );
 
-            // Apply fixed width override if provided in options
+            // If we are using fallback dimensions (content not mounted yet), keep it invisible
+            const ready = hasContent;
+
+            let finalWidth = pos.width;
             if (options?.fixedWidth) {
-                pos.width = options.fixedWidth;
+                finalWidth = options.fixedWidth;
             } else if (options?.widthClass) {
-                // Let CSS handle width via class, override calculated pixel width
-                pos.width = undefined; 
+                finalWidth = undefined; 
             }
 
-            setPosition(pos);
+            setPosition({
+                ...pos,
+                width: finalWidth,
+                ready
+            });
         };
 
-        // Initial update
+        // Initial update (likely with fallback if contentRef is not attached yet)
         update();
 
-        // Polling for contentRef availability (fixes Portal chicken-egg problem)
         const checkForContent = () => {
             if (contentRef.current) {
-                // Content is mounted, perform accurate update
+                // Content is mounted, update with real dimensions
                 update();
-                
-                // Attach observer
                 resizeObserver = new ResizeObserver(() => update());
                 resizeObserver.observe(contentRef.current);
             } else {
-                // Keep polling for a few frames
+                // Keep checking until portal mounts
                 animationFrameId = requestAnimationFrame(checkForContent);
             }
         };

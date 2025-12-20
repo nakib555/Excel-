@@ -313,8 +313,12 @@ export const SmartDropdown = ({
                         width: position.width,
                         maxHeight: position.maxHeight,
                         transformOrigin: position.transformOrigin,
-                        opacity: 1,
-                        animation: 'fadeInScale 0.15s ease-out forwards',
+                        // Opacity transition to prevent jumping
+                        opacity: position.ready ? 1 : 0,
+                        // Only animate when ready
+                        animation: position.ready ? 'fadeInScale 0.15s ease-out forwards' : 'none',
+                        // Disable pointer events while measuring to prevent accidental clicks
+                        pointerEvents: position.ready ? 'auto' : 'none'
                     }}
                 >
                     <div className="overflow-y-auto min-h-0 flex-1 scrollbar-thin">

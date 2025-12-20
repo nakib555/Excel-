@@ -1,6 +1,7 @@
 
-import React from 'react';
-import { cn } from '../../../../utils';
+import React, { useRef } from 'react';
+import { cn, useSmartPosition } from '../../../../utils';
+import { createPortal } from 'react-dom';
 
 // --- HELPER COMPONENTS ---
 
@@ -171,12 +172,6 @@ const Circle = ({ color, border }: { color: string, border?: boolean }) => (
 
 const Diamond = ({ color }: { color: string }) => (
     <div className={cn("w-2 h-2 rotate-45 flex-shrink-0", color.replace('text-', 'bg-'))} />
-);
-
-const TrafficLight = ({ color, rim }: { color: string, rim?: boolean }) => (
-    <div className={cn("w-3 h-3 rounded-full flex items-center justify-center bg-slate-800", rim ? "p-[1px]" : "bg-transparent")}>
-        <div className={cn("w-full h-full rounded-full", color.replace('text-', 'bg-'), rim && "border border-black/30")} />
-    </div>
 );
 
 const SignSymbol = ({ type, color, circle }: { type: 'check'|'exclamation'|'cross', color: string, circle?: boolean }) => {

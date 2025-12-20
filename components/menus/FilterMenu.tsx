@@ -23,16 +23,21 @@ const SmartSubMenuContent = ({ children, parentRef }: SmartSubMenuContentProps) 
     const menuRef = useRef<HTMLDivElement>(null);
     const position = useSmartPosition(true, parentRef, menuRef, { axis: 'horizontal', gap: -2 });
 
+    if (!position) return null;
+
     return createPortal(
         <div 
             ref={menuRef}
-            className="z-[2020] bg-white border border-slate-200 shadow-xl rounded-xl py-1.5 min-w-[max-content] animate-in fade-in zoom-in-95 duration-100 flex flex-col fixed scrollbar-thin ring-1 ring-black/5"
+            className={cn(
+                "z-[2020] bg-white border border-slate-200 shadow-xl rounded-xl py-1.5 min-w-[max-content] flex flex-col fixed scrollbar-thin ring-1 ring-black/5 overflow-y-auto",
+                position.ready && "animate-in fade-in zoom-in-95 duration-100"
+            )}
             style={{
-                top: position?.top ?? 0,
-                left: position?.left ?? 0,
-                opacity: position ? 1 : 0,
-                maxHeight: position?.maxHeight,
-                transformOrigin: position?.transformOrigin,
+                top: position.top ?? 0,
+                left: position.left ?? 0,
+                opacity: position.ready ? 1 : 0,
+                maxHeight: position.maxHeight,
+                transformOrigin: position.transformOrigin,
                 maxWidth: 'calc(100vw - 16px)'
             }}
             onMouseDown={(e) => e.stopPropagation()} 
@@ -128,10 +133,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
         const handleClickOutside = (e: MouseEvent | TouchEvent) => {
             if (menuRef.current && !menuRef.current.contains(e.target as Node) && 
                 triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
-                // If clicking a submenu (which is portal), it won't be contained in menuRef.
-                // But the submenu stops propagation on mousedown, so this might not be triggered if clicking submenu.
-                // However, SmartSubMenuContent doesn't block click events on document body unless we explicitly do so.
-                // Actually SmartSubMenuContent does onMouseDown e.stopPropagation().
                 onClose();
             }
         };
@@ -145,7 +146,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
         };
     }, [isOpen, onClose, triggerRef]);
 
-    if (!isOpen) return null;
+    if (!isOpen || !position) return null;
 
     const toggleSubMenu = (id: string) => {
         setActiveSubMenu(prev => prev === id ? null : id);
@@ -154,13 +155,16 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
     return createPortal(
         <div 
             ref={menuRef}
-            className="fixed z-[2005] bg-white border border-slate-200 shadow-2xl rounded-xl w-[300px] flex flex-col font-sans text-slate-800 animate-in fade-in zoom-in-95 duration-100 overflow-hidden ring-1 ring-black/5"
+            className={cn(
+                "fixed z-[2005] bg-white border border-slate-200 shadow-2xl rounded-xl w-[300px] flex flex-col font-sans text-slate-800 overflow-hidden ring-1 ring-black/5",
+                position.ready && "animate-in fade-in zoom-in-95 duration-100"
+            )}
             style={{ 
-                top: position?.top ?? 0,
-                left: position?.left ?? 0,
-                opacity: position ? 1 : 0,
-                maxHeight: position?.maxHeight,
-                transformOrigin: position?.transformOrigin
+                top: position.top ?? 0,
+                left: position.left ?? 0,
+                opacity: position.ready ? 1 : 0,
+                maxHeight: position.maxHeight,
+                transformOrigin: position.transformOrigin
             }}
         >
             <div className="py-2 flex-shrink-0">

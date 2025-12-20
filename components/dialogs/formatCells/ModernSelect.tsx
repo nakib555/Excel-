@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Check, Search } from 'lucide-react';
@@ -91,7 +92,7 @@ const ModernSelect: React.FC<ModernSelectProps> = ({
                         <motion.div 
                             ref={dropdownRef}
                             initial={{ opacity: 0, scale: 0.95, y: coords.placement === 'bottom' ? -10 : 10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            animate={coords.ready ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.15, ease: "easeOut" }}
                             className={cn(
@@ -104,7 +105,9 @@ const ModernSelect: React.FC<ModernSelectProps> = ({
                                 left: coords.left, 
                                 width: coords.width,
                                 maxHeight: coords.maxHeight,
-                                transformOrigin: coords.transformOrigin
+                                transformOrigin: coords.transformOrigin,
+                                // Wait for ready state before showing
+                                visibility: coords.ready ? 'visible' : 'hidden' 
                             }}
                         >
                             {searchable && (
