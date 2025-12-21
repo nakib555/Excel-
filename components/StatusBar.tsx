@@ -7,7 +7,9 @@ import {
   Layout,
   Minus,
   Plus,
-  Scaling
+  Scaling,
+  Undo2,
+  Redo2
 } from 'lucide-react';
 
 interface StatusBarProps {
@@ -16,9 +18,23 @@ interface StatusBarProps {
   zoom: number;
   onZoomChange: (value: number) => void;
   onToggleMobileResize?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
-const StatusBar: React.FC<StatusBarProps> = ({ selectionCount, stats, zoom, onZoomChange, onToggleMobileResize }) => {
+const StatusBar: React.FC<StatusBarProps> = ({ 
+  selectionCount, 
+  stats, 
+  zoom, 
+  onZoomChange, 
+  onToggleMobileResize,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo
+}) => {
   const displayZoom = Math.round(zoom * 100);
 
   // Limit min zoom to 25% to avoid DOM explosion on large grids
@@ -27,7 +43,7 @@ const StatusBar: React.FC<StatusBarProps> = ({ selectionCount, stats, zoom, onZo
 
   return (
     <div className="h-9 bg-[#0f172a] text-white/90 border-t border-slate-700/50 flex items-center justify-between px-2 md:px-4 text-[11px] select-none z-50 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
-      {/* Left Section - Status */}
+      {/* Left Section - Status & History */}
       <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
         <div className="font-semibold text-emerald-400 flex items-center gap-2 flex-shrink-0">
             <span className="relative flex h-2 w-2">
@@ -37,9 +53,29 @@ const StatusBar: React.FC<StatusBarProps> = ({ selectionCount, stats, zoom, onZo
             Ready
         </div>
         
+        {/* Undo/Redo Controls */}
+        <div className="flex items-center gap-1 border-l border-slate-700 pl-3 ml-1">
+            <button 
+                onClick={onUndo}
+                disabled={!canUndo}
+                className="p-1 text-slate-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                title="Undo (Ctrl+Z)"
+            >
+                <Undo2 size={14} />
+            </button>
+            <button 
+                onClick={onRedo}
+                disabled={!canRedo}
+                className="p-1 text-slate-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                title="Redo (Ctrl+Y)"
+            >
+                <Redo2 size={14} />
+            </button>
+        </div>
+
         <div className="hidden lg:flex items-center gap-1.5 hover:bg-white/10 px-2 py-0.5 rounded cursor-pointer transition-colors text-slate-300" title="Accessibility Check">
           <CheckCircle2 size={13} className="text-slate-400" />
-          <span className="font-medium">Accessibility: Good to go</span>
+          <span className="font-medium">Accessibility: Good</span>
         </div>
       </div>
 

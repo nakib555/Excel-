@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense, useCallback, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useState, useEffect } from 'react';
 import { MAX_ROWS, MAX_COLS } from './constants/grid.constants';
 import { getApiKey } from './utils/apiKey';
 import { parseCellId } from '../utils';
@@ -39,7 +39,12 @@ const CommentDialog = lazy(() => import('../components/dialogs/CommentDialog'));
 
 export const AppRoot: React.FC = () => {
   // 1. Core State
-  const { sheets, setSheets, activeSheetId, setActiveSheetId, gridSize, setGridSize, zoom, setZoom } = useSheetsState();
+  const { 
+    sheets, setSheets, activeSheetId, setActiveSheetId, 
+    gridSize, setGridSize, zoom, setZoom,
+    undo, redo, canUndo, canRedo
+  } = useSheetsState();
+  
   const apiKey = getApiKey();
 
   // 2. Active Sheet Data
@@ -69,6 +74,26 @@ export const AppRoot: React.FC = () => {
       onCellChange: cellHandlers.handleCellChange,
       onNavigate: navigationHandlers.handleNavigate
   });
+
+  // Global Undo/Redo Shortcuts (Ctrl+Z, Ctrl+Y)
+  useEffect(() => {
+      const handleGlobalKeyDown = (e: KeyboardEvent) => {
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+              e.preventDefault();
+              if (e.shiftKey) {
+                  if (canRedo) redo();
+              } else {
+                  if (canUndo) undo();
+              }
+          }
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+              e.preventDefault();
+              if (canRedo) redo();
+          }
+      };
+      window.addEventListener('keydown', handleGlobalKeyDown);
+      return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [undo, redo, canUndo, canRedo]);
 
   // 7. Aux Handlers
   const handleExpandGrid = useCallback((d: 'row' | 'col') => setGridSize(p => ({ ...p, rows: d==='row'?Math.min(p.rows+300,MAX_ROWS):p.rows, cols: d==='col'?Math.min(p.cols+100,MAX_COLS):p.cols })), [setGridSize]);
@@ -317,6 +342,10 @@ export const AppRoot: React.FC = () => {
             zoom={zoom}
             onZoomChange={setZoom}
             onToggleMobileResize={() => dialogs.setShowMobileResize(!dialogs.showMobileResize)}
+            onUndo={undo}
+            onRedo={redo}
+            canUndo={canUndo}
+            canRedo={canRedo}
           />
         </Suspense>
       </div>

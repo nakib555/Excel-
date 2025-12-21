@@ -5,9 +5,6 @@ import { RibbonGroup, Separator, TabProps } from '../shared';
 import { GroupSkeleton } from '../../Skeletons';
 
 // Lazy load tools to simulate feature isolation and loading polish
-const Undo = lazy(() => import('./Undo'));
-const Redo = lazy(() => import('./Redo'));
-
 const Select = lazy(() => import('./DrawingTools/Select'));
 const Lasso = lazy(() => import('./DrawingTools/Lasso'));
 const Eraser = lazy(() => import('./DrawingTools/Eraser'));
@@ -30,15 +27,6 @@ const DrawTab: React.FC<TabProps> = () => {
         exit={{ opacity: 0 }}
         className="flex h-full min-w-max gap-1"
     >
-         <Suspense fallback={<GroupSkeleton width={70} />}>
-            <RibbonGroup label="Undo">
-                <div className="flex flex-col gap-0 h-full justify-center">
-                    <Undo />
-                    <Redo />
-                </div>
-            </RibbonGroup>
-        </Suspense>
-
         <Suspense fallback={<GroupSkeleton width={350} />}>
             <RibbonGroup label="Drawing Tools">
                 <div className="flex items-center gap-1 h-full">
