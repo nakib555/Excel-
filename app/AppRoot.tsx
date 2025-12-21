@@ -306,7 +306,7 @@ export const AppRoot: React.FC = () => {
       <main className="flex-1 overflow-hidden relative z-0">
         {/* Preview Banner - Floating Bottom */}
         {previewRevisionId && (
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-indigo-600/95 backdrop-blur shadow-2xl border border-indigo-500/50 rounded-full px-4 py-1.5 flex items-center gap-3 animate-in slide-in-from-bottom-4 fade-in duration-300">
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-[100] bg-indigo-600/95 backdrop-blur shadow-2xl border border-indigo-500/50 rounded-full px-4 py-1.5 flex items-center gap-3 animate-in slide-in-from-bottom-4 fade-in duration-300">
                 <div className="flex items-center gap-2">
                     <Eye size={14} className="text-indigo-200 animate-pulse" />
                     <span className="font-medium text-xs text-white whitespace-nowrap">Previewing Version</span>
