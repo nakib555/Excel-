@@ -218,14 +218,6 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
                 </button>
             </div>
         </div>
-
-        <button
-            onClick={onToggleAI}
-            className="hidden md:flex relative px-4 py-2 mb-1 text-[12px] font-medium text-indigo-300 hover:text-white hover:bg-white/5 rounded-md transition-all whitespace-nowrap flex-shrink-0 select-none items-center gap-1.5 group"
-        >
-            <Sparkles size={14} className="text-yellow-400 group-hover:animate-pulse" />
-            <span>AI Copilot</span>
-        </button>
       </div>
 
       <div className="bg-[#f8fafc] border-b border-slate-200 shadow-sm z-0 relative">
