@@ -1,0 +1,31 @@
+
+import { useState } from 'react';
+import { ValidationRule } from '../../types';
+
+export const useDialogState = () => {
+  const [showMobileResize, setShowMobileResize] = useState(false);
+  const [showAI, setShowAI] = useState(false);
+  const [showFormatCells, setShowFormatCells] = useState(false);
+  const [showMergeStyles, setShowMergeStyles] = useState(false);
+  const [createTableState, setCreateTableState] = useState<{ isOpen: boolean, preset: any | null, range: string }>({ isOpen: false, preset: null, range: '' });
+  const [formatDialogTab, setFormatDialogTab] = useState('Number');
+  const [findReplaceState, setFindReplaceState] = useState<{ open: boolean, mode: 'find' | 'replace' | 'goto' }>({ open: false, mode: 'find' });
+  const [dataValidationState, setDataValidationState] = useState<{ isOpen: boolean, rule: ValidationRule | null, cellId: string | null }>({ isOpen: false, rule: null, cellId: null });
+
+  const handleOpenFormatDialog = (tab?: string) => { 
+      setFormatDialogTab(tab || 'Number'); 
+      setShowFormatCells(true); 
+  };
+
+  return {
+    showMobileResize, setShowMobileResize,
+    showAI, setShowAI,
+    showFormatCells, setShowFormatCells,
+    showMergeStyles, setShowMergeStyles,
+    createTableState, setCreateTableState,
+    formatDialogTab, setFormatDialogTab,
+    findReplaceState, setFindReplaceState,
+    dataValidationState, setDataValidationState,
+    handleOpenFormatDialog
+  };
+};

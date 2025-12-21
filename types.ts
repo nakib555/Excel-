@@ -109,6 +109,7 @@ export interface Sheet {
   dependentsMap: Record<CellId, CellId[]>; // Dependency Graph: Cell -> [Dependents]
   tables: Record<string, Table>; // Registry of tables
   activeCell: CellId | null;
+  selectionAnchor: CellId | null; // Anchor for range selection (Shift+Click)
   selectionRange: CellId[] | null;
   columnWidths: Record<string, number>;
   rowHeights: Record<number, number>;

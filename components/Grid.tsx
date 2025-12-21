@@ -11,11 +11,11 @@ import GridRow from './GridRow';
 import ColumnHeader from './ColumnHeader';
 import Cell from './Cell';
 
-const DEFAULT_COL_WIDTH = 100;
-const DEFAULT_ROW_HEIGHT = 28;
-const HEADER_ROW_HEIGHT = 28;
-const MIN_COL_WIDTH = 30;
-const MIN_ROW_HEIGHT = 20;
+export const DEFAULT_COL_WIDTH = 100;
+export const DEFAULT_ROW_HEIGHT = 28;
+export const HEADER_ROW_HEIGHT = 28;
+export const MIN_COL_WIDTH = 30;
+export const MIN_ROW_HEIGHT = 20;
 
 const SCROLL_UPDATE_THRESHOLD = 20; 
 
@@ -517,6 +517,7 @@ const Grid: React.FC<GridProps> = ({
       }
   };
 
+  // Keyboard Navigation Handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
         if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
@@ -541,10 +542,31 @@ const Grid: React.FC<GridProps> = ({
                  if (onCellChange) onCellChange(activeCell, currentVal ? 'FALSE' : 'TRUE');
              }
         }
+
+        // --- NEW: Arrow Navigation ---
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+             e.preventDefault();
+             // Map key to direction
+             const direction = e.key === 'ArrowUp' ? 'up' : 
+                               e.key === 'ArrowDown' ? 'down' :
+                               e.key === 'ArrowLeft' ? 'left' : 'right';
+             onNavigate(direction, e.shiftKey);
+        }
+        
+        // Tab / Enter
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            onNavigate(e.shiftKey ? 'left' : 'right', false);
+        }
+        
+        if (e.key === 'Enter') {
+             e.preventDefault();
+             onNavigate(e.shiftKey ? 'up' : 'down', false);
+        }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeCell, selectionRange, cells, onCellChange]);
+  }, [activeCell, selectionRange, cells, onCellChange, onNavigate]);
 
   const getColW = useCallback((i: number) => (columnWidths[numToChar(i)] || DEFAULT_COL_WIDTH) * scale, [columnWidths, scale]);
   const getRowH = useCallback((i: number) => (rowHeights[i] || DEFAULT_ROW_HEIGHT) * scale, [rowHeights, scale]);

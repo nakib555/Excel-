@@ -1,0 +1,226 @@
+
+import React, { lazy, Suspense, useCallback } from 'react';
+import { MAX_ROWS, MAX_COLS } from './constants/grid.constants';
+import { getApiKey } from './utils/apiKey';
+
+// Hooks
+import { useSheetsState } from './state/useSheetsState';
+import { useActiveSheet } from './hooks/useActiveSheet';
+import { useSelectionStats } from './hooks/useSelectionStats';
+import { useDialogState } from './dialogs/dialog.state';
+import { useCellHandlers } from './handlers/cell.handlers';
+import { useStyleHandlers } from './handlers/style.handlers';
+import { useTableHandlers } from './handlers/table.handlers';
+import { useClipboardHandlers } from './handlers/clipboard.handlers';
+import { useNavigationHandlers } from './handlers/navigation.handlers';
+import { useResizeHandlers } from './handlers/resize.handlers';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+
+// Component Imports
+import { 
+  ToolbarSkeleton, FormulaBarSkeleton, GridSkeleton, SheetTabsSkeleton, StatusBarSkeleton 
+} from '../components/Skeletons';
+
+const AIAssistant = lazy(() => import('../components/AIAssistant'));
+const Toolbar = lazy(() => import('../components/Toolbar'));
+const FormulaBar = lazy(() => import('../components/FormulaBar'));
+const Grid = lazy(() => import('../components/Grid'));
+const SheetTabs = lazy(() => import('../components/SheetTabs'));
+const StatusBar = lazy(() => import('../components/StatusBar'));
+const MobileResizeTool = lazy(() => import('../components/MobileResizeTool'));
+const FormatCellsDialog = lazy(() => import('../components/dialogs/FormatCellsDialog'));
+const FindReplaceDialog = lazy(() => import('../components/dialogs/FindReplaceDialog'));
+const MergeStylesDialog = lazy(() => import('../components/dialogs/MergeStylesDialog'));
+const CreateTableDialog = lazy(() => import('../components/dialogs/CreateTableDialog'));
+const DataValidationDialog = lazy(() => import('../components/dialogs/DataValidationDialog'));
+
+export const AppRoot: React.FC = () => {
+  // 1. Core State
+  const { sheets, setSheets, activeSheetId, setActiveSheetId, gridSize, setGridSize, zoom, setZoom } = useSheetsState();
+  const apiKey = getApiKey();
+
+  // 2. Active Sheet Data
+  const { 
+    activeSheet, cells, styles, merges, tables, validations, activeCell, selectionRange, columnWidths, rowHeights, activeStyle, activeTable 
+  } = useActiveSheet(sheets, activeSheetId);
+
+  // 3. UI/Dialog State
+  const dialogs = useDialogState();
+
+  // 4. Handlers
+  const cellHandlers = useCellHandlers({ setSheets, activeSheetId, validations, activeCell, selectionRange, cells, setActiveSheetId });
+  const styleHandlers = useStyleHandlers({ setSheets, activeSheetId });
+  const tableHandlers = useTableHandlers({ setSheets, activeSheetId, setCreateTableState: dialogs.setCreateTableState, selectionRange, createTableState: dialogs.createTableState });
+  const clipboardHandlers = useClipboardHandlers({ setSheets, activeSheetId, activeCell, selectionRange, cells });
+  const navigationHandlers = useNavigationHandlers({ activeCell, gridSize, handleCellClick: cellHandlers.handleCellClick, setGridSize });
+  const resizeHandlers = useResizeHandlers({ setSheets, activeSheetId, activeSheet, activeCell });
+
+  // 5. Derived Stats
+  const selectionStats = useSelectionStats(selectionRange, cells);
+
+  // 6. Keyboard Shortcuts
+  useKeyboardShortcuts({
+      selectionRange,
+      activeCell,
+      cells,
+      onCellChange: cellHandlers.handleCellChange,
+      onNavigate: navigationHandlers.handleNavigate
+  });
+
+  // 7. Aux Handlers
+  const handleExpandGrid = useCallback((d: 'row' | 'col') => setGridSize(p => ({ ...p, rows: d==='row'?Math.min(p.rows+300,MAX_ROWS):p.rows, cols: d==='col'?Math.min(p.cols+100,MAX_COLS):p.cols })), [setGridSize]);
+  const handleZoomWheel = useCallback((d: number) => setZoom(p => Math.max(0.1, Math.min(4, p+d))), [setZoom]);
+  const handleFormulaChange = useCallback((v: string) => activeCell && cellHandlers.handleCellChange(activeCell, v), [activeCell, cellHandlers]);
+  const handleAIApply = useCallback((r: any) => { dialogs.setShowAI(false); /* simplified */ }, [dialogs]);
+  const handleDataValidation = useCallback(() => {
+      if (!activeCell) return;
+      const currentRule = validations[activeCell];
+      dialogs.setDataValidationState({ isOpen: true, rule: currentRule || null, cellId: activeCell });
+  }, [activeCell, validations, dialogs]);
+
+  // Passthroughs for toolbar that don't need complex logic yet
+  const noOp = useCallback(() => {}, []);
+
+  return (
+    <div className="flex flex-col h-[100dvh] w-screen bg-slate-50 overflow-hidden font-sans text-slate-900 relative">
+      <div className="flex-shrink-0 z-[60]">
+        <Suspense fallback={<ToolbarSkeleton />}>
+          <Toolbar 
+            currentStyle={activeStyle}
+            onToggleStyle={styleHandlers.handleStyleChange}
+            onApplyStyle={styleHandlers.handleApplyFullStyle}
+            onExport={() => {}} // simplified
+            onClear={cellHandlers.handleClear}
+            onResetLayout={noOp}
+            onCopy={clipboardHandlers.handleCopy}
+            onCut={clipboardHandlers.handleCut}
+            onPaste={clipboardHandlers.handlePaste}
+            onAutoSum={cellHandlers.handleAutoSum}
+            onInsertRow={noOp}
+            onInsertColumn={noOp}
+            onInsertSheet={cellHandlers.handleAddSheet}
+            onInsertCells={noOp}
+            onDeleteRow={noOp}
+            onDeleteColumn={noOp}
+            onDeleteSheet={noOp}
+            onDeleteCells={noOp}
+            onFormatRowHeight={noOp}
+            onFormatColWidth={noOp}
+            onAutoFitRowHeight={noOp}
+            onAutoFitColWidth={noOp}
+            onHideRow={noOp}
+            onHideCol={noOp}
+            onUnhideRow={noOp}
+            onUnhideCol={noOp}
+            onRenameSheet={noOp}
+            onMoveCopySheet={noOp}
+            onProtectSheet={noOp}
+            onLockCell={noOp}
+            onOpenFormatDialog={dialogs.handleOpenFormatDialog}
+            onSort={noOp}
+            onMergeCenter={cellHandlers.handleMergeCenter}
+            onDataValidation={handleDataValidation}
+            onToggleAI={() => dialogs.setShowAI(true)}
+            onInsertTable={() => tableHandlers.handleFormatAsTable({ name: 'TableStyleMedium2', headerBg: '#3b82f6', headerColor: '#ffffff', rowOddBg: '#eff6ff', rowEvenBg: '#ffffff', category: 'Medium' })}
+            onInsertCheckbox={noOp}
+            onInsertLink={noOp}
+            onInsertComment={noOp}
+            onDeleteComment={noOp}
+            onFindReplace={(mode) => dialogs.setFindReplaceState({ open: true, mode })}
+            onSelectSpecial={noOp}
+            onMergeStyles={() => dialogs.setShowMergeStyles(true)}
+            onFormatAsTable={tableHandlers.handleFormatAsTable}
+            activeTable={activeTable}
+            onTableOptionChange={tableHandlers.handleTableOptionChange}
+          />
+        </Suspense>
+      </div>
+      
+      <div className="flex-shrink-0 z-50">
+        <Suspense fallback={<FormulaBarSkeleton />}>
+          <FormulaBar 
+            value={activeCell && cells[activeCell] ? cells[activeCell].raw : ''}
+            onChange={handleFormulaChange}
+            onSubmit={noOp}
+            selectedCell={activeCell}
+            onNameBoxSubmit={navigationHandlers.handleNameBoxSubmit}
+          />
+        </Suspense>
+      </div>
+
+      <main className="flex-1 overflow-hidden relative z-0">
+        <Suspense fallback={<GridSkeleton />}>
+            <Grid
+              size={gridSize}
+              cells={cells}
+              styles={styles}
+              merges={merges}
+              validations={validations}
+              activeCell={activeCell}
+              selectionRange={selectionRange}
+              columnWidths={columnWidths}
+              rowHeights={rowHeights}
+              scale={zoom}
+              onCellClick={cellHandlers.handleCellClick}
+              onSelectionDrag={cellHandlers.handleSelectionDrag}
+              onCellDoubleClick={cellHandlers.handleCellDoubleClick}
+              onCellChange={cellHandlers.handleCellChange}
+              onNavigate={navigationHandlers.handleNavigate}
+              onColumnResize={resizeHandlers.handleColumnResize}
+              onRowResize={resizeHandlers.handleRowResize}
+              onExpandGrid={handleExpandGrid}
+              onZoom={handleZoomWheel}
+              onFill={cellHandlers.handleFill}
+              onAutoFit={resizeHandlers.handleAutoFit}
+            />
+        </Suspense>
+      </main>
+
+      <div className="flex-shrink-0 z-40">
+        <Suspense fallback={<SheetTabsSkeleton />}>
+          <SheetTabs 
+            sheets={sheets}
+            activeSheetId={activeSheetId}
+            onSwitch={setActiveSheetId}
+            onAdd={cellHandlers.handleAddSheet}
+          />
+        </Suspense>
+      </div>
+
+      <div className="flex-shrink-0 z-40">
+        <Suspense fallback={<StatusBarSkeleton />}>
+          <StatusBar 
+            selectionCount={selectionRange ? selectionRange.length : 0}
+            stats={selectionStats}
+            zoom={zoom}
+            onZoomChange={setZoom}
+            onToggleMobileResize={() => dialogs.setShowMobileResize(!dialogs.showMobileResize)}
+          />
+        </Suspense>
+      </div>
+
+      {/* Dialogs */}
+      <Suspense fallback={null}>
+          <MobileResizeTool isOpen={dialogs.showMobileResize} onClose={() => dialogs.setShowMobileResize(false)} activeCell={activeCell} onResizeRow={resizeHandlers.resizeActiveRow} onResizeCol={resizeHandlers.resizeActiveCol} onReset={resizeHandlers.handleResetActiveResize} />
+      </Suspense>
+      <Suspense fallback={null}>
+          <AIAssistant isOpen={dialogs.showAI} onClose={() => dialogs.setShowAI(false)} onApply={handleAIApply} apiKey={apiKey} />
+      </Suspense>
+      <Suspense fallback={null}>
+          <FormatCellsDialog isOpen={dialogs.showFormatCells} onClose={() => dialogs.setShowFormatCells(false)} initialStyle={activeStyle} onApply={styleHandlers.handleApplyFullStyle} initialTab={dialogs.formatDialogTab} />
+      </Suspense>
+      <Suspense fallback={null}>
+          <FindReplaceDialog isOpen={dialogs.findReplaceState.open} initialMode={dialogs.findReplaceState.mode} onClose={() => dialogs.setFindReplaceState(p => ({ ...p, open: false }))} onFind={() => {}} onReplace={() => {}} onGoTo={navigationHandlers.handleNameBoxSubmit} />
+      </Suspense>
+      <Suspense fallback={null}>
+          <MergeStylesDialog isOpen={dialogs.showMergeStyles} onClose={() => dialogs.setShowMergeStyles(false)} />
+      </Suspense>
+      <Suspense fallback={null}>
+          <CreateTableDialog isOpen={dialogs.createTableState.isOpen} initialRange={dialogs.createTableState.range} onClose={() => dialogs.setCreateTableState(p => ({ ...p, isOpen: false }))} onConfirm={tableHandlers.handleCreateTableConfirm} />
+      </Suspense>
+      <Suspense fallback={null}>
+          <DataValidationDialog isOpen={dialogs.dataValidationState.isOpen} initialRule={dialogs.dataValidationState.rule} onClose={() => dialogs.setDataValidationState(p => ({ ...p, isOpen: false }))} onSave={cellHandlers.handleDataValidationSave} />
+      </Suspense>
+    </div>
+  );
+};
