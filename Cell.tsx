@@ -248,10 +248,9 @@ const Cell = memo(({
       lineHeight: 1.2
   };
   
-  // Validation List Options Logic
-  const listOptions = (isActive && validation && validation.type === 'list') 
-      ? validation.value1.split(',').map(s => s.trim()) 
-      : [];
+  // Validation Dropdown Logic
+  const hasListValidation = isActive && validation && validation.type === 'list' && !isGhost;
+  const listOptions = hasListValidation ? validation.value1.split(',').map(s => s.trim()) : [];
 
   return (
     <div
@@ -396,7 +395,7 @@ const Cell = memo(({
           </>
       )}
 
-      {isActive && validation && validation.type === 'list' && !isGhost && (
+      {hasListValidation && (
           <>
             <div 
                 className="absolute right-0 top-0 bottom-0 w-5 bg-slate-100 hover:bg-slate-200 border-l border-slate-300 flex items-center justify-center cursor-pointer z-50"

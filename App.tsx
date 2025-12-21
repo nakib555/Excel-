@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useMemo, lazy, Suspense, useRef, useEffect } from 'react';
 
 // --- 1. Imports from sibling files ---
-import { CellId, CellData, CellStyle, GridSize, Sheet, Table, TableStylePreset } from './types'; 
+import { CellId, CellData, CellStyle, GridSize, Sheet, Table, TableStylePreset, ValidationRule } from './types'; 
 
 // --- 2. Imports from utils folder ---
 import { 
@@ -16,7 +16,8 @@ import {
   numToChar, 
   checkIntersect,
   adjustFormulaReferences,
-  measureTextWidth
+  measureTextWidth,
+  validateCellValue
 } from './utils';
 
 // Import Skeletons
@@ -40,6 +41,7 @@ const FormatCellsDialog = lazy(() => import('./components/dialogs/FormatCellsDia
 const FindReplaceDialog = lazy(() => import('./components/dialogs/FindReplaceDialog'));
 const MergeStylesDialog = lazy(() => import('./components/dialogs/MergeStylesDialog'));
 const CreateTableDialog = lazy(() => import('./components/dialogs/CreateTableDialog'));
+const DataValidationDialog = lazy(() => import('./components/dialogs/DataValidationDialog'));
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -170,6 +172,7 @@ const App: React.FC = () => {
   const [createTableState, setCreateTableState] = useState<{ isOpen: boolean, preset: any | null, range: string }>({ isOpen: false, preset: null, range: '' });
   const [formatDialogTab, setFormatDialogTab] = useState('Number');
   const [findReplaceState, setFindReplaceState] = useState<{ open: boolean, mode: 'find' | 'replace' | 'goto' }>({ open: false, mode: 'find' });
+  const [dataValidationState, setDataValidationState] = useState<{ isOpen: boolean, rule: ValidationRule | null, cellId: string | null }>({ isOpen: false, rule: null, cellId: null });
   const clipboardRef = useRef<{ cells: Record<CellId, CellData>; baseRow: number; baseCol: number } | null>(null);
   
   const apiKey = getApiKey();
@@ -234,6 +237,18 @@ const App: React.FC = () => {
   }, [selectionRange, cells]);
 
   const handleCellChange = useCallback((id: CellId, rawValue: string) => {
+    // Check validation first
+    const validationRule = validations[id];
+    if (validationRule) {
+        const isValid = validateCellValue(rawValue, validationRule);
+        if (!isValid) {
+            if (validationRule.showErrorMessage !== false) {
+                alert(`${validationRule.errorTitle || 'Invalid Data'}\n${validationRule.errorMessage || 'The value you entered is not valid.'}`);
+            }
+            return; // Reject change
+        }
+    }
+
     setSheets(prevSheets => prevSheets.map(sheet => {
       if (sheet.id !== activeSheetId) return sheet;
 
@@ -317,7 +332,7 @@ const App: React.FC = () => {
 
       return { ...sheet, cells: nextCells, dependentsMap: nextDependents, tables: nextTables };
     }));
-  }, [activeSheetId]);
+  }, [activeSheetId, validations]);
 
   const handleCellClick = useCallback((id: CellId, isShift: boolean) => {
     setSheets(prevSheets => prevSheets.map(sheet => {
@@ -614,23 +629,24 @@ const App: React.FC = () => {
 
   const handleDataValidation = useCallback(() => {
       if (!activeCell) return;
-      const input = prompt("Enter allowed values separated by comma (e.g. Yes,No,Maybe):");
-      if (input !== null) {
-          const options = input.split(',').map(s => s.trim()).filter(s => s.length > 0);
-          setSheets(prev => prev.map(sheet => {
-              if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
-              const nextValidations = { ...sheet.validations };
-              sheet.selectionRange.forEach(id => {
-                  if (options.length > 0) {
-                      nextValidations[id] = { type: 'list', options };
-                  } else {
-                      delete nextValidations[id];
-                  }
-              });
-              return { ...sheet, validations: nextValidations };
-          }));
-      }
-  }, [activeCell, activeSheetId]);
+      const currentRule = validations[activeCell];
+      setDataValidationState({ isOpen: true, rule: currentRule || null, cellId: activeCell });
+  }, [activeCell, validations]);
+
+  const handleDataValidationSave = useCallback((rule: ValidationRule | null) => {
+      setSheets(prev => prev.map(sheet => {
+          if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
+          const nextValidations = { ...sheet.validations };
+          sheet.selectionRange.forEach(id => {
+              if (rule) {
+                  nextValidations[id] = rule;
+              } else {
+                  delete nextValidations[id];
+              }
+          });
+          return { ...sheet, validations: nextValidations };
+      }));
+  }, [activeSheetId]);
 
   const handleFormatAsTable = useCallback((stylePreset: any) => {
       if (!selectionRange) return;
@@ -997,6 +1013,7 @@ const App: React.FC = () => {
       <Suspense fallback={null}><FindReplaceDialog isOpen={findReplaceState.open} initialMode={findReplaceState.mode} onClose={() => setFindReplaceState(p => ({ ...p, open: false }))} onFind={() => {}} onReplace={() => {}} onGoTo={handleNameBoxSubmit} /></Suspense>
       <Suspense fallback={null}><MergeStylesDialog isOpen={showMergeStyles} onClose={() => setShowMergeStyles(false)} /></Suspense>
       <Suspense fallback={null}><CreateTableDialog isOpen={createTableState.isOpen} initialRange={createTableState.range} onClose={() => setCreateTableState(p => ({ ...p, isOpen: false }))} onConfirm={handleCreateTableConfirm} /></Suspense>
+      <Suspense fallback={null}><DataValidationDialog isOpen={dataValidationState.isOpen} initialRule={dataValidationState.rule} onClose={() => setDataValidationState(p => ({ ...p, isOpen: false }))} onSave={handleDataValidationSave} /></Suspense>
     </div>
   );
 };

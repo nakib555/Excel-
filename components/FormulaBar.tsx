@@ -1,3 +1,4 @@
+
 import React, { useRef, memo, useState, useEffect } from 'react';
 import { FunctionSquare, X, Check, ChevronDown, ListFilter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -100,7 +101,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
         <input 
             ref={nameBoxRef}
             type="text"
-            className="w-24 md:w-32 h-8 bg-white border border-slate-300 rounded-md flex items-center justify-center text-xs font-semibold text-slate-700 font-mono shadow-sm hover:border-slate-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all px-2 text-center uppercase placeholder:text-slate-300"
+            className="w-20 md:w-32 h-8 bg-white border border-slate-300 rounded-md flex items-center justify-center text-base md:text-xs font-semibold text-slate-700 font-mono shadow-sm hover:border-slate-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all px-1 md:px-2 text-center uppercase placeholder:text-slate-300"
             value={nameBoxValue}
             onChange={(e) => setNameBoxValue(e.target.value)}
             onKeyDown={handleNameBoxKeyDown}

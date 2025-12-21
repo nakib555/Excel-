@@ -54,9 +54,19 @@ export interface CellData {
   comment?: string; // Comment text
 }
 
+export type ValidationType = 'list' | 'whole' | 'decimal' | 'date' | 'time' | 'textLength' | 'custom';
+export type ValidationOperator = 'between' | 'notBetween' | 'equal' | 'notEqual' | 'greaterThan' | 'lessThan' | 'greaterThanOrEqual' | 'lessThanOrEqual';
+
 export interface ValidationRule {
-  type: 'list';
-  options: string[];
+  type: ValidationType;
+  operator?: ValidationOperator;
+  value1: string; // Min, Value, Formula, or comma-separated options
+  value2?: string; // Max
+  allowBlank?: boolean;
+  showErrorMessage?: boolean;
+  errorTitle?: string;
+  errorMessage?: string;
+  // For backward compatibility during migration, we can treat 'options' as value1.split(',')
 }
 
 export interface TableStylePreset {
