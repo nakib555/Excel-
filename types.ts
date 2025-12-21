@@ -115,6 +115,14 @@ export interface Sheet {
   rowHeights: Record<number, number>;
 }
 
+export interface Revision {
+  id: string;
+  name: string;
+  timestamp: number;
+  data: Sheet[]; // Snapshot of the entire workbook
+  source?: 'Manual' | 'Auto'; // Track where this revision came from
+}
+
 export type GridSize = {
   rows: number;
   cols: number;

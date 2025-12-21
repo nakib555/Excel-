@@ -4,6 +4,7 @@ import { MAX_ROWS, MAX_COLS } from './constants/grid.constants';
 import { getApiKey } from './utils/apiKey';
 import { parseCellId } from '../utils';
 import { CellData } from '../types';
+import { Eye } from 'lucide-react';
 
 // Hooks
 import { useSheetsState } from './state/useSheetsState';
@@ -36,13 +37,17 @@ const MergeStylesDialog = lazy(() => import('../components/dialogs/MergeStylesDi
 const CreateTableDialog = lazy(() => import('../components/dialogs/CreateTableDialog'));
 const DataValidationDialog = lazy(() => import('../components/dialogs/DataValidationDialog'));
 const CommentDialog = lazy(() => import('../components/dialogs/CommentDialog'));
+const HistorySidebar = lazy(() => import('../components/HistorySidebar'));
 
 export const AppRoot: React.FC = () => {
   // 1. Core State
   const { 
     sheets, setSheets, activeSheetId, setActiveSheetId, 
     gridSize, setGridSize, zoom, setZoom,
-    undo, redo, canUndo, canRedo
+    undo, redo, canUndo, canRedo,
+    revisions, addRevision, restoreRevision, deleteRevision,
+    isAutoSave, toggleAutoSave, saveWorkbook,
+    previewRevisionId, previewRevision
   } = useSheetsState();
   
   const apiKey = getApiKey();
@@ -266,6 +271,7 @@ export const AppRoot: React.FC = () => {
             onMergeCenter={cellHandlers.handleMergeCenter}
             onDataValidation={handleDataValidation}
             onToggleAI={() => dialogs.setShowAI(true)}
+            onToggleHistory={() => dialogs.setShowHistory(prev => !prev)}
             onInsertTable={() => tableHandlers.handleFormatAsTable({ name: 'TableStyleMedium2', headerBg: '#3b82f6', headerColor: '#ffffff', rowOddBg: '#eff6ff', rowEvenBg: '#ffffff', category: 'Medium' })}
             onInsertCheckbox={noOp}
             onInsertLink={noOp}
@@ -277,6 +283,10 @@ export const AppRoot: React.FC = () => {
             onFormatAsTable={tableHandlers.handleFormatAsTable}
             activeTable={activeTable}
             onTableOptionChange={tableHandlers.handleTableOptionChange}
+            // Save Props - Pass Manual explicitly
+            onSave={() => saveWorkbook('Manual')}
+            onToggleAutoSave={toggleAutoSave}
+            isAutoSave={isAutoSave}
           />
         </Suspense>
       </div>
@@ -294,6 +304,31 @@ export const AppRoot: React.FC = () => {
       </div>
 
       <main className="flex-1 overflow-hidden relative z-0">
+        {/* Preview Banner */}
+        {previewRevisionId && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] bg-indigo-600 text-white px-6 py-2.5 rounded-full shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-10 fade-in duration-300">
+                <div className="flex items-center gap-2">
+                    <Eye size={18} className="animate-pulse" />
+                    <span className="font-semibold text-sm">Previewing History Version</span>
+                </div>
+                <div className="h-4 w-[1px] bg-white/20"></div>
+                <div className="flex gap-2">
+                    <button 
+                        onClick={() => restoreRevision(previewRevisionId)}
+                        className="px-3 py-1 bg-white text-indigo-700 text-xs font-bold rounded-full hover:bg-indigo-50 transition-colors shadow-sm"
+                    >
+                        Restore
+                    </button>
+                    <button 
+                        onClick={() => previewRevision(null)}
+                        className="px-3 py-1 hover:bg-white/10 text-white text-xs font-medium rounded-full transition-colors"
+                    >
+                        Exit
+                    </button>
+                </div>
+            </div>
+        )}
+
         <Suspense fallback={<GridSkeleton />}>
             <Grid
               size={gridSize}
@@ -393,6 +428,18 @@ export const AppRoot: React.FC = () => {
                   cellHandlers.handleDeleteComment();
                   dialogs.setCommentDialogState(p => ({ ...p, isOpen: false }));
               }}
+          />
+      </Suspense>
+      <Suspense fallback={null}>
+          <HistorySidebar 
+              isOpen={dialogs.showHistory} 
+              onClose={() => dialogs.setShowHistory(false)} 
+              revisions={revisions}
+              onCreateRevision={addRevision}
+              onRestoreRevision={restoreRevision}
+              onDeleteRevision={deleteRevision}
+              onPreviewRevision={previewRevision}
+              activePreviewId={previewRevisionId}
           />
       </Suspense>
     </div>

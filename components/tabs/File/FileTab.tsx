@@ -1,12 +1,13 @@
+
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { 
   FilePlus, FolderOpen, Save, FileDown, Printer, Share2, Info, History, 
-  Shield, Settings, LogOut 
+  Shield, Settings, LogOut, RefreshCw 
 } from 'lucide-react';
 import { RibbonGroup, RibbonButton, TabProps } from '../shared';
 
-const FileTab: React.FC<TabProps> = ({ onExport }) => {
+const FileTab: React.FC<TabProps> = ({ onExport, onToggleHistory, onSave, onToggleAutoSave, isAutoSave }) => {
   return (
     <motion.div 
         initial={{ opacity: 0 }}
@@ -28,7 +29,16 @@ const FileTab: React.FC<TabProps> = ({ onExport }) => {
                     }} 
                 />
                 <RibbonButton variant="large" icon={<FolderOpen size={20} className="text-blue-600" />} label="Open" onClick={() => {}} />
-                <RibbonButton variant="large" icon={<Save size={20} className="text-slate-600" />} label="Save" subLabel="As" onClick={onExport} />
+                <RibbonButton 
+                    variant="large" 
+                    icon={isAutoSave ? <RefreshCw size={20} className="text-emerald-500 animate-spin-slow" /> : <Save size={20} className="text-slate-600" />} 
+                    label={isAutoSave ? "AutoSave" : "Save"} 
+                    subLabel={isAutoSave ? "On" : ""}
+                    onClick={onSave || (() => {})} 
+                    onDoubleClick={onToggleAutoSave}
+                    active={isAutoSave}
+                    title={isAutoSave ? "AutoSave is ON. Double-click to toggle." : "Save (Double-click for AutoSave)"}
+                />
             </div>
         </RibbonGroup>
 
@@ -43,7 +53,7 @@ const FileTab: React.FC<TabProps> = ({ onExport }) => {
         <RibbonGroup label="Info">
              <div className="flex items-center gap-1 h-full">
                  <RibbonButton variant="large" icon={<Info size={20} className="text-blue-500" />} label="Info" onClick={() => {}} />
-                 <RibbonButton variant="large" icon={<History size={20} className="text-purple-500" />} label="Version" subLabel="History" onClick={() => {}} />
+                 <RibbonButton variant="large" icon={<History size={20} className="text-purple-500" />} label="Version" subLabel="History" onClick={onToggleHistory || (() => {})} />
                  <RibbonButton variant="large" icon={<Shield size={20} className="text-orange-600" />} label="Protect" subLabel="Workbook" onClick={() => {}} />
              </div>
         </RibbonGroup>

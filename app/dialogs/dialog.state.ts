@@ -7,6 +7,7 @@ export const useDialogState = () => {
   const [showAI, setShowAI] = useState(false);
   const [showFormatCells, setShowFormatCells] = useState(false);
   const [showMergeStyles, setShowMergeStyles] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [createTableState, setCreateTableState] = useState<{ isOpen: boolean, preset: any | null, range: string }>({ isOpen: false, preset: null, range: '' });
   const [formatDialogTab, setFormatDialogTab] = useState('Number');
   const [findReplaceState, setFindReplaceState] = useState<{ open: boolean, mode: 'find' | 'replace' | 'goto' }>({ open: false, mode: 'find' });
@@ -23,6 +24,7 @@ export const useDialogState = () => {
     showAI, setShowAI,
     showFormatCells, setShowFormatCells,
     showMergeStyles, setShowMergeStyles,
+    showHistory, setShowHistory,
     createTableState, setCreateTableState,
     formatDialogTab, setFormatDialogTab,
     findReplaceState, setFindReplaceState,

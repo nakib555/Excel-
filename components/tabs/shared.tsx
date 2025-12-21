@@ -33,6 +33,12 @@ export interface TabProps {
   onDataValidation?: () => void;
   onOpenFormatDialog?: (tab?: string) => void;
   onToggleAI?: () => void;
+  onToggleHistory?: () => void;
+  
+  // Save Props
+  onSave?: () => void;
+  onToggleAutoSave?: () => void;
+  isAutoSave?: boolean;
   
   // Format Menu Props
   onFormatRowHeight?: () => void;
@@ -231,6 +237,7 @@ interface RibbonButtonProps {
   label?: string;
   subLabel?: string;
   onClick: () => void;
+  onDoubleClick?: () => void;
   active?: boolean;
   variant?: 'large' | 'small' | 'icon-only';
   hasDropdown?: boolean;
@@ -240,7 +247,7 @@ interface RibbonButtonProps {
 }
 
 export const RibbonButton: React.FC<RibbonButtonProps> = memo(({ 
-  icon, label, subLabel, onClick, active, variant = 'small', hasDropdown, className = "", title, disabled 
+  icon, label, subLabel, onClick, onDoubleClick, active, variant = 'small', hasDropdown, className = "", title, disabled 
 }) => {
   const baseClass = `flex items-center justify-center rounded-md transition-all duration-150 select-none ${
     active 
@@ -264,7 +271,13 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
 
   if (variant === 'large') {
     return (
-      <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} flex-col px-1 py-1 h-full min-w-[52px] md:min-w-[60px] gap-0.5 justify-center`, className)}>
+      <button 
+        onClick={onClick} 
+        onDoubleClick={onDoubleClick}
+        title={title} 
+        disabled={disabled} 
+        className={cn(`${baseClass} flex-col px-1 py-1 h-full min-w-[52px] md:min-w-[60px] gap-0.5 justify-center`, className)}
+      >
         <div className="p-1">{styledIcon}</div>
         <div className="text-[11px] font-medium leading-[1.1] text-center flex flex-col items-center text-slate-700">
             {label}
@@ -277,7 +290,13 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
 
   if (variant === 'small') {
     return (
-      <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`, className)}>
+      <button 
+        onClick={onClick} 
+        onDoubleClick={onDoubleClick}
+        title={title} 
+        disabled={disabled} 
+        className={cn(`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`, className)}
+      >
         <div className="transform flex-shrink-0 text-slate-700 flex items-center">{styledIcon}</div>
         {label && <span className="text-[12px] text-slate-700 font-medium whitespace-nowrap leading-none pt-0.5">{label}</span>}
         {hasDropdown && <ChevronDown size={10} className="ml-auto opacity-50 stroke-[3]" />}
@@ -286,7 +305,13 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
   }
 
   return (
-    <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}>
+    <button 
+        onClick={onClick} 
+        onDoubleClick={onDoubleClick}
+        title={title} 
+        disabled={disabled} 
+        className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}
+    >
       {styledIcon}
       {hasDropdown && (
         <svg 
@@ -371,7 +396,7 @@ export const SmartDropdown = ({
                         top: position.top, 
                         bottom: position.bottom,
                         left: position.left, 
-                        // If width is calculated by smartPosition (auto/constrained), apply it. Otherwise let classes handle it.
+                        // If width is calculated by smartPosition (auto), apply it. Otherwise let classes handle it.
                         width: position.width,
                         maxHeight: position.maxHeight,
                         transformOrigin: position.transformOrigin,

@@ -51,11 +51,12 @@ const TABS = [
 
 interface ToolbarProps extends TabProps {
     onToggleAI?: () => void;
+    onToggleHistory?: () => void;
 }
 
 const Toolbar: React.FC<ToolbarProps> = (props) => {
   const [activeTab, setActiveTab] = useState('Home');
-  const { onToggleAI, activeTable, ...tabProps } = props;
+  const { onToggleAI, onToggleHistory, activeTable, onSave, onToggleAutoSave, isAutoSave, ...tabProps } = props;
   
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -270,7 +271,13 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
                 )}
                 {activeTab === 'File' && (
                     <Suspense key="file-suspense" fallback={<RibbonSkeleton />}>
-                        <FileTab {...tabProps} />
+                        <FileTab 
+                            {...tabProps} 
+                            onToggleHistory={onToggleHistory} 
+                            onSave={onSave}
+                            onToggleAutoSave={onToggleAutoSave}
+                            isAutoSave={isAutoSave}
+                        />
                     </Suspense>
                 )}
                 {activeTab === 'AI Assistant' && (
