@@ -304,24 +304,24 @@ export const AppRoot: React.FC = () => {
       </div>
 
       <main className="flex-1 overflow-hidden relative z-0">
-        {/* Preview Banner */}
+        {/* Preview Banner - Floating Bottom */}
         {previewRevisionId && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] bg-indigo-600 text-white px-6 py-2.5 rounded-full shadow-2xl flex items-center gap-4 animate-in slide-in-from-top-10 fade-in duration-300">
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[100] bg-indigo-600/95 backdrop-blur shadow-2xl border border-indigo-500/50 rounded-full px-4 py-1.5 flex items-center gap-3 animate-in slide-in-from-bottom-4 fade-in duration-300">
                 <div className="flex items-center gap-2">
-                    <Eye size={18} className="animate-pulse" />
-                    <span className="font-semibold text-sm">Previewing History Version</span>
+                    <Eye size={14} className="text-indigo-200 animate-pulse" />
+                    <span className="font-medium text-xs text-white whitespace-nowrap">Previewing Version</span>
                 </div>
-                <div className="h-4 w-[1px] bg-white/20"></div>
-                <div className="flex gap-2">
+                <div className="h-3 w-[1px] bg-indigo-400/50" />
+                <div className="flex items-center gap-1.5">
                     <button 
                         onClick={() => restoreRevision(previewRevisionId)}
-                        className="px-3 py-1 bg-white text-indigo-700 text-xs font-bold rounded-full hover:bg-indigo-50 transition-colors shadow-sm"
+                        className="px-3 py-1 bg-white text-indigo-600 text-[11px] font-bold rounded-full hover:bg-indigo-50 transition-colors shadow-sm"
                     >
                         Restore
                     </button>
                     <button 
                         onClick={() => previewRevision(null)}
-                        className="px-3 py-1 hover:bg-white/10 text-white text-xs font-medium rounded-full transition-colors"
+                        className="px-2 py-1 hover:bg-indigo-700/50 text-indigo-100 hover:text-white text-[11px] font-medium rounded-full transition-colors"
                     >
                         Exit
                     </button>
