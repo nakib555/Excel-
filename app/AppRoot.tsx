@@ -2,6 +2,8 @@
 import React, { lazy, Suspense, useCallback } from 'react';
 import { MAX_ROWS, MAX_COLS } from './constants/grid.constants';
 import { getApiKey } from './utils/apiKey';
+import { parseCellId } from '../utils';
+import { CellData } from '../types';
 
 // Hooks
 import { useSheetsState } from './state/useSheetsState';
@@ -33,6 +35,7 @@ const FindReplaceDialog = lazy(() => import('../components/dialogs/FindReplaceDi
 const MergeStylesDialog = lazy(() => import('../components/dialogs/MergeStylesDialog'));
 const CreateTableDialog = lazy(() => import('../components/dialogs/CreateTableDialog'));
 const DataValidationDialog = lazy(() => import('../components/dialogs/DataValidationDialog'));
+const CommentDialog = lazy(() => import('../components/dialogs/CommentDialog'));
 
 export const AppRoot: React.FC = () => {
   // 1. Core State
@@ -77,6 +80,84 @@ export const AppRoot: React.FC = () => {
       const currentRule = validations[activeCell];
       dialogs.setDataValidationState({ isOpen: true, rule: currentRule || null, cellId: activeCell });
   }, [activeCell, validations, dialogs]);
+
+  // Comment Handlers
+  const handleOpenCommentDialog = useCallback(() => {
+      if (!activeCell) return;
+      const currentComment = cells[activeCell]?.comment || '';
+      dialogs.setCommentDialogState({ isOpen: true, cellId: activeCell, initialText: currentComment });
+  }, [activeCell, cells, dialogs]);
+
+  const handleSaveComment = useCallback((text: string) => {
+      if (dialogs.commentDialogState.cellId) {
+          cellHandlers.handleSaveComment(dialogs.commentDialogState.cellId, text);
+      }
+  }, [dialogs.commentDialogState.cellId, cellHandlers]);
+
+  // Search Handlers
+  const handleSearchAll = useCallback((query: string, matchCase: boolean) => {
+      if (!query) return [];
+      const lowerQuery = query.toLowerCase();
+      return (Object.values(cells) as CellData[])
+          .filter(cell => {
+              if (cell.value === undefined || cell.value === null) return false;
+              const val = String(cell.value);
+              return matchCase ? val.includes(query) : val.toLowerCase().includes(lowerQuery);
+          })
+          .map(cell => ({ id: cell.id, content: String(cell.value) }));
+  }, [cells]);
+
+  const handleFind = useCallback((query: string, matchCase: boolean, matchEntire: boolean) => {
+      if (!query) return;
+      const lowerQuery = query.toLowerCase();
+      
+      const matches = (Object.values(cells) as CellData[]).filter(cell => {
+          if (cell.value === undefined || cell.value === null) return false;
+          const val = String(cell.value);
+          if (matchEntire) {
+              return matchCase ? val === query : val.toLowerCase() === lowerQuery;
+          }
+          return matchCase ? val.includes(query) : val.toLowerCase().includes(lowerQuery);
+      });
+
+      if (matches.length === 0) {
+          alert("No matches found.");
+          return;
+      }
+
+      // Sort matches by position (Row then Col)
+      matches.sort((a, b) => {
+          const pa = parseCellId(a.id);
+          const pb = parseCellId(b.id);
+          if (!pa || !pb) return 0;
+          if (pa.row !== pb.row) return pa.row - pb.row;
+          return pa.col - pb.col;
+      });
+
+      let nextIndex = 0;
+      if (activeCell) {
+          // Find current index
+          const currentIndex = matches.findIndex(m => m.id === activeCell);
+          if (currentIndex !== -1) {
+              // Next match
+              nextIndex = (currentIndex + 1) % matches.length;
+          } else {
+              // Find first match *after* active cell
+              const pa = parseCellId(activeCell);
+              if (pa) {
+                  const nextMatch = matches.find(m => {
+                      const pm = parseCellId(m.id);
+                      if (!pm) return false;
+                      return pm.row > pa.row || (pm.row === pa.row && pm.col > pa.col);
+                  });
+                  if (nextMatch) nextIndex = matches.indexOf(nextMatch);
+              }
+          }
+      }
+
+      const target = matches[nextIndex];
+      cellHandlers.handleCellClick(target.id, false);
+  }, [cells, activeCell, cellHandlers]);
 
   // Passthroughs for toolbar that don't need complex logic yet
   const noOp = useCallback(() => {}, []);
@@ -124,8 +205,8 @@ export const AppRoot: React.FC = () => {
             onInsertTable={() => tableHandlers.handleFormatAsTable({ name: 'TableStyleMedium2', headerBg: '#3b82f6', headerColor: '#ffffff', rowOddBg: '#eff6ff', rowEvenBg: '#ffffff', category: 'Medium' })}
             onInsertCheckbox={noOp}
             onInsertLink={noOp}
-            onInsertComment={noOp}
-            onDeleteComment={noOp}
+            onInsertComment={handleOpenCommentDialog}
+            onDeleteComment={cellHandlers.handleDeleteComment}
             onFindReplace={(mode) => dialogs.setFindReplaceState({ open: true, mode })}
             onSelectSpecial={noOp}
             onMergeStyles={() => dialogs.setShowMergeStyles(true)}
@@ -210,7 +291,17 @@ export const AppRoot: React.FC = () => {
           <FormatCellsDialog isOpen={dialogs.showFormatCells} onClose={() => dialogs.setShowFormatCells(false)} initialStyle={activeStyle} onApply={styleHandlers.handleApplyFullStyle} initialTab={dialogs.formatDialogTab} />
       </Suspense>
       <Suspense fallback={null}>
-          <FindReplaceDialog isOpen={dialogs.findReplaceState.open} initialMode={dialogs.findReplaceState.mode} onClose={() => dialogs.setFindReplaceState(p => ({ ...p, open: false }))} onFind={() => {}} onReplace={() => {}} onGoTo={navigationHandlers.handleNameBoxSubmit} />
+          <FindReplaceDialog 
+            isOpen={dialogs.findReplaceState.open} 
+            initialMode={dialogs.findReplaceState.mode} 
+            onClose={() => dialogs.setFindReplaceState(p => ({ ...p, open: false }))} 
+            onFind={handleFind} 
+            onReplace={() => {}} 
+            onGoTo={navigationHandlers.handleNameBoxSubmit}
+            onSearchAll={handleSearchAll}
+            onGetCellData={(id) => cells[id] || null}
+            onHighlight={(id) => cellHandlers.handleCellClick(id, false)}
+          />
       </Suspense>
       <Suspense fallback={null}>
           <MergeStylesDialog isOpen={dialogs.showMergeStyles} onClose={() => dialogs.setShowMergeStyles(false)} />
@@ -220,6 +311,19 @@ export const AppRoot: React.FC = () => {
       </Suspense>
       <Suspense fallback={null}>
           <DataValidationDialog isOpen={dialogs.dataValidationState.isOpen} initialRule={dialogs.dataValidationState.rule} onClose={() => dialogs.setDataValidationState(p => ({ ...p, isOpen: false }))} onSave={cellHandlers.handleDataValidationSave} />
+      </Suspense>
+      <Suspense fallback={null}>
+          <CommentDialog 
+              isOpen={dialogs.commentDialogState.isOpen} 
+              initialComment={dialogs.commentDialogState.initialText} 
+              cellId={dialogs.commentDialogState.cellId}
+              onClose={() => dialogs.setCommentDialogState(p => ({ ...p, isOpen: false }))} 
+              onSave={handleSaveComment}
+              onDelete={() => {
+                  cellHandlers.handleDeleteComment();
+                  dialogs.setCommentDialogState(p => ({ ...p, isOpen: false }));
+              }}
+          />
       </Suspense>
     </div>
   );

@@ -11,6 +11,7 @@ export const useDialogState = () => {
   const [formatDialogTab, setFormatDialogTab] = useState('Number');
   const [findReplaceState, setFindReplaceState] = useState<{ open: boolean, mode: 'find' | 'replace' | 'goto' }>({ open: false, mode: 'find' });
   const [dataValidationState, setDataValidationState] = useState<{ isOpen: boolean, rule: ValidationRule | null, cellId: string | null }>({ isOpen: false, rule: null, cellId: null });
+  const [commentDialogState, setCommentDialogState] = useState<{ isOpen: boolean, cellId: string | null, initialText: string }>({ isOpen: false, cellId: null, initialText: '' });
 
   const handleOpenFormatDialog = (tab?: string) => { 
       setFormatDialogTab(tab || 'Number'); 
@@ -26,6 +27,7 @@ export const useDialogState = () => {
     formatDialogTab, setFormatDialogTab,
     findReplaceState, setFindReplaceState,
     dataValidationState, setDataValidationState,
+    commentDialogState, setCommentDialogState,
     handleOpenFormatDialog
   };
 };

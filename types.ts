@@ -12,7 +12,7 @@ export interface CellStyle {
   italic?: boolean;
   underline?: boolean;
   strikethrough?: boolean;
-  align?: 'left' | 'center' | 'right' | 'justify' | 'fill' | 'centerAcross' | 'distributed';
+  align?: 'general' | 'left' | 'center' | 'right' | 'justify' | 'fill' | 'centerAcross' | 'distributed';
   verticalAlign?: 'top' | 'middle' | 'bottom' | 'justify' | 'distributed';
   indent?: number; // Indentation level (0, 1, 2...)
   color?: string;

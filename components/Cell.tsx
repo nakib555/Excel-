@@ -1,6 +1,6 @@
 
 import React, { memo, useState, useRef, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
-import { CellData, CellStyle, ValidationRule } from '../types';
+import { CellData, CellStyle, ValidationRule, CellBorder } from '../types';
 import { cn, formatCellValue, measureTextWidth, useSmartPosition } from '../utils';
 import { CellSkeleton, DropdownListSkeleton } from './Skeletons';
 import { ChevronDown, ExternalLink } from 'lucide-react';
@@ -31,6 +31,13 @@ interface CellProps {
   isFilterActive?: boolean;
   onToggleFilter?: (id: string | null) => void;
 }
+
+const getBorderCSS = (b?: CellBorder) => {
+  if (!b || b.style === 'none') return undefined;
+  const width = (b.style === 'thick' || b.style === 'double') ? '3px' : (b.style === 'medium' ? '2px' : '1px');
+  const s = b.style === 'double' ? 'double' : (b.style === 'dashed' ? 'dashed' : (b.style === 'dotted' ? 'dotted' : 'solid'));
+  return `${width} ${s} ${b.color}`;
+};
 
 const Cell = memo(({ 
   id, 
@@ -108,22 +115,16 @@ const Cell = memo(({
        const avail = width - totalPadding;
        
        if (avail > 0) {
-           // Always use canvas measurement for ShrinkToFit to avoid DOM layout constraints (flex-shrink)
            const fontName = resolvedStyle.fontFamily || 'Inter, sans-serif';
            const isBold = !!resolvedStyle.bold;
            const isItalic = !!resolvedStyle.italic;
            
-           // Use measureTextWidth to get the true unconstrained width
            const textWidth = measureTextWidth(displayValue, fontSize, fontName, isBold, isItalic);
            
-           // Calculate Scale
            if (textWidth > 0) {
-                // Add a small buffer to ensure visual clearance
                 const requiredWidth = textWidth + 1;
-                
                 if (requiredWidth > avail) {
                     const ratio = avail / requiredWidth;
-                    // Cap scale between 0.1 and 1 to avoid invisibility or scaling up
                     setScaleFactor(Math.max(0.1, Math.min(1, ratio)));
                 } else {
                     setScaleFactor(1);
@@ -169,20 +170,35 @@ const Cell = memo(({
   const justifyContent = align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
   const alignItems = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
 
+  // Enhanced Indent Logic: Only apply for appropriate alignments
+  const effectiveIndent = (align === 'left' || align === 'right' || align === 'distributed' || align === 'general') ? indent : 0;
+  const indentPx = effectiveIndent * 10 * scale; 
+  
+  let paddingLeft = 4 * scale;
+  let paddingRight = 4 * scale;
+
+  if (align === 'right') {
+      paddingRight += indentPx;
+  } else if (align === 'center' || align === 'centerAcross') {
+      // Indent intentionally ignored for center alignment to preserve centering
+  } else {
+      // Left or General
+      paddingLeft += indentPx;
+  }
+
   // Calculate dynamic filter button size and padding
   const filterBtnSize = Math.max(14, 18 * scale);
   const showFilter = !!data.filterButton && !editing && !isMicroView && height > (filterBtnSize - 4);
-  // Increased padding buffer slightly to avoid visual cramp
-  const filterPadding = showFilter ? (filterBtnSize + 6 * scale) : 0;
-
-  const indentPx = indent * 10 * scale; 
-  const paddingLeft = align === 'right' ? '4px' : `${4 + indentPx}px`;
-  // Add extra padding to the right to prevent text overlapping the filter button
-  const paddingRight = align === 'right' ? `${4 + indentPx + filterPadding}px` : `${4 + filterPadding}px`;
+  const filterPadding = showFilter ? (filterBtnSize + 2 * scale) : 0;
+  paddingRight += filterPadding;
 
   const fontWeight = resolvedStyle.bold ? '600' : '400';
   const fontStyle = resolvedStyle.italic ? 'italic' : 'normal';
-  const textDecoration = resolvedStyle.underline ? 'underline' : 'none';
+  const textDecoration = [
+      resolvedStyle.underline ? 'underline' : '',
+      resolvedStyle.strikethrough ? 'line-through' : ''
+  ].filter(Boolean).join(' ') || 'none';
+
   const color = resolvedStyle.color || '#0f172a';
   const backgroundColor = resolvedStyle.bg || (isInRange ? 'rgba(16, 185, 129, 0.08)' : '#fff'); 
   
@@ -190,6 +206,12 @@ const Cell = memo(({
   const rotation = resolvedStyle.textRotation || 0;
   const cssRotation = rotation ? -rotation : 0; 
   const hasRotation = rotation !== 0;
+  
+  // Reset padding for vertical text to avoid offsets
+  if (verticalText) {
+      paddingLeft = 2 * scale;
+      paddingRight = 2 * scale;
+  }
   
   const whiteSpace = resolvedStyle.wrapText ? 'pre-wrap' : 'nowrap';
 
@@ -199,6 +221,16 @@ const Cell = memo(({
       setEditing(false);
   };
 
+  // Border Handling
+  const borders = resolvedStyle.borders || {};
+  const borderRight = getBorderCSS(borders.right) || '1px solid #e2e8f0';
+  const borderBottom = getBorderCSS(borders.bottom) || '1px solid #e2e8f0';
+  const borderTop = getBorderCSS(borders.top);
+  const borderLeft = getBorderCSS(borders.left);
+
+  // Increase Z-Index for cells with rotation or overflow to allow spill over empty neighbors
+  const zIndex = isActive ? 30 : (hasRotation || verticalText) ? 20 : undefined;
+
   const containerStyle: React.CSSProperties = {
     width: width,
     height: height,
@@ -207,12 +239,16 @@ const Cell = memo(({
     display: 'flex',
     justifyContent: data.isCheckbox ? 'center' : justifyContent, 
     alignItems: data.isCheckbox ? 'center' : alignItems,
-    paddingLeft: verticalText ? 0 : paddingLeft,
-    paddingRight: verticalText ? 0 : paddingRight,
+    paddingLeft,
+    paddingRight,
     backgroundColor,
-    borderRight: '1px solid #e2e8f0',
-    borderBottom: '1px solid #e2e8f0',
+    borderRight,
+    borderBottom,
+    borderTop,
+    borderLeft,
     overflow: (hasRotation || verticalText) ? 'visible' : 'hidden', 
+    zIndex,
+    position: 'relative'
   };
 
   const getCssTextAlign = (): React.CSSProperties['textAlign'] => {
@@ -221,6 +257,9 @@ const Cell = memo(({
       return 'left';
   };
   const cssTextAlign = getCssTextAlign();
+
+  // Smart transform origin based on alignment
+  const transformOrigin = align === 'right' ? 'center right' : align === 'center' ? 'center' : 'center left';
 
   const textStyle: React.CSSProperties = {
       fontFamily: resolvedStyle.fontFamily || 'Inter, sans-serif',
@@ -231,7 +270,7 @@ const Cell = memo(({
       color,
       whiteSpace,
       textAlign: cssTextAlign,
-      display: 'inline-block', // Important for transform
+      display: 'inline-block', 
       ...(verticalText ? { 
           writingMode: 'vertical-rl', 
           textOrientation: 'upright', 
@@ -239,7 +278,7 @@ const Cell = memo(({
       } : {}),
       ...(hasRotation ? {
           transform: `rotate(${cssRotation}deg)`,
-          transformOrigin: align === 'center' ? 'center' : align === 'right' ? 'center right' : 'center left',
+          transformOrigin,
       } : {
           transform: scaleFactor < 1 ? `scale(${scaleFactor})` : undefined,
           transformOrigin: align === 'right' ? 'right' : align === 'center' ? 'center' : 'left',
@@ -248,7 +287,6 @@ const Cell = memo(({
       lineHeight: 1.2
   };
   
-  // Validation Dropdown Logic
   const hasListValidation = isActive && validation && validation.type === 'list' && !isGhost;
   const listOptions = hasListValidation ? validation.value1.split(',').map(s => s.trim()) : [];
 
@@ -256,8 +294,8 @@ const Cell = memo(({
     <div
       ref={containerRef}
       className={cn(
-        "relative box-border select-none outline-none flex-shrink-0",
-        isActive && "z-30",
+        "box-border select-none outline-none flex-shrink-0",
+        isActive && "shadow-glow", // Enhance focus visibility
       )}
       style={containerStyle}
       data-cell-id={id}
@@ -353,7 +391,7 @@ const Cell = memo(({
           </>
       )}
 
-      {/* Filter Button for Table Headers - Improved Layout */}
+      {/* Filter Button */}
       {showFilter && (
           <>
             <div 
@@ -367,7 +405,7 @@ const Cell = memo(({
                     height: filterBtnSize,
                     right: 3 * scale,
                     top: '50%',
-                    transform: 'translateY(-50%)' // Precise vertical centering
+                    transform: 'translateY(-50%)' 
                 }}
                 onMouseDown={(e) => { 
                     e.stopPropagation(); 
@@ -382,9 +420,9 @@ const Cell = memo(({
                     strokeWidth={2.5} 
                 />
             </div>
-            {/* Lazy Loaded Filter Menu */}
+            {/* Filter Menu */}
             {isFilterActive && (
-                <Suspense fallback={<div className="fixed z-[9999] bg-white border border-slate-200 shadow-xl rounded-xl p-4 w-[240px] h-[300px] top-[100px] left-[100px]"><DropdownListSkeleton count={8} /></div>}>
+                <Suspense fallback={null}>
                     <FilterMenu 
                         isOpen={true} 
                         onClose={() => onToggleFilter && onToggleFilter(null)} 
@@ -413,7 +451,6 @@ const Cell = memo(({
                         top: dropdownPosition.top,
                         bottom: dropdownPosition.bottom,
                         left: dropdownPosition.left,
-                        // If constrained width is set by smartPosition, use it. Otherwise enforce minWidth.
                         width: dropdownPosition.width,
                         minWidth: dropdownPosition.width ? undefined : 120,
                         maxHeight: dropdownPosition.maxHeight,
@@ -457,3 +494,4 @@ const Cell = memo(({
 
 Cell.displayName = 'Cell';
 export default Cell;
+    

@@ -340,6 +340,35 @@ export const useCellHandlers = ({
         }));
     }, [activeSheetId, setSheets]);
 
+    const handleSaveComment = useCallback((cellId: string, comment: string) => {
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells = { ...sheet.cells };
+            
+            if (comment.trim()) {
+                nextCells[cellId] = {
+                    ...(nextCells[cellId] || { id: cellId, raw: '', value: '' }),
+                    comment: comment.trim()
+                };
+            } else {
+                if (nextCells[cellId]) {
+                    const { comment, ...rest } = nextCells[cellId];
+                    if (!rest.raw && !rest.styleId && !rest.isCheckbox && !rest.link && !rest.filterButton) {
+                        delete nextCells[cellId];
+                    } else {
+                        nextCells[cellId] = rest as CellData;
+                    }
+                }
+            }
+            return { ...sheet, cells: nextCells };
+        }));
+    }, [activeSheetId, setSheets]);
+
+    const handleDeleteComment = useCallback(() => {
+        if (!activeCell) return;
+        handleSaveComment(activeCell, '');
+    }, [activeCell, handleSaveComment]);
+
     return {
         handleCellChange,
         handleCellClick,
@@ -350,6 +379,8 @@ export const useCellHandlers = ({
         handleFill,
         handleClear,
         handleAddSheet,
-        handleDataValidationSave
+        handleDataValidationSave,
+        handleSaveComment,
+        handleDeleteComment
     };
 };

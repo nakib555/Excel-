@@ -168,6 +168,71 @@ const Grid: React.FC<GridProps> = ({
       return { top: getRowTop(row), left: getColLeft(col) };
   }, [getRowTop, getColLeft]);
 
+  // --- SMOOTH SCROLL TO ACTIVE CELL ---
+  useEffect(() => {
+      if (!activeCell || !containerRef.current) return;
+
+      const parsed = parseCellId(activeCell);
+      if (!parsed) return;
+      const { col, row } = parsed;
+
+      // Calculate absolute position of target cell
+      const top = getRowTop(row);
+      const left = getColLeft(col);
+      const height = getRowHeight(row);
+      const width = getColWidth(col);
+
+      const container = containerRef.current;
+      const { clientHeight, clientWidth, scrollTop, scrollLeft } = container;
+
+      // Effective Viewport (accounting for sticky headers)
+      const headerH = HEADER_ROW_HEIGHT * scale;
+      const headerW = headerColW;
+
+      // Visible area bounds in scroll coordinates
+      const visibleTop = scrollTop + headerH;
+      const visibleBottom = scrollTop + clientHeight;
+      const visibleLeft = scrollLeft + headerW;
+      const visibleRight = scrollLeft + clientWidth;
+
+      // Target bounds
+      const cellTop = top;
+      const cellBottom = top + height;
+      const cellLeft = left;
+      const cellRight = left + width;
+
+      let newScrollTop = scrollTop;
+      let newScrollLeft = scrollLeft;
+      let needsScroll = false;
+
+      // Vertical Logic
+      if (cellTop < visibleTop) {
+          newScrollTop = Math.max(0, cellTop - headerH - 10);
+          needsScroll = true;
+      } else if (cellBottom > visibleBottom) {
+          newScrollTop = cellBottom - clientHeight + 10;
+          needsScroll = true;
+      }
+
+      // Horizontal Logic
+      if (cellLeft < visibleLeft) {
+          newScrollLeft = Math.max(0, cellLeft - headerW - 10);
+          needsScroll = true;
+      } else if (cellRight > visibleRight) {
+          newScrollLeft = cellRight - clientWidth + 10;
+          needsScroll = true;
+      }
+
+      if (needsScroll) {
+          container.scrollTo({
+              top: newScrollTop,
+              left: newScrollLeft,
+              behavior: 'smooth'
+          });
+      }
+
+  }, [activeCell, scale, getRowTop, getColLeft, getRowHeight, getColWidth, headerColW]);
+
   const selectionBounds = useMemo(() => {
     if (!selectionRange || selectionRange.length === 0) return null;
     const start = parseCellId(selectionRange[0]);
@@ -280,10 +345,23 @@ const Grid: React.FC<GridProps> = ({
     const renderStartCol = Math.max(0, viewportStartCol - dynamicBuffer);
     const renderEndCol = Math.min(size.cols - 1, viewportEndCol + dynamicBuffer);
 
-    const spacerTop = renderStartRow * avgRowH;
-    const spacerBottom = (size.rows - 1 - renderEndRow) * avgRowH;
-    const spacerLeft = renderStartCol * avgColW;
-    const spacerRight = (size.cols - 1 - renderEndCol) * avgColW;
+    // Precise spacer calculations using getRowTop/getColLeft to handle variable sizes
+    const spacerTop = getRowTop(renderStartRow);
+    const spacerLeft = getColLeft(renderStartCol);
+    
+    // Calculate total height of rendered portion
+    let renderedHeight = 0;
+    for(let r = renderStartRow; r <= renderEndRow; r++) renderedHeight += getRowHeight(r);
+    
+    let renderedWidth = 0;
+    for(let c = renderStartCol; c <= renderEndCol; c++) renderedWidth += getColWidth(c);
+
+    // Calculate total grid dimensions
+    const totalHeight = getRowTop(size.rows);
+    const totalWidth = getColLeft(size.cols);
+
+    const spacerBottom = Math.max(0, totalHeight - spacerTop - renderedHeight);
+    const spacerRight = Math.max(0, totalWidth - spacerLeft - renderedWidth);
 
     const rows = [];
     for (let i = renderStartRow; i <= renderEndRow; i++) rows.push(i);
@@ -298,7 +376,7 @@ const Grid: React.FC<GridProps> = ({
         viewStartRow: renderStartRow, viewEndRow: renderEndRow,
         viewStartCol: renderStartCol, viewEndCol: renderEndCol
     };
-  }, [scrollState, size, scale, isIdle, isMobile]); 
+  }, [scrollState, size, scale, isIdle, isMobile, getRowTop, getColLeft, getRowHeight, getColWidth]); 
 
   const visibleMerges = useMemo(() => {
       return merges.filter(range => {
