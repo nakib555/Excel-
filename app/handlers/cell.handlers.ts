@@ -150,6 +150,19 @@ export const useCellHandlers = ({
         }));
     }, [activeSheetId, setSheets]);
 
+    const handleBatchSelection = useCallback((ids: string[]) => {
+        if (!ids.length) return;
+        setSheets(prev => prev.map(s => {
+            if (s.id !== activeSheetId) return s;
+            return { 
+                ...s, 
+                activeCell: ids[0], 
+                selectionAnchor: ids[0],
+                selectionRange: ids 
+            };
+        }));
+    }, [activeSheetId, setSheets]);
+
     const handleCellDoubleClick = useCallback((id: CellId) => {
         handleCellClick(id, false);
     }, [handleCellClick]);
@@ -373,6 +386,7 @@ export const useCellHandlers = ({
         handleCellChange,
         handleCellClick,
         handleSelectionDrag,
+        handleBatchSelection,
         handleCellDoubleClick,
         handleAutoSum,
         handleMergeCenter,

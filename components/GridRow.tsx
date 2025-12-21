@@ -16,6 +16,7 @@ interface GridRowProps {
   styles: Record<string, CellStyle>;
   activeCell: string | null;
   selectionBounds: { minRow: number, maxRow: number, minCol: number, maxCol: number } | null;
+  selectionSet: Set<string>;
   scale: number;
   mergedCellsSet: Set<string>; 
   onCellClick: (id: string, isShift: boolean) => void;
@@ -65,6 +66,7 @@ const GridRow = memo(({
     styles,
     activeCell, 
     selectionBounds, 
+    selectionSet,
     scale, 
     mergedCellsSet,
     onCellClick, 
@@ -83,10 +85,10 @@ const GridRow = memo(({
     const isActiveRow = activeCell && parseInt(activeCell.replace(/[A-Z]+/, '')) === rowIdx + 1;
     const headerFontSize = Math.max(7, 12 * scale);
     
-    const isRowSelected = selectionBounds 
-        ? (rowIdx >= selectionBounds.minRow && rowIdx <= selectionBounds.maxRow)
-        : false;
-
+    // Check if any cell in this row *could* be selected based on bounds to optimize rendering
+    // BUT for disjoint selection (formulas), bounds might be huge or irrelevant if we pass arbitrary set.
+    // However, checking Set existence for every cell is fast.
+    
     return (
         <div 
             className="flex" 
@@ -127,9 +129,7 @@ const GridRow = memo(({
 
                 const data = cells[id];
                 const isSelected = activeCell === id;
-                const isInRange = isRowSelected && selectionBounds 
-                    ? (col >= selectionBounds.minCol && col <= selectionBounds.maxCol)
-                    : false;
+                const isInRange = selectionSet.has(id);
 
                 const width = getColW(col);
 
@@ -205,23 +205,33 @@ const GridRow = memo(({
     if (prevActive !== nextActive) return false;
     if (prevActive && nextActive && prev.activeCell !== next.activeCell) return false;
 
+    // Selection Logic Optimization
+    // Use bounds to quickly check if row was/is involved in selection change
+    // Even if using selectionSet, if the bounds haven't changed, the set likely hasn't changed significantly enough to affect *this specific row* if it was outside bounds before.
+    // However, if we go from disjoint to disjoint, bounds might be same but internal cells differ.
+    // But since selectionSet is a new Set every time, we can't deep compare.
+    // We rely on selectionBounds change OR if bounds cover this row.
+    // If bounds cover this row, we MUST re-render because internal set might have changed.
+    
     const b1 = prev.selectionBounds;
     const b2 = next.selectionBounds;
     
     if (b1 === b2) {
-        // Continue to check filter changes
+        // Bounds identical. Check filter.
     } else if (!b1 || !b2) {
         return false;
-    } else if (b1.minRow !== b2.minRow || b1.maxRow !== b2.maxRow || b1.minCol !== b2.minCol || b1.maxCol !== b2.maxCol) {
+    } else {
         const row = prev.rowIdx;
         const wasIn = row >= b1.minRow && row <= b1.maxRow;
         const isIn = row >= b2.minRow && row <= b2.maxRow;
+        
+        // If row is inside EITHER the old or new selection bounds, it must re-render to check selectionSet.has(id)
         if (wasIn || isIn) return false;
     }
 
     // Check filter ID changes for this row only (if current or next filter active id is in this row)
     if (prev.activeFilterId !== next.activeFilterId) {
-        return false; // Safest for now, could optimize
+        return false; 
     }
 
     return true; 

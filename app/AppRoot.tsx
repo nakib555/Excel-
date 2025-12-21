@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense, useCallback } from 'react';
+import React, { lazy, Suspense, useCallback, useState } from 'react';
 import { MAX_ROWS, MAX_COLS } from './constants/grid.constants';
 import { getApiKey } from './utils/apiKey';
 import { parseCellId } from '../utils';
@@ -81,6 +81,9 @@ export const AppRoot: React.FC = () => {
       dialogs.setDataValidationState({ isOpen: true, rule: currentRule || null, cellId: activeCell });
   }, [activeCell, validations, dialogs]);
 
+  // Force Center State for Search/Goto
+  const [forceCenter, setForceCenter] = useState(false);
+
   // Comment Handlers
   const handleOpenCommentDialog = useCallback(() => {
       if (!activeCell) return;
@@ -156,8 +159,44 @@ export const AppRoot: React.FC = () => {
       }
 
       const target = matches[nextIndex];
+      // Trigger center scroll for search result
+      setForceCenter(true);
       cellHandlers.handleCellClick(target.id, false);
   }, [cells, activeCell, cellHandlers]);
+
+  const handleGoTo = useCallback((ref: string) => {
+      // Trigger center scroll for Go To
+      setForceCenter(true);
+      navigationHandlers.handleNameBoxSubmit(ref);
+  }, [navigationHandlers]);
+
+  const handleHighlight = useCallback((id: string) => {
+      // Trigger center scroll for search preview click
+      setForceCenter(true);
+      cellHandlers.handleCellClick(id, false);
+  }, [cellHandlers]);
+
+  const handleSelectSpecial = useCallback((type: 'formulas' | 'comments' | 'constants' | 'validation' | 'conditional' | 'blanks') => {
+      if (type === 'formulas') {
+          const formulaCells = (Object.values(cells) as CellData[]).filter(c => c.raw && c.raw.startsWith('=')).map(c => c.id);
+          if (formulaCells.length > 0) {
+              cellHandlers.handleBatchSelection(formulaCells);
+              setForceCenter(true);
+          } else {
+              alert("No cells were found.");
+          }
+      } else if (type === 'comments') {
+          const commentCells = (Object.values(cells) as CellData[]).filter(c => c.comment).map(c => c.id);
+          if (commentCells.length > 0) {
+              cellHandlers.handleBatchSelection(commentCells);
+              setForceCenter(true);
+          } else {
+              alert("No cells were found.");
+          }
+      } else {
+          alert(`Selection type '${type}' is not yet implemented.`);
+      }
+  }, [cells, cellHandlers]);
 
   // Passthroughs for toolbar that don't need complex logic yet
   const noOp = useCallback(() => {}, []);
@@ -208,7 +247,7 @@ export const AppRoot: React.FC = () => {
             onInsertComment={handleOpenCommentDialog}
             onDeleteComment={cellHandlers.handleDeleteComment}
             onFindReplace={(mode) => dialogs.setFindReplaceState({ open: true, mode })}
-            onSelectSpecial={noOp}
+            onSelectSpecial={handleSelectSpecial}
             onMergeStyles={() => dialogs.setShowMergeStyles(true)}
             onFormatAsTable={tableHandlers.handleFormatAsTable}
             activeTable={activeTable}
@@ -224,7 +263,7 @@ export const AppRoot: React.FC = () => {
             onChange={handleFormulaChange}
             onSubmit={noOp}
             selectedCell={activeCell}
-            onNameBoxSubmit={navigationHandlers.handleNameBoxSubmit}
+            onNameBoxSubmit={handleGoTo}
           />
         </Suspense>
       </div>
@@ -242,6 +281,7 @@ export const AppRoot: React.FC = () => {
               columnWidths={columnWidths}
               rowHeights={rowHeights}
               scale={zoom}
+              centerActiveCell={forceCenter}
               onCellClick={cellHandlers.handleCellClick}
               onSelectionDrag={cellHandlers.handleSelectionDrag}
               onCellDoubleClick={cellHandlers.handleCellDoubleClick}
@@ -253,6 +293,7 @@ export const AppRoot: React.FC = () => {
               onZoom={handleZoomWheel}
               onFill={cellHandlers.handleFill}
               onAutoFit={resizeHandlers.handleAutoFit}
+              onScrollToActiveCell={() => setForceCenter(false)}
             />
         </Suspense>
       </main>
@@ -297,10 +338,10 @@ export const AppRoot: React.FC = () => {
             onClose={() => dialogs.setFindReplaceState(p => ({ ...p, open: false }))} 
             onFind={handleFind} 
             onReplace={() => {}} 
-            onGoTo={navigationHandlers.handleNameBoxSubmit}
+            onGoTo={handleGoTo}
             onSearchAll={handleSearchAll}
             onGetCellData={(id) => cells[id] || null}
-            onHighlight={(id) => cellHandlers.handleCellClick(id, false)}
+            onHighlight={handleHighlight}
           />
       </Suspense>
       <Suspense fallback={null}>

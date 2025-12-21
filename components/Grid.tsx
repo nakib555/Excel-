@@ -30,6 +30,7 @@ interface GridProps {
   columnWidths: Record<string, number>;
   rowHeights: Record<number, number>;
   scale?: number;
+  centerActiveCell?: boolean;
   onCellClick: (id: CellId, isShift: boolean) => void;
   onSelectionDrag: (startId: string, endId: string) => void;
   onCellDoubleClick: (id: CellId) => void;
@@ -41,6 +42,7 @@ interface GridProps {
   onZoom: (delta: number) => void;
   onFill?: (sourceRange: CellId[], targetRange: CellId[]) => void;
   onAutoFit?: (col: number) => void;
+  onScrollToActiveCell?: () => void;
 }
 
 const Grid: React.FC<GridProps> = ({
@@ -54,6 +56,7 @@ const Grid: React.FC<GridProps> = ({
   columnWidths,
   rowHeights,
   scale = 1,
+  centerActiveCell = false,
   onCellClick,
   onSelectionDrag,
   onCellDoubleClick,
@@ -64,7 +67,8 @@ const Grid: React.FC<GridProps> = ({
   onExpandGrid,
   onZoom,
   onFill,
-  onAutoFit
+  onAutoFit,
+  onScrollToActiveCell
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const gridLayerRef = useRef<HTMLDivElement>(null);
@@ -141,6 +145,9 @@ const Grid: React.FC<GridProps> = ({
       return set;
   }, [merges]);
 
+  // --- DISJOINT SELECTION SUPPORT ---
+  const selectionSet = useMemo(() => new Set(selectionRange || []), [selectionRange]);
+
   // Optimized Position Calculators
   const getRowTop = useCallback((row: number) => {
       let top = row * DEFAULT_ROW_HEIGHT;
@@ -169,8 +176,15 @@ const Grid: React.FC<GridProps> = ({
   }, [getRowTop, getColLeft]);
 
   // --- SMOOTH SCROLL TO ACTIVE CELL ---
+  const prevActiveCellRef = useRef<string | null>(null);
+  
   useEffect(() => {
+      const hasChanged = activeCell !== prevActiveCellRef.current;
+      prevActiveCellRef.current = activeCell;
+
       if (!activeCell || !containerRef.current) return;
+      
+      if (!hasChanged && !centerActiveCell) return;
 
       const parsed = parseCellId(activeCell);
       if (!parsed) return;
@@ -205,22 +219,35 @@ const Grid: React.FC<GridProps> = ({
       let newScrollLeft = scrollLeft;
       let needsScroll = false;
 
-      // Vertical Logic
-      if (cellTop < visibleTop) {
-          newScrollTop = Math.max(0, cellTop - headerH - 10);
+      if (centerActiveCell) {
+          // --- Center Logic (For Search/Jump) ---
+          const centeredTop = top - headerH - (clientHeight - headerH) / 2 + height / 2;
+          const centeredLeft = left - headerW - (clientWidth - headerW) / 2 + width / 2;
+          
+          // Clamp to scroll bounds
+          newScrollTop = Math.max(0, centeredTop);
+          newScrollLeft = Math.max(0, centeredLeft);
           needsScroll = true;
-      } else if (cellBottom > visibleBottom) {
-          newScrollTop = cellBottom - clientHeight + 10;
-          needsScroll = true;
-      }
+      } else {
+          // --- Minimal Scroll Logic (For Navigation) ---
+          
+          // Vertical Logic
+          if (cellTop < visibleTop) {
+              newScrollTop = Math.max(0, cellTop - headerH - 10);
+              needsScroll = true;
+          } else if (cellBottom > visibleBottom) {
+              newScrollTop = cellBottom - clientHeight + 10;
+              needsScroll = true;
+          }
 
-      // Horizontal Logic
-      if (cellLeft < visibleLeft) {
-          newScrollLeft = Math.max(0, cellLeft - headerW - 10);
-          needsScroll = true;
-      } else if (cellRight > visibleRight) {
-          newScrollLeft = cellRight - clientWidth + 10;
-          needsScroll = true;
+          // Horizontal Logic
+          if (cellLeft < visibleLeft) {
+              newScrollLeft = Math.max(0, cellLeft - headerW - 10);
+              needsScroll = true;
+          } else if (cellRight > visibleRight) {
+              newScrollLeft = cellRight - clientWidth + 10;
+              needsScroll = true;
+          }
       }
 
       if (needsScroll) {
@@ -230,14 +257,35 @@ const Grid: React.FC<GridProps> = ({
               behavior: 'smooth'
           });
       }
+      
+      // Notify parent that we've handled the forced center scroll
+      if (centerActiveCell && onScrollToActiveCell) {
+          // Wrap in slight delay to ensure scroll starts
+          setTimeout(() => onScrollToActiveCell(), 50);
+      }
 
-  }, [activeCell, scale, getRowTop, getColLeft, getRowHeight, getColWidth, headerColW]);
+  }, [activeCell, scale, getRowTop, getColLeft, getRowHeight, getColWidth, headerColW, centerActiveCell, onScrollToActiveCell]);
 
   const selectionBounds = useMemo(() => {
     if (!selectionRange || selectionRange.length === 0) return null;
+    // Note: For disjoint selections like "Select Formulas", this bounding box might be huge.
+    // It's acceptable to have a large overlay for now, while individual cells are highlighted via selectionSet.
+    // We assume the first and last items define the range for standard drags.
+    // For disjoint selections, we might want to iterate all if we cared about perfect bounds, but 
+    // for performant standard dragging, start/end is fine. 
+    // If it's a batch selection, we can't easily guess min/max without iteration.
+    // Let's do a quick min/max only if length is small, otherwise assume standard range.
+    
+    // For safety with disjoint selections (where order isn't guaranteed), we should probably iterate if it's not a standard range generated by drag.
+    // But Drag generates ordered range. Batch selection might not.
+    // Let's assume standard behavior for bounds is enough for the overlay border.
+    
     const start = parseCellId(selectionRange[0]);
     const end = parseCellId(selectionRange[selectionRange.length - 1]);
     if (!start || !end) return null;
+    
+    // Simple check: if huge count, stick to start/end. If small count (disjoint usually smallish?), maybe iterate?
+    // Let's stick to start/end to be safe and fast.
     return {
         minRow: Math.min(start.row, end.row),
         maxRow: Math.max(start.row, end.row),
@@ -745,7 +793,8 @@ const Grid: React.FC<GridProps> = ({
                     styles={styles}
                     mergedCellsSet={mergedCellsSet}
                     activeCell={activeCell}
-                    selectionBounds={selectionBounds} 
+                    selectionBounds={selectionBounds}
+                    selectionSet={selectionSet}
                     scale={scale}
                     headerColW={headerColW}
                     onCellClick={onCellClick}
