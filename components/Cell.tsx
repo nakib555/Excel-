@@ -409,7 +409,9 @@ const Cell = memo(({
                         top: dropdownPosition.top,
                         bottom: dropdownPosition.bottom,
                         left: dropdownPosition.left,
-                        minWidth: Math.max(120, dropdownPosition.width ? (typeof dropdownPosition.width === 'number' ? dropdownPosition.width : 120) : 120),
+                        // If constrained width is set by smartPosition, use it. Otherwise enforce minWidth.
+                        width: dropdownPosition.width,
+                        minWidth: dropdownPosition.width ? undefined : 120,
                         maxHeight: dropdownPosition.maxHeight,
                         transformOrigin: dropdownPosition.transformOrigin,
                         opacity: dropdownPosition.ready ? 1 : 0

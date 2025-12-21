@@ -31,7 +31,7 @@ const SmartSubMenuContent = ({ children, parentRef }: SmartSubMenuContentProps) 
             data-submenu-portal="true"
             className={cn(
                 "z-[2020] bg-white border border-slate-200 shadow-xl rounded-lg py-1.5 flex flex-col fixed scrollbar-thin ring-1 ring-black/5 overflow-y-auto",
-                "min-w-[max-content]", // Auto width based on content
+                "w-max", // Changed to w-max
                 position.ready && "animate-in fade-in zoom-in-95 slide-in-from-left-1 duration-100"
             )}
             style={{
@@ -211,7 +211,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
                     onClick={() => openSubMenu('color_sort')}
                     icon={<Palette size={16} className="text-pink-500" />}
                 >
-                    <div className="py-2 w-48">
+                    <div className="py-2 w-max">
                         <div className="px-4 py-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cell Color</div>
                         <button className="w-full text-left px-4 py-2 text-[13px] hover:bg-blue-50 text-slate-700 flex items-center gap-3 transition-colors">
                             <div className="w-4 h-4 bg-red-100 border border-red-200 rounded-[3px] shadow-sm"></div>
@@ -241,7 +241,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
                     onClick={() => openSubMenu('color_filter')}
                     icon={<PaintBucket size={16} className="text-orange-500" />}
                 >
-                     <div className="py-2 w-48">
+                     <div className="py-2 w-max">
                         <div className="px-4 py-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cell Color</div>
                         <button className="w-full text-left px-4 py-2 text-[13px] hover:bg-blue-50 text-slate-700 flex items-center gap-3 transition-colors">
                             <div className="w-4 h-4 bg-red-100 border border-red-200 rounded-[3px]"></div>
@@ -262,7 +262,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
                     onClick={() => openSubMenu('number_filter')}
                     icon={<Calculator size={16} className="text-cyan-600" />}
                 >
-                    <div className="py-1 w-56">
+                    <div className="py-1 w-max">
                         {[
                             'Equals...', 'Does Not Equal...', 'Greater Than...', 'Greater Than Or Equal To...',
                             'Less Than...', 'Less Than Or Equal To...', 'Between...', 'Top 10...', 

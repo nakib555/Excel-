@@ -1,5 +1,5 @@
 
-import React, { useState, memo, lazy, Suspense, useEffect } from 'react';
+import React, { useState, memo, lazy, Suspense, useEffect, useRef, useCallback } from 'react';
 import { 
   Sparkles, 
   File, 
@@ -12,7 +12,9 @@ import {
   CheckSquare, 
   Eye, 
   Workflow,
-  TableProperties
+  TableProperties,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { DraggableScrollContainer, TabProps } from './tabs/shared';
@@ -54,57 +56,168 @@ interface ToolbarProps extends TabProps {
 const Toolbar: React.FC<ToolbarProps> = (props) => {
   const [activeTab, setActiveTab] = useState('Home');
   const { onToggleAI, activeTable, ...tabProps } = props;
+  
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+  const prevTableIdRef = useRef<string | null>(null);
 
   const displayedTabs = [...TABS];
   if (activeTable) {
       displayedTabs.push({ id: 'Table Design', label: 'Table Design', icon: TableProperties, color: 'text-emerald-600' });
   }
 
+  // --- Auto-Switch Logic for Table Context ---
+  useEffect(() => {
+      // 1. If we lost table context and were on the Design tab, go Home
+      if (!activeTable && activeTab === 'Table Design') {
+          setActiveTab('Home');
+      }
+      
+      // 2. If we entered a table context (or switched tables), Auto-Open the tab
+      if (activeTable && activeTable.id !== prevTableIdRef.current) {
+         setActiveTab('Table Design');
+         // Ensure tab is visible by scrolling to end
+         setTimeout(() => {
+             if (tabsContainerRef.current) {
+                 tabsContainerRef.current.scrollTo({ left: tabsContainerRef.current.scrollWidth, behavior: 'smooth' });
+             }
+         }, 100);
+      }
+  
+      prevTableIdRef.current = activeTable ? activeTable.id : null;
+  }, [activeTable, activeTab]);
+
+  // --- Scroll Logic ---
+  const checkScroll = useCallback(() => {
+    if (tabsContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = tabsContainerRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
+    }
+  }, []);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsContainerRef.current) {
+      const scrollAmount = 200;
+      tabsContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    const el = tabsContainerRef.current;
+    if (el) {
+      const onWheel = (e: WheelEvent) => {
+        if (e.deltaY === 0) return;
+        if (el.scrollWidth > el.clientWidth) {
+           e.preventDefault();
+           el.scrollLeft += e.deltaY;
+        }
+      };
+
+      el.addEventListener('wheel', onWheel, { passive: false });
+      el.addEventListener('scroll', checkScroll);
+      window.addEventListener('resize', checkScroll);
+      
+      checkScroll(); // Initial Check
+
+      return () => {
+        el.removeEventListener('wheel', onWheel);
+        el.removeEventListener('scroll', checkScroll);
+        window.removeEventListener('resize', checkScroll);
+      };
+    }
+  }, [checkScroll, displayedTabs.length]); // Re-run if tabs change
+
   return (
     <div className="flex flex-col bg-[#0f172a] z-40 select-none shadow-soft transition-all">
-      <div className="bg-[#0f172a] px-2 md:px-4 flex items-end justify-between pt-2">
-        <DraggableScrollContainer className="flex items-end gap-1">
-            {displayedTabs.map(tab => {
-                const isActive = activeTab === tab.id;
-                const isSpecial = tab.id === 'AI Assistant';
-                const isTable = tab.id === 'Table Design';
-                const Icon = tab.icon;
-                
-                return (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={cn(
-                            "relative px-3 md:px-4 py-2 text-[13px] transition-all duration-150 whitespace-nowrap flex-shrink-0 select-none rounded-t-md outline-none flex items-center gap-2 group",
-                            isActive 
-                                ? "bg-[#f8fafc] text-slate-800 font-bold shadow-none z-10 pb-2.5 -mb-0.5" 
-                                : "text-slate-300 hover:bg-white/10 hover:text-white mb-1 font-medium",
-                            isSpecial && !isActive && "text-indigo-300 hover:text-indigo-200",
-                            isSpecial && isActive && "text-indigo-700",
-                            isTable && !isActive && "text-emerald-300",
-                            isTable && isActive && "text-emerald-700"
-                        )}
-                    >
-                        <Icon 
-                            size={14} 
+      <div className="bg-[#0f172a] px-2 md:px-4 flex items-end justify-between pt-2 relative">
+        
+        {/* Tabs Scroll Container Wrapper */}
+        <div className="flex-1 relative overflow-hidden mr-2">
+            
+            {/* Left Fade/Button */}
+            <div 
+                className={cn(
+                    "absolute left-0 top-0 bottom-0 z-20 flex items-center pr-10 bg-gradient-to-r from-[#0f172a] via-[#0f172a] to-transparent transition-opacity duration-300 pointer-events-none",
+                    showLeftArrow ? 'opacity-100' : 'opacity-0'
+                )}
+            >
+                <button 
+                    onClick={() => scrollTabs('left')}
+                    className="pointer-events-auto w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 shadow-lg border border-slate-700 backdrop-blur-sm transition-all active:scale-95 ml-1"
+                >
+                    <ChevronLeft size={20} strokeWidth={2.5} />
+                </button>
+            </div>
+
+            {/* Scrollable List */}
+            <div 
+                ref={tabsContainerRef}
+                className="flex items-end gap-1 overflow-x-auto no-scrollbar scroll-smooth"
+            >
+                {displayedTabs.map(tab => {
+                    const isActive = activeTab === tab.id;
+                    const isSpecial = tab.id === 'AI Assistant';
+                    const isTable = tab.id === 'Table Design';
+                    const Icon = tab.icon;
+                    
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
                             className={cn(
-                                "mb-0.5 transition-colors", 
+                                "relative px-3 md:px-4 py-2 text-[13px] transition-all duration-150 whitespace-nowrap flex-shrink-0 select-none rounded-t-md outline-none flex items-center gap-2 group",
                                 isActive 
-                                    ? (isSpecial ? "text-indigo-600 fill-indigo-100" : isTable ? "text-emerald-600" : tab.color.replace('400', '600')) 
-                                    : (isSpecial ? "text-indigo-400" : isTable ? "text-emerald-400" : tab.color)
-                            )} 
-                        />
-                        <span className={cn(
-                            isActive && !isSpecial ? tab.color.replace('400', '700') : "",
-                            isActive && isTable ? "text-emerald-700" : ""
-                        )}>
-                            {tab.label}
-                        </span>
-                        {isTable && !isActive && <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />}
-                    </button>
-                );
-            })}
-        </DraggableScrollContainer>
+                                    ? "bg-[#f8fafc] text-slate-800 font-bold shadow-none z-10 pb-2.5 -mb-0.5" 
+                                    : "text-slate-300 hover:bg-white/10 hover:text-white mb-1 font-medium",
+                                isSpecial && !isActive && "text-indigo-300 hover:text-indigo-200",
+                                isSpecial && isActive && "text-indigo-700",
+                                isTable && !isActive && "text-emerald-300",
+                                isTable && isActive && "text-emerald-700"
+                            )}
+                        >
+                            <Icon 
+                                size={14} 
+                                className={cn(
+                                    "mb-0.5 transition-colors", 
+                                    isActive 
+                                        ? (isSpecial ? "text-indigo-600 fill-indigo-100" : isTable ? "text-emerald-600" : tab.color.replace('400', '600')) 
+                                        : (isSpecial ? "text-indigo-400" : isTable ? "text-emerald-400" : tab.color)
+                                )} 
+                            />
+                            <span className={cn(
+                                isActive && !isSpecial ? tab.color.replace('400', '700') : "",
+                                isActive && isTable ? "text-emerald-700" : ""
+                            )}>
+                                {tab.label}
+                            </span>
+                            {isTable && !isActive && <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />}
+                        </button>
+                    );
+                })}
+                {/* Spacer for right gradient */}
+                <div className="w-4 flex-shrink-0" />
+            </div>
+
+            {/* Right Fade/Button */}
+            <div 
+                className={cn(
+                    "absolute right-0 top-0 bottom-0 z-20 flex items-center pl-10 bg-gradient-to-l from-[#0f172a] via-[#0f172a] to-transparent transition-opacity duration-300 pointer-events-none",
+                    showRightArrow ? 'opacity-100' : 'opacity-0'
+                )}
+            >
+                <button 
+                    onClick={() => scrollTabs('right')}
+                    className="pointer-events-auto w-8 h-8 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 shadow-lg border border-slate-700 backdrop-blur-sm transition-all active:scale-95 mr-1"
+                >
+                    <ChevronRight size={20} strokeWidth={2.5} />
+                </button>
+            </div>
+        </div>
 
         <button
             onClick={onToggleAI}

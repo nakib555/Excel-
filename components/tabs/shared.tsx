@@ -1,7 +1,7 @@
 
-import React, { useRef, useState, useEffect, useLayoutEffect, memo } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, memo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, SquareArrowOutDownRight } from 'lucide-react';
+import { ChevronDown, SquareArrowOutDownRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CellStyle, Table } from '../../types';
 import { cn, useSmartPosition } from '../../utils';
 
@@ -73,23 +73,46 @@ export const DraggableScrollContainer = memo(({ children, className = "" }: { ch
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  // Check scroll visibility
+  const checkScroll = useCallback(() => {
+    if (ref.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = ref.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
+    }
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
     const onWheel = (e: WheelEvent) => {
+      // Horizontal scroll if no vertical
       if (e.deltaY === 0) return;
-      e.preventDefault();
-      el.scrollLeft += e.deltaY;
+      
+      // Hijack vertical scroll for horizontal movement if content overflows
+      if (el.scrollWidth > el.clientWidth) {
+          e.preventDefault();
+          el.scrollLeft += e.deltaY;
+      }
     };
 
     el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+    
+    // Initial check after mount/paint
+    requestAnimationFrame(checkScroll);
 
     return () => {
       el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
     };
-  }, []);
+  }, [checkScroll, children]); // Check when children update
 
   const onMouseDown = (e: React.MouseEvent) => {
     if (!ref.current) return;
@@ -120,6 +143,13 @@ export const DraggableScrollContainer = memo(({ children, className = "" }: { ch
     ref.current.scrollLeft = scrollLeft - walk;
   };
 
+  const scrollManual = (dir: 'left' | 'right') => {
+      if (ref.current) {
+          const amount = 200;
+          ref.current.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
+      }
+  };
+
   const onClickCapture = (e: React.MouseEvent) => {
       if (isDragging) {
           e.preventDefault();
@@ -128,16 +158,46 @@ export const DraggableScrollContainer = memo(({ children, className = "" }: { ch
   };
 
   return (
-    <div
-      ref={ref}
-      className={`overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing ${className}`}
-      onMouseDown={onMouseDown}
-      onMouseLeave={onMouseLeave}
-      onMouseUp={onMouseUp}
-      onMouseMove={onMouseMove}
-      onClickCapture={onClickCapture}
-    >
-      {children}
+    <div className="relative group w-full h-full flex overflow-hidden">
+        {/* Left Fade Button */}
+        <div className={cn(
+            "absolute left-0 top-0 bottom-0 z-20 flex items-center pr-4 bg-gradient-to-r from-[#f8fafc] to-transparent transition-opacity duration-300 pointer-events-none",
+            showLeftArrow ? 'opacity-100' : 'opacity-0'
+        )}>
+            <button 
+                onClick={() => scrollManual('left')}
+                className="pointer-events-auto p-0.5 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 shadow-sm border border-slate-300/50 backdrop-blur-sm ml-1"
+            >
+                <ChevronLeft size={12} />
+            </button>
+        </div>
+
+        <div
+            ref={ref}
+            className={cn("overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing w-full", className)}
+            onMouseDown={onMouseDown}
+            onMouseLeave={onMouseLeave}
+            onMouseUp={onMouseUp}
+            onMouseMove={onMouseMove}
+            onClickCapture={onClickCapture}
+        >
+            {children}
+            {/* End spacer for right arrow clearance */}
+            <div className="w-4 inline-block h-full" />
+        </div>
+
+        {/* Right Fade Button */}
+        <div className={cn(
+            "absolute right-0 top-0 bottom-0 z-20 flex items-center pl-4 bg-gradient-to-l from-[#f8fafc] to-transparent transition-opacity duration-300 pointer-events-none",
+            showRightArrow ? 'opacity-100' : 'opacity-0'
+        )}>
+            <button 
+                onClick={() => scrollManual('right')}
+                className="pointer-events-auto p-0.5 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 shadow-sm border border-slate-300/50 backdrop-blur-sm mr-1"
+            >
+                <ChevronRight size={12} />
+            </button>
+        </div>
     </div>
   );
 });
@@ -273,11 +333,13 @@ export const SmartDropdown = ({
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+             const target = e.target as HTMLElement;
              if (
                 triggerRef.current && 
-                !triggerRef.current.contains(e.target as Node) &&
+                !triggerRef.current.contains(target) &&
                 contentRef.current &&
-                !contentRef.current.contains(e.target as Node)
+                !contentRef.current.contains(target) &&
+                !target.closest('[data-submenu-portal="true"]')
             ) {
                 if (open) onToggle();
             }
@@ -309,7 +371,7 @@ export const SmartDropdown = ({
                         top: position.top, 
                         bottom: position.bottom,
                         left: position.left, 
-                        // If width is calculated by smartPosition (auto), apply it. Otherwise let classes handle it.
+                        // If width is calculated by smartPosition (auto/constrained), apply it. Otherwise let classes handle it.
                         width: position.width,
                         maxHeight: position.maxHeight,
                         transformOrigin: position.transformOrigin,

@@ -1,4 +1,5 @@
 
+// ... existing imports
 import React, { useState, useRef, useEffect } from 'react';
 import { LayoutList, ChevronRight, Check, Highlighter, Percent, BarChart, Palette, Shapes, Trash2, Settings2 } from 'lucide-react';
 import { RibbonButton, SmartDropdown } from '../../shared';
@@ -30,6 +31,10 @@ const ConditionalFormatting = () => {
         if (!open) setActiveSubMenu(null);
     }, [open]);
 
+    const toggleSubMenu = (id: string) => {
+        setActiveSubMenu(prev => prev === id ? null : id);
+    };
+
     return (
         <SmartDropdown
             open={open}
@@ -60,8 +65,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu 
                         isActive={activeSubMenu === 'highlight'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('highlight')}
-                        onClick={() => setActiveSubMenu('highlight')}
-                        isMobile={isMobile}
+                        onClick={() => toggleSubMenu('highlight')}
                     >
                         <HighlightCellsMenu />
                     </CFMenuItem>
@@ -72,8 +76,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu
                         isActive={activeSubMenu === 'topbottom'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('topbottom')}
-                        onClick={() => setActiveSubMenu('topbottom')}
-                        isMobile={isMobile}
+                        onClick={() => toggleSubMenu('topbottom')}
                     >
                         <TopBottomRulesMenu />
                     </CFMenuItem>
@@ -84,8 +87,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu
                         isActive={activeSubMenu === 'databars'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('databars')}
-                        onClick={() => setActiveSubMenu('databars')}
-                        isMobile={isMobile}
+                        onClick={() => toggleSubMenu('databars')}
                     >
                         <DataBarsMenu />
                     </CFMenuItem>
@@ -96,8 +98,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu
                         isActive={activeSubMenu === 'colorscales'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('colorscales')}
-                        onClick={() => setActiveSubMenu('colorscales')}
-                        isMobile={isMobile}
+                        onClick={() => toggleSubMenu('colorscales')}
                     >
                         <ColorScalesMenu />
                     </CFMenuItem>
@@ -108,8 +109,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu
                         isActive={activeSubMenu === 'iconsets'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('iconsets')}
-                        onClick={() => setActiveSubMenu('iconsets')}
-                        isMobile={isMobile}
+                        onClick={() => toggleSubMenu('iconsets')}
                     >
                         <IconSetsMenu />
                     </CFMenuItem>
@@ -131,8 +131,7 @@ const ConditionalFormatting = () => {
                         hasSubMenu
                         isActive={activeSubMenu === 'clear'}
                         onMouseEnter={() => !isMobile && setActiveSubMenu('clear')}
-                        onClick={() => setActiveSubMenu('clear')}
-                        isMobile={isMobile}
+                        onClick={() => toggleSubMenu('clear')}
                     >
                         <div className="flex flex-col py-1 min-w-[max-content]">
                             <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50 mb-1">Clear</div>
@@ -164,40 +163,45 @@ interface CFMenuItemProps {
     onMouseEnter?: () => void;
     onClick?: () => void;
     children?: React.ReactNode;
-    menuWidth?: string;
-    isMobile?: boolean;
 }
 
-const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActive, onMouseEnter, onClick, children, menuWidth, isMobile }) => {
+const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActive, onMouseEnter, onClick, children }) => {
     const itemRef = useRef<HTMLButtonElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     
     // Position the submenu using horizontal axis smart positioning
+    // gap -4 ensures overlap just like FilterMenu
     const position = useSmartPosition(isActive || false, itemRef, contentRef, { 
         axis: 'horizontal', 
-        widthClass: isMobile ? `w-[${window.innerWidth - 32}px]` : undefined, 
-        gap: -6 
+        gap: -4 
     });
 
+    const handleInteraction = (e: React.MouseEvent) => {
+        if (onClick) {
+            e.preventDefault();
+            e.stopPropagation();
+            onClick();
+        }
+    };
+
     return (
-        <>
+        <div className="relative" onMouseEnter={onMouseEnter}>
             <button
                 ref={itemRef}
                 className={cn(
                     "flex items-center justify-between px-3 py-2 text-[13px] text-slate-700 transition-all w-full border border-transparent outline-none relative rounded-md mx-1",
-                    isActive ? "bg-slate-100 text-slate-900 font-medium" : "hover:bg-slate-50 hover:text-slate-900",
+                    isActive ? "bg-blue-50 text-slate-900 font-medium" : "hover:bg-slate-50 hover:text-slate-900",
                     "w-[calc(100%-8px)]"
                 )}
-                onMouseEnter={onMouseEnter}
-                onClick={onClick}
+                onClick={handleInteraction}
             >
                 <div className="flex items-center gap-3">
-                    <div className={cn("w-6 h-6 rounded-md flex justify-center items-center transition-colors", isActive ? "bg-white shadow-sm" : "bg-transparent")}>
+                    <div className={cn("w-6 h-6 rounded-md flex justify-center items-center transition-colors", isActive ? "text-blue-600" : "bg-transparent")}>
                         {icon}
                     </div>
-                    <span>{label}</span>
+                    <span className="flex-1 text-left">{label}</span>
                 </div>
-                {hasSubMenu && <ChevronRight size={14} className={cn("transition-colors", isActive ? "text-slate-600" : "text-slate-300")} />}
+                {hasSubMenu && <ChevronRight size={14} className={cn("transition-colors", isActive ? "text-blue-600" : "text-slate-300")} />}
             </button>
 
             {isActive && hasSubMenu && position && createPortal(
@@ -205,9 +209,9 @@ const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActi
                     ref={contentRef}
                     data-submenu-portal="true"
                     className={cn(
-                        "fixed z-[9999] bg-white shadow-xl border border-slate-200 py-1.5 rounded-lg ring-1 ring-black/5 min-w-[max-content]",
-                        "overflow-y-auto scrollbar-thin",
-                        position.ready && "animate-in fade-in zoom-in-95 slide-in-from-left-1 duration-150"
+                        "fixed z-[2020] bg-white shadow-xl border border-slate-200 py-1.5 rounded-lg ring-1 ring-black/5 flex flex-col",
+                        "overflow-y-auto scrollbar-thin w-max", 
+                        position.ready && "animate-in fade-in zoom-in-95 slide-in-from-left-1 duration-100"
                     )}
                     style={{ 
                         top: position.top, 
@@ -215,18 +219,19 @@ const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActi
                         left: position.left,
                         maxHeight: position.maxHeight,
                         transformOrigin: position.transformOrigin,
-                        // Ensure it overrides default width if mobile
-                        width: isMobile ? 'calc(100vw - 32px)' : (position.width ? position.width : undefined),
-                        maxWidth: '100vw',
+                        // Allow width to grow with content (w-max class), but constrain max-width to viewport
+                        maxWidth: 'calc(100vw - 16px)',
+                        // Use position.width if it was constrained by screen edges, otherwise undefined to let w-max take over
+                        width: position.width, 
                         opacity: position.ready ? 1 : 0
                     }}
-                    onMouseEnter={() => {}} 
+                    onMouseDown={(e) => e.stopPropagation()} 
                 >
                     {children}
                 </div>,
                 document.body
             )}
-        </>
+        </div>
     );
 };
 

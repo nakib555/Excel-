@@ -30,6 +30,7 @@ export const calculatePosition = (
 ): Omit<PositionState, 'ready'> => {
     // 1. Mobile Detection & Override
     const isMobile = windowWidth < 640; 
+    const viewportPadding = 8; // Minimum space from screen edges
     
     let finalAxis = axis;
     let finalGap = gap;
@@ -57,26 +58,34 @@ export const calculatePosition = (
         left = triggerRect.left;
         
         // Check Right Boundary
-        if (left + finalWidth > windowWidth - 8) {
+        if (left + finalWidth > windowWidth - viewportPadding) {
             // Try Align Right
             const rightAligned = triggerRect.right - finalWidth;
-            if (rightAligned > 8) {
+            if (rightAligned > viewportPadding) {
                 left = rightAligned;
                 transformOriginX = 'right';
             } else {
                 // Force inside screen
-                left = windowWidth - finalWidth - 8;
-                if (left < 8) {
-                    left = 8;
-                    // On mobile, maximize width if tight
-                    if (isMobile) finalWidth = windowWidth - 16;
+                left = windowWidth - finalWidth - viewportPadding;
+                if (left < viewportPadding) {
+                    left = viewportPadding;
+                    // On mobile, maximize width if tight, accounting for padding
+                    finalWidth = windowWidth - (viewportPadding * 2);
+                }
+            }
+        } else {
+            // Check Left Boundary (if we shifted left for some reason or initial position is off)
+             if (left < viewportPadding) {
+                left = viewportPadding;
+                if (left + finalWidth > windowWidth - viewportPadding) {
+                     finalWidth = windowWidth - (viewportPadding * 2);
                 }
             }
         }
 
         // Top/Bottom Placement
-        const spaceBelow = windowHeight - triggerRect.bottom - 8; // Available space below
-        const spaceAbove = triggerRect.top - 8; // Available space above
+        const spaceBelow = windowHeight - triggerRect.bottom - viewportPadding; // Available space below
+        const spaceAbove = triggerRect.top - viewportPadding; // Available space above
 
         // Determine if we should flip to top
         // Flip if:
@@ -94,8 +103,7 @@ export const calculatePosition = (
             
             // For 'top' placement, we must calculate 'top' coordinate such that the bottom of the content
             // sits at (triggerRect.top - gap).
-            // We use the effective height (clamped by maxHeight) for this calculation to ensure the 
-            // container bottom is anchored correctly even if content is scrollable.
+            // We use the effective height (clamped by maxHeight) for this calculation.
             const effectiveHeight = Math.min(contentRect.height, availableHeight);
             top = triggerRect.top - finalGap - effectiveHeight;
         } else {
@@ -114,7 +122,7 @@ export const calculatePosition = (
         top = triggerRect.top - 4; // Slight offset for submenus
 
         // Check Right Boundary
-        if (left + finalWidth > windowWidth - 8) {
+        if (left + finalWidth > windowWidth - viewportPadding) {
             // Flip to Left
             left = triggerRect.left - finalWidth - finalGap;
             transformOriginX = 'right';
@@ -124,24 +132,24 @@ export const calculatePosition = (
         }
 
         // Clamp Horizontal
-        if (left < 8) {
-            left = 8;
-            if (left + finalWidth > windowWidth - 8) {
-                finalWidth = windowWidth - 16;
+        if (left < viewportPadding) {
+            left = viewportPadding;
+            if (left + finalWidth > windowWidth - viewportPadding) {
+                finalWidth = windowWidth - (viewportPadding * 2);
             }
         }
 
         // Check Bottom Boundary and shift vertically if needed
-        if (top + contentRect.height > windowHeight - 8) {
+        if (top + contentRect.height > windowHeight - viewportPadding) {
             // Shift Up to fit
-            const shiftUp = (top + contentRect.height) - (windowHeight - 8);
+            const shiftUp = (top + contentRect.height) - (windowHeight - viewportPadding);
             top -= shiftUp;
             transformOriginY = 'bottom';
         }
         
-        top = Math.max(8, top);
+        top = Math.max(viewportPadding, top);
         // Cap height if it still doesn't fit
-        maxHeight = windowHeight - top - 8;
+        maxHeight = windowHeight - top - viewportPadding;
     }
 
     return {
@@ -199,16 +207,25 @@ export function useSmartPosition(
             if (options?.fixedWidth) {
                 finalWidth = options.fixedWidth;
             } else if (options?.widthClass) {
-                finalWidth = undefined; 
-            } else {
-                // Important: Only lock width if calculatePosition constrained it (e.g. hitting screen edge)
-                // Otherwise leave it undefined so the element can size naturally (e.g. grow with content)
-                // This prevents "jumping" and layout thrashing when content changes.
+                // If the width was constrained by screen edges, use the numeric width
+                // Otherwise leave undefined to let CSS class handle it
                 if (pos.width !== undefined && typeof pos.width === 'number' && contentRect.width > 0 && pos.width < contentRect.width - 0.5) {
                     finalWidth = pos.width;
                 } else {
                     finalWidth = undefined;
                 }
+            } else {
+                // Natural width mode: if constrained, use specific width
+                if (pos.width !== undefined && typeof pos.width === 'number' && contentRect.width > 0 && pos.width < contentRect.width - 0.5) {
+                    finalWidth = pos.width;
+                } else {
+                    finalWidth = undefined;
+                }
+            }
+
+            // Fallback for mobile: if calculated width is very close to screen width, just lock it
+            if (typeof pos.width === 'number' && pos.width > window.innerWidth - 20) {
+                finalWidth = pos.width;
             }
 
             setPosition({
