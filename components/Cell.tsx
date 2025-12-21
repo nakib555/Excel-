@@ -2,7 +2,7 @@
 import React, { memo, useState, useRef, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
 import { cn, formatCellValue, measureTextWidth, useSmartPosition } from '../utils';
-import { CellSkeleton } from './Skeletons';
+import { CellSkeleton, DropdownListSkeleton } from './Skeletons';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
@@ -248,10 +248,9 @@ const Cell = memo(({
       lineHeight: 1.2
   };
   
-  // Validation List Options Logic
-  const listOptions = (isActive && validation && validation.type === 'list') 
-      ? validation.value1.split(',').map(s => s.trim()) 
-      : [];
+  // Validation Dropdown Logic
+  const hasListValidation = isActive && validation && validation.type === 'list' && !isGhost;
+  const listOptions = hasListValidation ? validation.value1.split(',').map(s => s.trim()) : [];
 
   return (
     <div
@@ -385,7 +384,7 @@ const Cell = memo(({
             </div>
             {/* Lazy Loaded Filter Menu */}
             {isFilterActive && (
-                <Suspense fallback={null}>
+                <Suspense fallback={<div className="fixed z-[9999] bg-white border border-slate-200 shadow-xl rounded-xl p-4 w-[240px] h-[300px] top-[100px] left-[100px]"><DropdownListSkeleton count={8} /></div>}>
                     <FilterMenu 
                         isOpen={true} 
                         onClose={() => onToggleFilter && onToggleFilter(null)} 
@@ -396,7 +395,7 @@ const Cell = memo(({
           </>
       )}
 
-      {isActive && validation && validation.type === 'list' && !isGhost && (
+      {hasListValidation && (
           <>
             <div 
                 className="absolute right-0 top-0 bottom-0 w-5 bg-slate-100 hover:bg-slate-200 border-l border-slate-300 flex items-center justify-center cursor-pointer z-50"

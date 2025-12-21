@@ -2,46 +2,21 @@
 import React, { memo, lazy, Suspense, useState } from 'react';
 import { motion } from 'framer-motion';
 import { TabProps, RibbonGroup, RibbonButton, DraggableScrollContainer, SmartDropdown } from '../shared';
-import { GroupSkeleton } from '../../Skeletons';
-import { Settings, Table as TableIcon, Filter, X, RefreshCw, FileUp, Globe, Link2, Sliders, ChevronDown, Plus, LayoutTemplate } from 'lucide-react';
+import { GroupSkeleton, DropdownGridSkeleton } from '../../Skeletons';
+import { Settings, Table as TableIcon, Filter, X, RefreshCw, FileUp, Globe, Link2, Sliders, ChevronDown } from 'lucide-react';
 import TableStyleOptionsGroup from './TableStyleOptions/TableStyleOptionsGroup';
-import { TABLE_STYLES, StylePreviewItem, TableStylePreset } from '../Home/Styles/FormatAsTable';
+import { TABLE_STYLES } from '../Home/Styles/tableData'; 
+import { StylePreviewItem } from '../Home/Styles/TableStylesGallery';
 import { cn } from '../../../utils';
+
+// Lazy load the gallery
+const TableStylesGallery = lazy(() => import('../Home/Styles/TableStylesGallery'));
 
 const TableDesignTab: React.FC<TabProps> = (props) => {
   const { activeTable, onTableOptionChange } = props;
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   if (!activeTable) return null;
-
-  const renderCategory = (cat: string) => {
-      const styles = TABLE_STYLES.filter(s => s.category === cat);
-      if (styles.length === 0) return null;
-      return (
-          <div className="flex flex-col mb-5">
-              <div className="px-5 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-white sticky top-0 z-10 flex items-center gap-2 border-b border-slate-50 mb-3">
-                  <div className={cn(
-                      "w-1.5 h-1.5 rounded-full",
-                      cat === 'Light' ? "bg-slate-300" : cat === 'Medium' ? "bg-slate-400" : "bg-slate-600"
-                  )} />
-                  {cat}
-              </div>
-              <div className="grid grid-cols-5 gap-3 px-5">
-                  {styles.map((s, i) => (
-                      <StylePreviewItem 
-                        key={i} 
-                        style={s} 
-                        onClick={() => {
-                            if (onTableOptionChange) onTableOptionChange(activeTable.id, 'style', s);
-                            setIsGalleryOpen(false);
-                        }} 
-                        selected={activeTable.style.name === s.name}
-                      />
-                  ))}
-              </div>
-          </div>
-      );
-  };
 
   return (
     <motion.div 
@@ -143,28 +118,14 @@ const TableDesignTab: React.FC<TabProps> = (props) => {
                              </button>
                         }
                      >
-                        <div className="flex flex-col bg-white max-h-[70vh] overflow-y-auto scrollbar-thin rounded-lg shadow-2xl border border-slate-200">
-                            <div className="pt-2 pb-4">
-                                {renderCategory('Light')}
-                                {renderCategory('Medium')}
-                                {renderCategory('Dark')}
-                            </div>
-                            
-                            <div className="border-t border-slate-100 p-2 bg-slate-50 sticky bottom-0 z-20 flex flex-col gap-1">
-                                <button className="w-full text-left px-4 py-2 text-[11px] font-bold text-slate-700 hover:bg-white hover:text-emerald-700 hover:shadow-sm border border-transparent hover:border-slate-200 rounded-lg transition-all flex items-center gap-3 group">
-                                    <div className="w-5 h-5 flex items-center justify-center rounded-md bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100 transition-colors">
-                                        <Plus size={14} />
-                                    </div>
-                                    New Table Style...
-                                </button>
-                                <button className="w-full text-left px-4 py-2 text-[11px] font-bold text-slate-700 hover:bg-white hover:text-blue-700 hover:shadow-sm border border-transparent hover:border-slate-200 rounded-lg transition-all flex items-center gap-3 group">
-                                    <div className="w-5 h-5 flex items-center justify-center rounded-md bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
-                                        <LayoutTemplate size={14} />
-                                    </div>
-                                    New PivotTable Style...
-                                </button>
-                            </div>
-                        </div>
+                        <Suspense fallback={<DropdownGridSkeleton />}>
+                            <TableStylesGallery 
+                                onSelect={(s) => {
+                                    if (onTableOptionChange) onTableOptionChange(activeTable.id, 'style', s);
+                                    setIsGalleryOpen(false);
+                                }} 
+                            />
+                        </Suspense>
                      </SmartDropdown>
                  </div>
              </div>

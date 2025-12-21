@@ -1,9 +1,10 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { X, MousePointer2, Hash, AlignLeft, Type, Grid3X3, PaintBucket, Shield } from 'lucide-react';
 import { CellStyle } from '../../types';
 import { cn } from '../../utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DropdownGridSkeleton } from '../Skeletons';
 
 // Import modular tabs
 import NumberTab from './formatCells/NumberTab';
@@ -161,12 +162,14 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                                 transition={{ duration: 0.15 }}
                                 className="h-full"
                             >
-                                {activeTab === 'Number' && <NumberTab style={style} onChange={updateStyle} isMobile={isMobile} />}
-                                {activeTab === 'Alignment' && <AlignmentTab style={style} onChange={updateStyle} isMobile={isMobile} />}
-                                {activeTab === 'Font' && <FontTab style={style} onChange={updateStyle} isMobile={isMobile} />}
-                                {activeTab === 'Border' && <BorderTab style={style} onChange={updateStyle} isMobile={isMobile} />}
-                                {activeTab === 'Fill' && <FillTab style={style} onChange={updateStyle} isMobile={isMobile} />}
-                                {activeTab === 'Protection' && <ProtectionTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                                <Suspense fallback={<DropdownGridSkeleton />}>
+                                    {activeTab === 'Number' && <NumberTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                                    {activeTab === 'Alignment' && <AlignmentTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                                    {activeTab === 'Font' && <FontTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                                    {activeTab === 'Border' && <BorderTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                                    {activeTab === 'Fill' && <FillTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                                    {activeTab === 'Protection' && <ProtectionTab style={style} onChange={updateStyle} isMobile={isMobile} />}
+                                </Suspense>
                             </motion.div>
                         </AnimatePresence>
                     </div>

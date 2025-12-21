@@ -1,11 +1,17 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   ArrowDownAZ, ArrowUpAZ, ChevronRight, Search, FilterX, 
   Check, ArrowDown, ArrowUp, Palette, PaintBucket, Calculator
 } from 'lucide-react';
 import { cn, useSmartPosition } from '../../utils';
+import { DropdownListSkeleton } from '../Skeletons';
+
+// Lazy imports for submenus
+const ColorSortMenu = lazy(() => import('./FilterSubMenus').then(m => ({ default: m.ColorSortMenu })));
+const ColorFilterMenu = lazy(() => import('./FilterSubMenus').then(m => ({ default: m.ColorFilterMenu })));
+const NumberFilterMenu = lazy(() => import('./FilterSubMenus').then(m => ({ default: m.NumberFilterMenu })));
 
 interface FilterMenuProps {
     isOpen: boolean;
@@ -31,7 +37,7 @@ const SmartSubMenuContent = ({ children, parentRef }: SmartSubMenuContentProps) 
             data-submenu-portal="true"
             className={cn(
                 "z-[2020] bg-white border border-slate-200 shadow-xl rounded-lg py-1.5 flex flex-col fixed scrollbar-thin ring-1 ring-black/5 overflow-y-auto",
-                "w-max", // Changed to w-max
+                "w-max", 
                 position.ready && "animate-in fade-in zoom-in-95 slide-in-from-left-1 duration-100"
             )}
             style={{
@@ -41,11 +47,13 @@ const SmartSubMenuContent = ({ children, parentRef }: SmartSubMenuContentProps) 
                 maxHeight: position.maxHeight,
                 transformOrigin: position.transformOrigin,
                 maxWidth: 'calc(100vw - 16px)',
-                width: position.width // Apply calculated width if constrained
+                width: position.width 
             }}
             onMouseDown={(e) => e.stopPropagation()} 
         >
-            {children}
+            <Suspense fallback={<DropdownListSkeleton count={4} />}>
+                {children}
+            </Suspense>
         </div>,
         document.body
     );
@@ -156,7 +164,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
 
     if (!isOpen || !position) return null;
 
-    // Modified to be idempotent (clicking open menu keeps it open)
     const openSubMenu = (id: string) => {
         setActiveSubMenu(id);
     };
@@ -169,7 +176,6 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
             }
             const next = prev.map(i => i.id === id ? { ...i, checked: !i.checked } : i);
             
-            // Update select all state
             const allChecked = next.filter(i => i.id !== 'all').every(i => i.checked);
             const someChecked = next.filter(i => i.id !== 'all').some(i => i.checked);
             
@@ -211,17 +217,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
                     onClick={() => openSubMenu('color_sort')}
                     icon={<Palette size={16} className="text-pink-500" />}
                 >
-                    <div className="py-2 w-max">
-                        <div className="px-4 py-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cell Color</div>
-                        <button className="w-full text-left px-4 py-2 text-[13px] hover:bg-blue-50 text-slate-700 flex items-center gap-3 transition-colors">
-                            <div className="w-4 h-4 bg-red-100 border border-red-200 rounded-[3px] shadow-sm"></div>
-                            <span>Light Red</span>
-                        </button>
-                        <button className="w-full text-left px-4 py-2 text-[13px] hover:bg-blue-50 text-slate-700 flex items-center gap-3 transition-colors">
-                            <div className="w-4 h-4 bg-white border border-slate-200 rounded-[3px] shadow-sm"></div>
-                            <span>No Fill</span>
-                        </button>
-                    </div>
+                    <ColorSortMenu />
                 </SubMenuItem>
                 
                 <Separator />
@@ -241,17 +237,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
                     onClick={() => openSubMenu('color_filter')}
                     icon={<PaintBucket size={16} className="text-orange-500" />}
                 >
-                     <div className="py-2 w-max">
-                        <div className="px-4 py-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cell Color</div>
-                        <button className="w-full text-left px-4 py-2 text-[13px] hover:bg-blue-50 text-slate-700 flex items-center gap-3 transition-colors">
-                            <div className="w-4 h-4 bg-red-100 border border-red-200 rounded-[3px]"></div>
-                            <span>Light Red</span>
-                        </button>
-                        <button className="w-full text-left px-4 py-2 text-[13px] hover:bg-blue-50 text-slate-700 flex items-center gap-3 transition-colors">
-                            <div className="w-4 h-4 bg-white border border-slate-200 rounded-[3px]"></div>
-                            <span>No Fill</span>
-                        </button>
-                    </div>
+                     <ColorFilterMenu />
                 </SubMenuItem>
                 
                 <SubMenuItem 
@@ -262,19 +248,7 @@ const FilterMenu: React.FC<FilterMenuProps> = ({ isOpen, onClose, triggerRef }) 
                     onClick={() => openSubMenu('number_filter')}
                     icon={<Calculator size={16} className="text-cyan-600" />}
                 >
-                    <div className="py-1 w-max">
-                        {[
-                            'Equals...', 'Does Not Equal...', 'Greater Than...', 'Greater Than Or Equal To...',
-                            'Less Than...', 'Less Than Or Equal To...', 'Between...', 'Top 10...', 
-                            'Above Average', 'Below Average'
-                        ].map((label, i) => (
-                            <button key={i} className="w-full text-left px-4 py-2 text-[13px] text-slate-700 hover:bg-blue-50 transition-colors whitespace-nowrap">
-                                {label}
-                            </button>
-                        ))}
-                        <Separator />
-                        <button className="w-full text-left px-4 py-2 text-[13px] text-slate-700 hover:bg-blue-50 font-medium whitespace-nowrap">Custom Filter...</button>
-                    </div>
+                    <NumberFilterMenu />
                 </SubMenuItem>
             </div>
 

@@ -1,17 +1,17 @@
 
-// ... existing imports
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { LayoutList, ChevronRight, Check, Highlighter, Percent, BarChart, Palette, Shapes, Trash2, Settings2 } from 'lucide-react';
 import { RibbonButton, SmartDropdown } from '../../shared';
 import { createPortal } from 'react-dom';
 import { cn, useSmartPosition } from '../../../../utils';
-import { 
-  HighlightCellsMenu, 
-  TopBottomRulesMenu, 
-  DataBarsMenu, 
-  ColorScalesMenu, 
-  IconSetsMenu 
-} from './CFMenus';
+import { DropdownListSkeleton } from '../../../Skeletons';
+
+// Lazy load submenus
+const HighlightCellsMenu = lazy(() => import('./CFMenus').then(m => ({ default: m.HighlightCellsMenu })));
+const TopBottomRulesMenu = lazy(() => import('./CFMenus').then(m => ({ default: m.TopBottomRulesMenu })));
+const DataBarsMenu = lazy(() => import('./CFMenus').then(m => ({ default: m.DataBarsMenu })));
+const ColorScalesMenu = lazy(() => import('./CFMenus').then(m => ({ default: m.ColorScalesMenu })));
+const IconSetsMenu = lazy(() => import('./CFMenus').then(m => ({ default: m.IconSetsMenu })));
 
 const ConditionalFormatting = () => {
     const [open, setOpen] = useState(false);
@@ -67,7 +67,9 @@ const ConditionalFormatting = () => {
                         onMouseEnter={() => !isMobile && setActiveSubMenu('highlight')}
                         onClick={() => toggleSubMenu('highlight')}
                     >
-                        <HighlightCellsMenu />
+                        <Suspense fallback={<DropdownListSkeleton />}>
+                            <HighlightCellsMenu />
+                        </Suspense>
                     </CFMenuItem>
 
                     <CFMenuItem 
@@ -78,7 +80,9 @@ const ConditionalFormatting = () => {
                         onMouseEnter={() => !isMobile && setActiveSubMenu('topbottom')}
                         onClick={() => toggleSubMenu('topbottom')}
                     >
-                        <TopBottomRulesMenu />
+                        <Suspense fallback={<DropdownListSkeleton />}>
+                            <TopBottomRulesMenu />
+                        </Suspense>
                     </CFMenuItem>
 
                     <CFMenuItem 
@@ -89,7 +93,9 @@ const ConditionalFormatting = () => {
                         onMouseEnter={() => !isMobile && setActiveSubMenu('databars')}
                         onClick={() => toggleSubMenu('databars')}
                     >
-                        <DataBarsMenu />
+                        <Suspense fallback={<DropdownListSkeleton />}>
+                            <DataBarsMenu />
+                        </Suspense>
                     </CFMenuItem>
 
                     <CFMenuItem 
@@ -100,7 +106,9 @@ const ConditionalFormatting = () => {
                         onMouseEnter={() => !isMobile && setActiveSubMenu('colorscales')}
                         onClick={() => toggleSubMenu('colorscales')}
                     >
-                        <ColorScalesMenu />
+                        <Suspense fallback={<DropdownListSkeleton />}>
+                            <ColorScalesMenu />
+                        </Suspense>
                     </CFMenuItem>
 
                     <CFMenuItem 
@@ -111,7 +119,9 @@ const ConditionalFormatting = () => {
                         onMouseEnter={() => !isMobile && setActiveSubMenu('iconsets')}
                         onClick={() => toggleSubMenu('iconsets')}
                     >
-                        <IconSetsMenu />
+                        <Suspense fallback={<DropdownListSkeleton />}>
+                            <IconSetsMenu />
+                        </Suspense>
                     </CFMenuItem>
                 </div>
 
