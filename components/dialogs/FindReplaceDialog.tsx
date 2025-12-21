@@ -190,9 +190,6 @@ const FindReplaceDialog: React.FC<FindReplaceDialogProps> = ({
                                                     placeholder="e.g. A1, SalesData..."
                                                     onKeyDown={(e) => e.key === 'Enter' && onGoTo(gotoRef)}
                                                 />
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-slate-200 rounded text-[10px] font-bold text-slate-500 hidden sm:block pointer-events-none select-none">
-                                                    ENTER
-                                                </div>
                                             </div>
                                         </div>
 
