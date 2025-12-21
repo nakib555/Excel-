@@ -42,40 +42,38 @@ const StatusBar: React.FC<StatusBarProps> = ({
   const handleZoomOut = () => onZoomChange(Math.max(0.25, (displayZoom - 10) / 100));
 
   return (
-    <div className="h-9 bg-[#0f172a] text-white/90 border-t border-slate-700/50 flex items-center justify-between px-2 md:px-4 text-[11px] select-none z-50 shadow-[0_-1px_3px_rgba(0,0,0,0.1)]">
-      {/* Left Section - Status & History */}
-      <div className="flex items-center gap-3 md:gap-4 overflow-hidden">
-        <div className="font-semibold text-emerald-400 flex items-center gap-2 flex-shrink-0">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            Ready
-        </div>
+    <div className="h-10 bg-[#0f172a] text-slate-300 border-t border-slate-800 flex items-center justify-between px-3 md:px-4 text-[11px] select-none z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] relative">
+      
+      {/* Decorative top highlight for depth */}
+      <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+
+      {/* Left Section - History & Status */}
+      <div className="flex items-center gap-4 overflow-hidden">
         
-        {/* Undo/Redo Controls */}
-        <div className="flex items-center gap-1 border-l border-slate-700 pl-3 ml-1">
+        {/* Undo/Redo Controls - Styled Pill */}
+        <div className="flex items-center bg-slate-900/50 rounded-full p-0.5 border border-slate-700/50 shadow-sm group">
             <button 
                 onClick={onUndo}
                 disabled={!canUndo}
-                className="p-1 text-slate-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400 active:scale-95"
                 title="Undo (Ctrl+Z)"
             >
-                <Undo2 size={14} />
+                <Undo2 size={15} strokeWidth={2} className="relative -ml-0.5" />
             </button>
+            <div className="w-[1px] h-3 bg-slate-700/30 mx-0.5 group-hover:bg-slate-700/50 transition-colors"></div>
             <button 
                 onClick={onRedo}
                 disabled={!canRedo}
-                className="p-1 text-slate-300 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
+                className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400 active:scale-95"
                 title="Redo (Ctrl+Y)"
             >
-                <Redo2 size={14} />
+                <Redo2 size={15} strokeWidth={2} className="relative -mr-0.5" />
             </button>
         </div>
 
-        <div className="hidden lg:flex items-center gap-1.5 hover:bg-white/10 px-2 py-0.5 rounded cursor-pointer transition-colors text-slate-300" title="Accessibility Check">
-          <CheckCircle2 size={13} className="text-slate-400" />
-          <span className="font-medium">Accessibility: Good</span>
+        <div className="hidden lg:flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 cursor-pointer transition-colors text-slate-400 hover:text-slate-200 group/status" title="Accessibility Check">
+          <CheckCircle2 size={14} className="text-emerald-500/80 group-hover/status:text-emerald-400 transition-colors" />
+          <span className="font-medium tracking-tight">Ready</span>
         </div>
       </div>
 
@@ -84,27 +82,27 @@ const StatusBar: React.FC<StatusBarProps> = ({
         
         {/* Contextual Stats (Sum, Avg, Count) */}
         {stats && (
-           <div className="flex items-center gap-3 md:gap-4 animate-in fade-in duration-300 mr-2 md:mr-4">
-              <div className="flex md:hidden items-center gap-1 text-slate-300">
-                  <span className="text-slate-400">Count:</span>
-                  <span className="font-mono font-medium">{stats.count}</span>
+           <div className="flex items-center gap-3 md:gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300 mr-2 md:mr-4">
+              <div className="flex md:hidden items-center gap-1.5 text-slate-400 bg-slate-800/50 px-2 py-1 rounded-md border border-slate-700/30">
+                  <span className="text-[10px] uppercase font-bold tracking-wider">Count</span>
+                  <span className="font-mono font-medium text-slate-200">{stats.count}</span>
               </div>
 
               <div className="hidden md:flex items-center gap-3 text-slate-300">
                   {stats.hasNumeric && (
-                      <div className="flex items-center gap-1.5 hover:bg-white/10 px-1 py-0.5 rounded cursor-pointer transition-colors">
-                          <span className="text-slate-400">Average:</span>
-                          <span className="font-mono font-medium tracking-tight">{stats.average.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                      <div className="flex items-center gap-2 hover:bg-white/5 px-2 py-1 rounded-md cursor-pointer transition-colors border border-transparent hover:border-slate-700/50">
+                          <span className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">Avg</span>
+                          <span className="font-mono font-medium tracking-tight text-emerald-400">{stats.average.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                       </div>
                   )}
-                  <div className="flex items-center gap-1.5 hover:bg-white/10 px-1 py-0.5 rounded cursor-pointer transition-colors">
-                      <span className="text-slate-400">Count:</span>
-                      <span className="font-mono font-medium tracking-tight">{stats.count}</span>
+                  <div className="flex items-center gap-2 hover:bg-white/5 px-2 py-1 rounded-md cursor-pointer transition-colors border border-transparent hover:border-slate-700/50">
+                      <span className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">Count</span>
+                      <span className="font-mono font-medium tracking-tight text-blue-400">{stats.count}</span>
                   </div>
                   {stats.hasNumeric && (
-                      <div className="flex items-center gap-1.5 hover:bg-white/10 px-1 py-0.5 rounded cursor-pointer transition-colors">
-                          <span className="text-slate-400">Sum:</span>
-                          <span className="font-mono font-medium tracking-tight">{stats.sum.toLocaleString()}</span>
+                      <div className="flex items-center gap-2 hover:bg-white/5 px-2 py-1 rounded-md cursor-pointer transition-colors border border-transparent hover:border-slate-700/50">
+                          <span className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">Sum</span>
+                          <span className="font-mono font-medium tracking-tight text-white">{stats.sum.toLocaleString()}</span>
                       </div>
                   )}
               </div>
@@ -112,10 +110,10 @@ const StatusBar: React.FC<StatusBarProps> = ({
         )}
 
         {/* Mobile Resize Toggle */}
-        <div className="md:hidden flex items-center border-l border-slate-600/50 pl-3">
+        <div className="md:hidden flex items-center border-l border-slate-700 pl-3">
             <button 
                 onClick={onToggleMobileResize}
-                className="p-1 text-emerald-400 hover:bg-white/10 rounded transition-colors active:scale-95"
+                className="p-1.5 text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 border border-emerald-400/20 rounded-md transition-all active:scale-95"
                 title="Resize Cells"
             >
                 <Scaling size={16} />
@@ -123,34 +121,37 @@ const StatusBar: React.FC<StatusBarProps> = ({
         </div>
 
         {/* View Controls - Desktop Only */}
-        <div className="hidden lg:flex items-center gap-1 mr-2 pl-4">
-            <button className="p-1.5 hover:bg-white/10 rounded transition-colors text-white bg-white/10" title="Normal View">
+        <div className="hidden lg:flex items-center gap-1 mr-2 pl-4 border-l border-slate-800">
+            <button className="p-1.5 hover:bg-white/10 rounded transition-colors text-white bg-white/10 shadow-sm" title="Normal View">
               <Grid3X3 size={14} />
             </button>
-            <button className="p-1.5 hover:bg-white/10 rounded transition-colors text-slate-400 hover:text-white" title="Page Layout">
+            <button className="p-1.5 hover:bg-white/10 rounded transition-colors text-slate-500 hover:text-white" title="Page Layout">
               <Layout size={14} />
             </button>
-            <button className="p-1.5 hover:bg-white/10 rounded transition-colors text-slate-400 hover:text-white" title="Page Break Preview">
+            <button className="p-1.5 hover:bg-white/10 rounded transition-colors text-slate-500 hover:text-white" title="Page Break Preview">
               <FileSpreadsheet size={14} />
             </button>
         </div>
         
-        {/* Separator */}
-        <div className="h-4 w-[1px] bg-slate-600/50 hidden md:block mx-1"></div>
-
         {/* Zoom Controls */}
-        <div className="flex items-center gap-2 md:gap-3 pl-1">
+        <div className="flex items-center gap-2 pl-2 border-l border-slate-800 h-6">
              <button
                 onClick={handleZoomOut}
-                className="p-1 text-slate-400 hover:text-white transition-colors active:scale-95 disabled:opacity-30 cursor-pointer"
+                className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors active:scale-90 disabled:opacity-30 cursor-pointer"
                 title="Zoom Out"
                 disabled={zoom <= 0.25}
             >
-                <Minus size={16} strokeWidth={2} />
+                <Minus size={14} strokeWidth={2.5} />
             </button>
 
              {/* Slider */}
-            <div className="hidden sm:flex items-center w-24 md:w-28 group">
+            <div className="hidden sm:flex items-center w-24 md:w-28 group relative py-2 cursor-pointer">
+                   <div className="absolute left-0 right-0 h-1 bg-slate-700 rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-slate-500 group-hover:bg-blue-500 transition-colors" 
+                            style={{ width: `${((displayZoom - 25) / 375) * 100}%` }}
+                        />
+                   </div>
                    <input
                       type="range"
                       min="25"
@@ -158,25 +159,29 @@ const StatusBar: React.FC<StatusBarProps> = ({
                       step="1" 
                       value={displayZoom}
                       onChange={(e) => onZoomChange(Number(e.target.value) / 100)}
-                      className="w-full h-1 bg-transparent rounded-lg appearance-none cursor-pointer range-slider focus:outline-none"
+                      className="w-full h-4 opacity-0 cursor-pointer z-10"
+                   />
+                   <div 
+                        className="absolute h-3 w-3 bg-slate-300 rounded-full shadow-md top-1/2 -translate-y-1/2 pointer-events-none transition-transform group-hover:scale-110 group-active:scale-125"
+                        style={{ left: `calc(${((displayZoom - 25) / 375) * 100}% - 6px)` }}
                    />
             </div>
             
             <button 
                 onClick={() => onZoomChange(1)}
-                className="min-w-[3.5rem] text-center font-bold text-white tabular-nums text-xs hover:bg-white/10 rounded py-0.5 transition-colors select-none"
+                className="min-w-[3rem] text-center font-bold text-slate-300 tabular-nums text-xs hover:bg-white/10 hover:text-white rounded py-0.5 transition-colors select-none"
                 title="Reset to 100%"
             >
-                {displayZoom.toFixed(0)}%
+                {displayZoom}%
             </button>
 
             <button
                 onClick={handleZoomIn}
-                className="p-1 text-slate-400 hover:text-white transition-colors active:scale-95 disabled:opacity-30 cursor-pointer"
+                className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors active:scale-90 disabled:opacity-30 cursor-pointer"
                 title="Zoom In"
                 disabled={zoom >= 4}
             >
-                <Plus size={16} strokeWidth={2} />
+                <Plus size={14} strokeWidth={2.5} />
             </button>
         </div>
       </div>
