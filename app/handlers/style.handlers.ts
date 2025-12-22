@@ -1,7 +1,8 @@
 
 import React, { useCallback } from 'react';
 import { Sheet, CellStyle, CellData } from '../../types';
-import { getStyleId } from '../../utils';
+import { getStyleId, parseCellId, calculateRotatedDimensions, numToChar } from '../../utils';
+import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../../components/Grid';
 
 interface UseStyleHandlersProps {
     setSheets: React.Dispatch<React.SetStateAction<Sheet[]>>;
@@ -16,6 +17,8 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
             
             const nextCells: Record<string, CellData> = { ...sheet.cells };
             let nextStyles: Record<string, CellStyle> = { ...sheet.styles };
+            const nextRowHeights = { ...sheet.rowHeights };
+            const nextColWidths = { ...sheet.columnWidths };
             
             sheet.selectionRange.forEach(id => {
                 const existing = nextCells[id];
@@ -25,6 +28,14 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
                 const currentStyle: CellStyle = styleId && nextStyles[styleId] ? nextStyles[styleId] : {};
                 
                 const newStyle = { ...currentStyle, [key]: value };
+                
+                // --- Reset mutually exclusive properties ---
+                if (key === 'verticalText' && value === true) {
+                    newStyle.textRotation = 0;
+                } else if (key === 'textRotation' && value !== 0) {
+                    newStyle.verticalText = false;
+                }
+
                 const res = getStyleId(nextStyles, newStyle);
                 nextStyles = res.registry;
                 const newStyleId = res.id;
@@ -33,9 +44,38 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
                     ...cell,
                     styleId: newStyleId
                 };
+
+                // --- Auto-Resize Logic ---
+                // Trigger resizing if rotation, orientation, or font size changes
+                if ((key === 'textRotation' || key === 'verticalText' || key === 'fontSize' || key === 'fontFamily' || key === 'bold') && cell.value) {
+                    const dims = calculateRotatedDimensions(cell.value, newStyle);
+                    
+                    if (dims.height > 0 || dims.width > 0) {
+                        const { row, col } = parseCellId(id)!;
+                        const colChar = numToChar(col);
+
+                        // Update Row Height - Expand to fit, allow shrink to Default
+                        const minH = DEFAULT_ROW_HEIGHT;
+                        const requiredH = Math.max(minH, dims.height);
+                        
+                        // We set the row height to the required height (or default if it shrank small)
+                        // This behavior satisfies "auto shrink" but "won't go beyond [default/before rotation size roughly]"
+                        if (requiredH > 0) {
+                            nextRowHeights[row] = requiredH;
+                        }
+
+                        // Update Column Width
+                        const minW = DEFAULT_COL_WIDTH;
+                        const requiredW = Math.max(minW, dims.width);
+                        
+                        if (requiredW > 0) {
+                            nextColWidths[colChar] = requiredW;
+                        }
+                    }
+                }
             });
             
-            return { ...sheet, cells: nextCells, styles: nextStyles };
+            return { ...sheet, cells: nextCells, styles: nextStyles, rowHeights: nextRowHeights, columnWidths: nextColWidths };
         }));
     }, [activeSheetId, setSheets]);
 
@@ -45,6 +85,8 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
             
             const nextCells: Record<string, CellData> = { ...sheet.cells };
             let nextStyles: Record<string, CellStyle> = { ...sheet.styles };
+            const nextRowHeights = { ...sheet.rowHeights };
+            const nextColWidths = { ...sheet.columnWidths };
             
             sheet.selectionRange.forEach(id => {
                 const existing = nextCells[id];
@@ -55,11 +97,32 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
                 
                 const mergedStyle: CellStyle = { ...currentStyle, ...newStyle };
                 
+                // Logic to ensure consistency if full style has conflicting rotation
+                if (newStyle.textRotation !== undefined && newStyle.textRotation !== 0) mergedStyle.verticalText = false;
+                if (newStyle.verticalText === true) mergedStyle.textRotation = 0;
+
                 const res = getStyleId(nextStyles, mergedStyle);
                 nextStyles = res.registry;
                 nextCells[id] = { ...cell, styleId: res.id };
+
+                // --- Auto-Resize Logic ---
+                if ((mergedStyle.textRotation || mergedStyle.verticalText) && cell.value) {
+                    const dims = calculateRotatedDimensions(cell.value, mergedStyle);
+                    if (dims.height > 0) {
+                        const { row, col } = parseCellId(id)!;
+                        const colChar = numToChar(col);
+
+                        const minH = DEFAULT_ROW_HEIGHT;
+                        const requiredH = Math.max(minH, dims.height);
+                        nextRowHeights[row] = requiredH;
+
+                        const minW = DEFAULT_COL_WIDTH;
+                        const requiredW = Math.max(minW, dims.width);
+                        nextColWidths[colChar] = requiredW;
+                    }
+                }
             });
-            return { ...sheet, cells: nextCells, styles: nextStyles };
+            return { ...sheet, cells: nextCells, styles: nextStyles, rowHeights: nextRowHeights, columnWidths: nextColWidths };
         }));
     }, [activeSheetId, setSheets]);
 

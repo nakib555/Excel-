@@ -3,8 +3,9 @@ import React, { useCallback } from 'react';
 import { Sheet, CellId, CellData, CellStyle, ValidationRule } from '../../types';
 import { 
     validateCellValue, parseCellId, getCellId, evaluateFormula, extractDependencies, 
-    adjustFormulaReferences, getRange, checkIntersect, getStyleId 
+    adjustFormulaReferences, getRange, checkIntersect, getStyleId, calculateRotatedDimensions, numToChar 
 } from '../../utils';
+import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../../components/Grid';
 
 interface UseCellHandlersProps {
     setSheets: React.Dispatch<React.SetStateAction<Sheet[]>>;
@@ -39,6 +40,8 @@ export const useCellHandlers = ({
             const nextCells = { ...sheet.cells };
             const nextDependents = { ...sheet.dependentsMap };
             let nextTables = { ...sheet.tables };
+            let nextRowHeights = { ...sheet.rowHeights };
+            let nextColWidths = { ...sheet.columnWidths };
 
             const oldCell = nextCells[id];
             if (oldCell?.raw.startsWith('=')) {
@@ -81,6 +84,37 @@ export const useCellHandlers = ({
                 } as CellData;
             }
 
+            // Auto-Resize Logic if Rotated
+            const currentCell = nextCells[id];
+            if (currentCell) {
+                const currentStyle = (currentCell.styleId && sheet.styles[currentCell.styleId]) ? sheet.styles[currentCell.styleId] : {};
+                if ((currentStyle.textRotation || currentStyle.verticalText)) {
+                     // Calculate required dimensions
+                     const dims = calculateRotatedDimensions(rawValue, currentStyle);
+                     
+                     // Row Height: Automatically expand to fit rotated text, shrink if text shrinks but not below default
+                     // We use DEFAULT_ROW_HEIGHT as a safe floor if shrinking.
+                     const minH = DEFAULT_ROW_HEIGHT;
+                     const requiredH = Math.max(minH, dims.height);
+                     
+                     // Only apply if it's actually larger than default OR effectively shrinking from a previous expansion
+                     // For simplicity and robustness (user request "auto shrink"):
+                     // We set it to required height (floored at default).
+                     if (dims.height > 0) {
+                         nextRowHeights[row] = requiredH;
+                     }
+                     
+                     // Col Width
+                     const colChar = numToChar(col);
+                     const minW = DEFAULT_COL_WIDTH;
+                     const requiredW = Math.max(minW, dims.width);
+                     
+                     if (dims.width > 0) {
+                         nextColWidths[colChar] = requiredW;
+                     }
+                }
+            }
+
             if (rawValue.startsWith('=')) {
                 const newDeps = extractDependencies(rawValue);
                 newDeps.forEach(depId => {
@@ -111,7 +145,7 @@ export const useCellHandlers = ({
                 }
             }
 
-            return { ...sheet, cells: nextCells, dependentsMap: nextDependents, tables: nextTables };
+            return { ...sheet, cells: nextCells, dependentsMap: nextDependents, tables: nextTables, rowHeights: nextRowHeights, columnWidths: nextColWidths };
         }));
     }, [activeSheetId, validations, setSheets]);
 
@@ -239,23 +273,59 @@ export const useCellHandlers = ({
         }
     }, [activeCell, selectionRange, cells, activeSheetId, handleCellChange, setSheets]);
 
-    const handleMergeCenter = useCallback(() => {
+    const handleMerge = useCallback((type: 'center' | 'across' | 'cells' | 'unmerge') => {
         setSheets(prev => prev.map(sheet => {
-            if (sheet.id !== activeSheetId || !sheet.selectionRange || sheet.selectionRange.length < 2) return sheet;
+            if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
+            
             const selection = sheet.selectionRange;
-            const start = selection[0];
-            const end = selection[selection.length - 1];
-            const rangeStr = `${start}:${end}`;
-            const newMerges = sheet.merges.filter(m => !checkIntersect(m, rangeStr));
-            newMerges.push(rangeStr);
+            if (selection.length < 2 && type !== 'unmerge') return sheet;
+
             const nextCells = { ...sheet.cells };
             let nextStyles = { ...sheet.styles };
-            const cell: CellData = nextCells[start] || { id: start, raw: '', value: '' };
-            const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
-            const newStyle = { ...currentStyle, align: 'center' as const, verticalAlign: 'middle' as const };
-            const res = getStyleId(nextStyles, newStyle as CellStyle);
-            nextStyles = res.registry;
-            nextCells[start] = { ...cell, styleId: res.id };
+            let newMerges = [...sheet.merges];
+
+            const performMerge = (rangeStr: string, center: boolean) => {
+                newMerges = newMerges.filter(m => !checkIntersect(m, rangeStr));
+                newMerges.push(rangeStr);
+
+                const startCellId = rangeStr.split(':')[0];
+                if (center) {
+                    const cell = nextCells[startCellId] || { id: startCellId, raw: '', value: '' };
+                    const currentStyle = cell.styleId ? (nextStyles[cell.styleId] || {}) : {};
+                    const newStyle = { ...currentStyle, align: 'center' as const, verticalAlign: 'middle' as const };
+                    const res = getStyleId(nextStyles, newStyle as CellStyle);
+                    nextStyles = res.registry;
+                    nextCells[startCellId] = { ...cell, styleId: res.id };
+                }
+            };
+
+            if (type === 'unmerge') {
+               const start = selection[0];
+               const end = selection[selection.length - 1];
+               const selRangeStr = `${start}:${end}`;
+               // Remove any merge that intersects with selection
+               newMerges = newMerges.filter(m => !checkIntersect(m, selRangeStr));
+            } else if (type === 'across') {
+               const start = parseCellId(selection[0]);
+               const end = parseCellId(selection[selection.length - 1]);
+               if(start && end) {
+                   const minRow = Math.min(start.row, end.row);
+                   const maxRow = Math.max(start.row, end.row);
+                   const minCol = Math.min(start.col, end.col);
+                   const maxCol = Math.max(start.col, end.col);
+                   
+                   for(let r = minRow; r <= maxRow; r++) {
+                       const rowRange = `${getCellId(minCol, r)}:${getCellId(maxCol, r)}`;
+                       performMerge(rowRange, false);
+                   }
+               }
+            } else {
+               const start = selection[0];
+               const end = selection[selection.length - 1];
+               const rangeStr = `${start}:${end}`;
+               performMerge(rangeStr, type === 'center');
+            }
+
             return { ...sheet, merges: newMerges, cells: nextCells, styles: nextStyles };
         }));
     }, [activeSheetId, setSheets]);
@@ -389,7 +459,7 @@ export const useCellHandlers = ({
         handleBatchSelection,
         handleCellDoubleClick,
         handleAutoSum,
-        handleMergeCenter,
+        handleMerge,
         handleFill,
         handleClear,
         handleAddSheet,

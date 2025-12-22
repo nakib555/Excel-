@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Check, RotateCw, AlignLeft, AlignCenter, AlignRight, AlignJustify, AlignHorizontalDistributeCenter, AlignVerticalJustifyStart, AlignVerticalJustifyCenter, AlignVerticalJustifyEnd, AlignVerticalDistributeCenter, ArrowLeftRight, Maximize, LayoutList } from 'lucide-react';
 import { cn } from '../../../utils';
 import { CellStyle } from '../../../types';
@@ -15,9 +15,10 @@ interface AlignmentTabProps {
 const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }) => {
     const indentEnabled = style.align === 'left' || style.align === 'right' || style.align === 'distributed';
     const clockRef = useRef<HTMLDivElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
 
-    const handleClockInteraction = (e: React.MouseEvent | React.TouchEvent) => {
-        if (!clockRef.current) return;
+    const calculateAngle = (e: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent) => {
+        if (!clockRef.current) return 0;
         const rect = clockRef.current.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
@@ -27,17 +28,68 @@ const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }
             clientX = e.touches[0].clientX;
             clientY = e.touches[0].clientY;
         } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
+            clientX = (e as MouseEvent).clientX;
+            clientY = (e as MouseEvent).clientY;
         }
 
-        const angleRad = Math.atan2(centerY - clientY, clientX - centerX);
-        let angleDeg = Math.round(angleRad * (180 / Math.PI));
-        angleDeg = Math.max(-90, Math.min(90, angleDeg));
+        // Angle relative to center-right (0 deg in math)
+        // dx, dy coordinates where y increases downwards
+        const dx = clientX - centerX;
+        const dy = centerY - clientY; // Invert Y so up is positive
+
+        // Atan2(y, x) -> returns angle from X axis.
+        // Clockwise in CSS is negative for this calculation context if we want +90 to be Top.
+        // Wait, standard unit circle: 0 is Right, 90 is Top.
+        // Our Clock UI: 0 is right. +90 is Top. -90 is Bottom.
         
-        onChange('textRotation', angleDeg);
+        let angleRad = Math.atan2(dy, dx);
+        let angleDeg = Math.round(angleRad * (180 / Math.PI));
+        
+        // Clamp to -90 to 90 (right semi-circle)
+        // If angle is > 90 (left side), we flip it or clamp it?
+        // Excel orientation usually goes -90 to 90.
+        // If user drags to left side, it usually flips or clamps.
+        
+        if (angleDeg > 90) angleDeg = 90;
+        if (angleDeg < -90) angleDeg = -90;
+
+        return angleDeg;
+    };
+
+    const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+        e.preventDefault(); // Prevent scrolling on touch
+        setIsDragging(true);
+        const angle = calculateAngle(e);
+        onChange('textRotation', angle);
         onChange('verticalText', false);
     };
+
+    useEffect(() => {
+        const handleMove = (e: MouseEvent | TouchEvent) => {
+            if (!isDragging) return;
+            const angle = calculateAngle(e);
+            // Throttle slightly if needed, but react state updates are usually fast enough here
+            onChange('textRotation', angle);
+        };
+
+        const handleEnd = () => {
+            setIsDragging(false);
+        };
+
+        if (isDragging) {
+            window.addEventListener('mousemove', handleMove);
+            window.addEventListener('touchmove', handleMove, { passive: false });
+            window.addEventListener('mouseup', handleEnd);
+            window.addEventListener('touchend', handleEnd);
+        }
+
+        return () => {
+            window.removeEventListener('mousemove', handleMove);
+            window.removeEventListener('touchmove', handleMove);
+            window.removeEventListener('mouseup', handleEnd);
+            window.removeEventListener('touchend', handleEnd);
+        };
+    }, [isDragging, onChange]);
 
     const HORIZONTAL_OPTIONS = [
         { value: 'general', label: 'General', icon: <LayoutList size={14} className="text-slate-500" /> },
@@ -144,9 +196,12 @@ const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }
                     <div className="flex-1 flex flex-col items-center justify-between py-2 gap-8">
                         <div 
                             ref={clockRef}
-                            onMouseDown={handleClockInteraction}
-                            onTouchStart={handleClockInteraction}
-                            className="relative w-40 h-40 md:w-44 md:h-44 rounded-full border-4 border-slate-100 bg-white shadow-soft flex items-center justify-center cursor-crosshair"
+                            onMouseDown={handleStart}
+                            onTouchStart={handleStart}
+                            className={cn(
+                                "relative w-40 h-40 md:w-44 md:h-44 rounded-full border-4 border-slate-100 bg-white shadow-soft flex items-center justify-center select-none touch-none",
+                                isDragging ? "cursor-grabbing" : "cursor-grab"
+                            )}
                         >
                             {[...Array(12)].map((_, i) => (
                                 <div key={i} className="absolute h-full w-[1.5px] pointer-events-none" style={{ transform: `rotate(${i * 30}deg)` }}>
@@ -168,7 +223,7 @@ const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }
                                 </div>
                             </div>
                             <div 
-                                className="absolute h-[4px] w-[46%] bg-gradient-to-r from-primary-400 to-primary-600 origin-left top-1/2 left-1/2 transition-transform duration-500 shadow-md rounded-full z-20 pointer-events-none"
+                                className="absolute h-[4px] w-[46%] bg-gradient-to-r from-primary-400 to-primary-600 origin-left top-1/2 left-1/2 transition-transform duration-100 ease-linear shadow-md rounded-full z-20 pointer-events-none"
                                 style={{ transform: `rotate(${(style.textRotation || 0) * -1}deg)` }}
                             >
                                 <div className="absolute -right-3 -top-2.5 w-6 h-6 bg-white border-4 border-primary-600 rounded-full shadow-xl" />
@@ -210,6 +265,7 @@ const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }
                                 <button 
                                     onClick={() => { onChange('textRotation', 0); onChange('verticalText', false); }}
                                     className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all hover:bg-slate-200"
+                                    title="Reset Orientation"
                                 >
                                     <RotateCw size={18} />
                                 </button>

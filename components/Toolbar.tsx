@@ -138,20 +138,20 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
       <div className="bg-[#0f172a] px-2 md:px-4 flex items-end justify-between pt-2 relative">
         
         {/* Tabs Scroll Container Wrapper */}
-        <div className="flex-1 relative overflow-hidden mr-2">
+        <div className="flex-1 relative overflow-hidden">
             
             {/* Left Fade/Button - Centered Vertically */}
             <div 
                 className={cn(
-                    "absolute left-0 top-0 bottom-0 z-20 flex items-center pr-8 bg-gradient-to-r from-[#0f172a] via-[#0f172a] to-transparent transition-opacity duration-300 pointer-events-none",
+                    "absolute left-0 top-0 bottom-0 z-20 flex items-center pr-6 bg-gradient-to-r from-[#0f172a] via-[#0f172a] to-transparent transition-opacity duration-300 pointer-events-none",
                     showLeftArrow ? 'opacity-100' : 'opacity-0'
                 )}
             >
                 <button 
                     onClick={() => scrollTabs('left')}
-                    className="pointer-events-auto w-7 h-7 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 shadow-md border border-slate-700 backdrop-blur-sm transition-all active:scale-95 ml-1"
+                    className="pointer-events-auto w-6 h-6 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 shadow-md border border-slate-700 backdrop-blur-sm transition-all active:scale-95 ml-0.5"
                 >
-                    <ChevronLeft size={16} strokeWidth={2.5} />
+                    <ChevronLeft size={14} strokeWidth={2.5} />
                 </button>
             </div>
 
@@ -200,22 +200,22 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
                         </button>
                     );
                 })}
-                {/* Spacer for right gradient */}
-                <div className="w-4 flex-shrink-0" />
+                {/* Spacer for right gradient/arrow clearance */}
+                <div className="w-12 flex-shrink-0" />
             </div>
 
             {/* Right Fade/Button - Centered Vertically */}
             <div 
                 className={cn(
-                    "absolute right-0 top-0 bottom-0 z-20 flex items-center pl-8 bg-gradient-to-l from-[#0f172a] via-[#0f172a] to-transparent transition-opacity duration-300 pointer-events-none",
+                    "absolute right-0 top-0 bottom-0 z-20 flex items-center pl-6 bg-gradient-to-l from-[#0f172a] via-[#0f172a] to-transparent transition-opacity duration-300 pointer-events-none",
                     showRightArrow ? 'opacity-100' : 'opacity-0'
                 )}
             >
                 <button 
                     onClick={() => scrollTabs('right')}
-                    className="pointer-events-auto w-7 h-7 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 shadow-md border border-slate-700 backdrop-blur-sm transition-all active:scale-95 mr-1"
+                    className="pointer-events-auto w-6 h-6 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 shadow-md border border-slate-700 backdrop-blur-sm transition-all active:scale-95 mr-0.5"
                 >
-                    <ChevronRight size={16} strokeWidth={2.5} />
+                    <ChevronRight size={14} strokeWidth={2.5} />
                 </button>
             </div>
         </div>

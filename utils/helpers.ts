@@ -1,5 +1,4 @@
 
-
 import { CellId, CellStyle } from '../types';
 
 /**
@@ -323,4 +322,49 @@ export const measureTextWidth = (text: string, fontSize: number = 13, fontFamily
         return measureCtx.measureText(text).width;
     }
     return 0;
+};
+
+// --- AUTO-RESIZE CALCULATION ---
+export const calculateRotatedDimensions = (text: string, style: CellStyle): { width: number, height: number } => {
+    const rotation = style.textRotation || 0;
+    const isVertical = style.verticalText;
+    
+    // If no rotation/vertical, return 0 to indicate no forced resize
+    if (rotation === 0 && !isVertical) return { width: 0, height: 0 };
+
+    const fontSize = style.fontSize || 13;
+    const fontFamily = style.fontFamily || 'Inter, sans-serif';
+    const bold = !!style.bold;
+    const italic = !!style.italic;
+
+    const textWidth = measureTextWidth(text, fontSize, fontFamily, bold, italic);
+    // Line height estimation (Excel is roughly 1.3-1.5x)
+    const lineHeight = fontSize * 1.4; 
+
+    if (isVertical) {
+        // Stacked text vertical height
+        const h = (text.length * fontSize) + (text.length * 2) + 10;
+        // Width is roughly one char width + padding
+        const w = fontSize + 10; 
+        return { width: w, height: h }; 
+    }
+
+    const rad = (Math.abs(rotation) * Math.PI) / 180;
+    // Bounding box: 
+    // Height = Width * sin(theta) + Height * cos(theta)
+    // Width = Width * cos(theta) + Height * sin(theta)
+    
+    const h = (textWidth * Math.sin(rad)) + (lineHeight * Math.cos(rad));
+    const w = (textWidth * Math.cos(rad)) + (lineHeight * Math.sin(rad));
+    
+    // Add comfortable padding like Excel
+    return { 
+        width: Math.ceil(w) + 12, 
+        height: Math.ceil(h) + 10 
+    }; 
+};
+
+// Kept for backward compatibility if needed, wrapping new function
+export const calculateRequiredHeight = (text: string, style: CellStyle): number => {
+    return calculateRotatedDimensions(text, style).height;
 };

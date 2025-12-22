@@ -1,8 +1,8 @@
 
 import React, { memo, useState, useRef, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
-import { CellData, CellStyle, ValidationRule, CellBorder } from '../types';
+import { CellData, CellStyle, ValidationRule } from '../types';
 import { cn, formatCellValue, measureTextWidth, useSmartPosition } from '../utils';
-import { CellSkeleton, DropdownListSkeleton } from './Skeletons';
+import { CellSkeleton } from './Skeletons';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
@@ -32,7 +32,7 @@ interface CellProps {
   onToggleFilter?: (id: string | null) => void;
 }
 
-const getBorderCSS = (b?: CellBorder) => {
+const getBorderCSS = (b?: any) => {
   if (!b || b.style === 'none') return undefined;
   const width = (b.style === 'thick' || b.style === 'double') ? '3px' : (b.style === 'medium' ? '2px' : '1px');
   const s = b.style === 'double' ? 'double' : (b.style === 'dashed' ? 'dashed' : (b.style === 'dotted' ? 'dotted' : 'solid'));
@@ -108,10 +108,15 @@ const Cell = memo(({
   const fontSize = Math.max(scale < 0.6 ? 7 : 9, (resolvedStyle.fontSize || 13) * scale);
   const displayValue = formatCellValue(data.value, resolvedStyle);
 
+  const verticalText = resolvedStyle.verticalText;
+  const rotation = resolvedStyle.textRotation || 0;
+  const hasRotation = rotation !== 0;
+
   useLayoutEffect(() => {
-    if (resolvedStyle.shrinkToFit && !resolvedStyle.wrapText && !editing && displayValue) {
+    // Only apply shrink to fit if NOT editing, NOT rotated, and ShrinkToFit is enabled
+    if (resolvedStyle.shrinkToFit && !resolvedStyle.wrapText && !editing && displayValue && !hasRotation && !verticalText) {
        const indentPx = (resolvedStyle.indent || 0) * 10 * scale; 
-       const totalPadding = 8 + indentPx; // 4px left + 4px right base
+       const totalPadding = 8 + indentPx; 
        const avail = width - totalPadding;
        
        if (avail > 0) {
@@ -138,7 +143,7 @@ const Cell = memo(({
     } else {
         if (scaleFactor !== 1) setScaleFactor(1);
     }
-  }, [displayValue, resolvedStyle, width, fontSize, scale, editing]);
+  }, [displayValue, resolvedStyle, width, fontSize, scale, editing, hasRotation, verticalText]);
 
   const handleBlur = () => {
     setTimeout(() => {
@@ -167,26 +172,20 @@ const Cell = memo(({
   const verticalAlign = resolvedStyle.verticalAlign || 'bottom';
   const indent = resolvedStyle.indent || 0;
   
-  const justifyContent = align === 'center' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
-  const alignItems = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
+  const justifyContentH = align === 'center' || align === 'centerAcross' ? 'center' : align === 'right' ? 'flex-end' : 'flex-start';
+  const alignItemsH = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
 
-  // Enhanced Indent Logic: Only apply for appropriate alignments
-  const effectiveIndent = (align === 'left' || align === 'right' || align === 'distributed' || align === 'general') ? indent : 0;
-  const indentPx = effectiveIndent * 10 * scale; 
-  
+  const indentPx = indent * 10 * scale; 
   let paddingLeft = 4 * scale;
   let paddingRight = 4 * scale;
 
+  // Apply Indent only if NOT centered
   if (align === 'right') {
       paddingRight += indentPx;
-  } else if (align === 'center' || align === 'centerAcross') {
-      // Indent intentionally ignored for center alignment to preserve centering
-  } else {
-      // Left or General
+  } else if (align === 'left' || align === 'general' || align === 'distributed') {
       paddingLeft += indentPx;
   }
 
-  // Calculate dynamic filter button size and padding
   const filterBtnSize = Math.max(14, 18 * scale);
   const showFilter = !!data.filterButton && !editing && !isMicroView && height > (filterBtnSize - 4);
   const filterPadding = showFilter ? (filterBtnSize + 2 * scale) : 0;
@@ -202,18 +201,10 @@ const Cell = memo(({
   const color = resolvedStyle.color || '#0f172a';
   const backgroundColor = resolvedStyle.bg || (isInRange ? 'rgba(16, 185, 129, 0.08)' : '#fff'); 
   
-  const verticalText = resolvedStyle.verticalText;
-  const rotation = resolvedStyle.textRotation || 0;
   const cssRotation = rotation ? -rotation : 0; 
-  const hasRotation = rotation !== 0;
   
-  // Reset padding for vertical text to avoid offsets
-  if (verticalText) {
-      paddingLeft = 2 * scale;
-      paddingRight = 2 * scale;
-  }
-  
-  const whiteSpace = resolvedStyle.wrapText ? 'pre-wrap' : 'nowrap';
+  // Force nowrap if rotated/vertical to ensure correct layout orientation
+  const whiteSpace = (hasRotation || verticalText) ? 'nowrap' : (resolvedStyle.wrapText ? 'pre-wrap' : 'nowrap');
 
   const handleDropdownSelect = (val: string) => {
       onChange(id, val);
@@ -221,15 +212,44 @@ const Cell = memo(({
       setEditing(false);
   };
 
-  // Border Handling
   const borders = resolvedStyle.borders || {};
   const borderRight = getBorderCSS(borders.right) || '1px solid #e2e8f0';
   const borderBottom = getBorderCSS(borders.bottom) || '1px solid #e2e8f0';
   const borderTop = getBorderCSS(borders.top);
   const borderLeft = getBorderCSS(borders.left);
 
-  // Increase Z-Index for cells with rotation or overflow to allow spill over empty neighbors
   const zIndex = isActive ? 30 : (hasRotation || verticalText) ? 20 : undefined;
+
+  // Calculate Flex Properties based on Orientation
+  let displayJustify: React.CSSProperties['justifyContent'];
+  let displayAlign: React.CSSProperties['alignItems'];
+
+  if (verticalText) {
+      // In Vertical-RL mode:
+      // Main Axis (justify-content) aligns vertically (Top/Bottom)
+      // Cross Axis (align-items) aligns horizontally (Right/Left)
+      
+      // Vertical Alignment -> justify-content
+      displayJustify = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
+      
+      // Horizontal Alignment -> align-items
+      // Note: vertical-rl cross axis starts from RIGHT.
+      // So 'flex-start' is Visual Right, 'flex-end' is Visual Left.
+      if (align === 'left') displayAlign = 'flex-end';
+      else if (align === 'right') displayAlign = 'flex-start';
+      else displayAlign = 'center';
+      
+  } else {
+      // Standard Horizontal Mode
+      displayJustify = justifyContentH;
+      displayAlign = alignItemsH;
+  }
+
+  // Override for Checkbox
+  if (data.isCheckbox) {
+      displayJustify = 'center';
+      displayAlign = 'center';
+  }
 
   const containerStyle: React.CSSProperties = {
     width: width,
@@ -237,10 +257,11 @@ const Cell = memo(({
     minWidth: width,
     minHeight: height,
     display: 'flex',
-    justifyContent: data.isCheckbox ? 'center' : justifyContent, 
-    alignItems: data.isCheckbox ? 'center' : alignItems,
-    paddingLeft,
-    paddingRight,
+    justifyContent: displayJustify, 
+    alignItems: displayAlign,
+    // Zero out padding for vertical text to prevent layout shifts, BUT keep filter padding to avoid overlap
+    paddingLeft: verticalText ? 0 : paddingLeft,
+    paddingRight: verticalText ? filterPadding : paddingRight,
     backgroundColor,
     borderRight,
     borderBottom,
@@ -258,8 +279,10 @@ const Cell = memo(({
   };
   const cssTextAlign = getCssTextAlign();
 
-  // Smart transform origin based on alignment
-  const transformOrigin = align === 'right' ? 'center right' : align === 'center' ? 'center' : 'center left';
+  // Transform Origin Logic for Rotation
+  const tOriginX = align === 'right' ? 'right' : (align === 'center' || align === 'centerAcross') ? 'center' : 'left';
+  const tOriginY = verticalAlign === 'top' ? 'top' : verticalAlign === 'middle' ? 'center' : 'bottom';
+  const transformOrigin = `${tOriginX} ${tOriginY}`;
 
   const textStyle: React.CSSProperties = {
       fontFamily: resolvedStyle.fontFamily || 'Inter, sans-serif',
@@ -270,7 +293,7 @@ const Cell = memo(({
       color,
       whiteSpace,
       textAlign: cssTextAlign,
-      display: 'inline-block', 
+      display: 'inline-block', // Crucial for transforms to work correctly
       ...(verticalText ? { 
           writingMode: 'vertical-rl', 
           textOrientation: 'upright', 
@@ -278,13 +301,16 @@ const Cell = memo(({
       } : {}),
       ...(hasRotation ? {
           transform: `rotate(${cssRotation}deg)`,
-          transformOrigin,
+          transformOrigin: transformOrigin,
+          width: 'max-content', // Allow text to extend beyond container when rotated
+          textOverflow: 'clip'
       } : {
           transform: scaleFactor < 1 ? `scale(${scaleFactor})` : undefined,
           transformOrigin: align === 'right' ? 'right' : align === 'center' ? 'center' : 'left',
           width: resolvedStyle.wrapText ? '100%' : 'auto'
       }),
-      lineHeight: 1.2
+      lineHeight: 1.2,
+      pointerEvents: 'none' // Let clicks pass through to cell container
   };
   
   const hasListValidation = isActive && validation && validation.type === 'list' && !isGhost;
@@ -294,8 +320,8 @@ const Cell = memo(({
     <div
       ref={containerRef}
       className={cn(
-        "box-border select-none outline-none flex-shrink-0",
-        isActive && "shadow-glow", // Enhance focus visibility
+        "box-border select-none outline-none flex-shrink-0 transition-all duration-200 ease-out",
+        isActive && "shadow-glow", 
       )}
       style={containerStyle}
       data-cell-id={id}
@@ -323,7 +349,10 @@ const Cell = memo(({
       ) : (
         !isMicroView && (
             data.isCheckbox ? (
-                 <div className="flex items-center justify-center w-full h-full pointer-events-none">
+                 <div 
+                    className="flex items-center justify-center w-full h-full pointer-events-none"
+                    style={hasRotation ? { transform: `rotate(${cssRotation}deg)`, transformOrigin: 'center' } : undefined}
+                 >
                      <input 
                         type="checkbox" 
                         checked={String(data.value).toUpperCase() === 'TRUE'} 
@@ -340,7 +369,7 @@ const Cell = memo(({
                             href={data.link} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="absolute inset-0 z-10"
+                            className="absolute inset-0 z-10 pointer-events-auto"
                             onClick={(e) => {
                                 if (!e.ctrlKey && !e.metaKey) e.preventDefault();
                             }}
@@ -420,7 +449,6 @@ const Cell = memo(({
                     strokeWidth={2.5} 
                 />
             </div>
-            {/* Filter Menu */}
             {isFilterActive && (
                 <Suspense fallback={null}>
                     <FilterMenu 
@@ -494,4 +522,3 @@ const Cell = memo(({
 
 Cell.displayName = 'Cell';
 export default Cell;
-    

@@ -38,7 +38,7 @@ interface GridRowProps {
 const EmptyCell = memo(({ width, height, id, onMouseDown, onMouseEnter, onDoubleClick, isHidden }: any) => (
     <div
       className={cn(
-          "border-r border-b border-slate-200 box-border flex-shrink-0 bg-white select-none",
+          "border-r border-b border-slate-200 box-border flex-shrink-0 bg-white select-none transition-all duration-200 ease-out",
           isHidden && "border-none bg-transparent" // If hidden by merge
       )}
       style={{
@@ -91,7 +91,7 @@ const GridRow = memo(({
     
     return (
         <div 
-            className="flex" 
+            className="flex transition-all duration-200 ease-out" 
             style={{ 
                 width: 'max-content', 
                 height,
@@ -101,7 +101,7 @@ const GridRow = memo(({
             {/* Row Header */}
             <div 
                 className={cn(
-                    "sticky left-0 z-10 flex items-center justify-center border-r border-b border-slate-300 bg-[#f8f9fa] font-semibold text-slate-700 select-none flex-shrink-0 hover:bg-slate-200 transition-colors overflow-hidden", 
+                    "sticky left-0 z-10 flex items-center justify-center border-r border-b border-slate-300 bg-[#f8f9fa] font-semibold text-slate-700 select-none flex-shrink-0 hover:bg-slate-200 transition-all duration-200 ease-out overflow-hidden", 
                     isActiveRow && "bg-emerald-100 text-emerald-800"
                 )}
                 style={{ width: headerColW, height, fontSize: `${headerFontSize}px` }}

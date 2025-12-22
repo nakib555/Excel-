@@ -266,9 +266,10 @@ export const AppRoot: React.FC = () => {
             onMoveCopySheet={noOp}
             onProtectSheet={noOp}
             onLockCell={noOp}
+            onResetSize={resizeHandlers.handleResetActiveResize}
             onOpenFormatDialog={dialogs.handleOpenFormatDialog}
             onSort={noOp}
-            onMergeCenter={cellHandlers.handleMergeCenter}
+            onMerge={cellHandlers.handleMerge}
             onDataValidation={handleDataValidation}
             onToggleAI={() => dialogs.setShowAI(true)}
             onToggleHistory={() => dialogs.setShowHistory(prev => !prev)}

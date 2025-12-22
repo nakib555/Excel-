@@ -1,16 +1,40 @@
 
 import React, { useState } from 'react';
 import { RibbonButton, SmartDropdown, TabProps } from '../../shared';
-import { ArrowUpRight, ArrowDownRight, ArrowUp, ArrowDown, RotateCw } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, ArrowUp, ArrowDown, RotateCw, RotateCcw, Settings2 } from 'lucide-react';
 
-interface OrientationProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle'> {}
+interface OrientationProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle' | 'onOpenFormatDialog' | 'onApplyStyle' | 'onResetSize'> {}
 
-const Orientation: React.FC<OrientationProps> = ({ currentStyle, onToggleStyle }) => {
+const Orientation: React.FC<OrientationProps> = ({ currentStyle, onToggleStyle, onOpenFormatDialog, onApplyStyle, onResetSize }) => {
     const [open, setOpen] = useState(false);
 
     const handleSelect = (rotation: number | undefined, vertical: boolean | undefined) => {
-        onToggleStyle('textRotation', rotation);
-        onToggleStyle('verticalText', vertical);
+        if (onApplyStyle) {
+            onApplyStyle({ textRotation: rotation, verticalText: vertical });
+        } else {
+            onToggleStyle('textRotation', rotation);
+            onToggleStyle('verticalText', vertical);
+        }
+        setOpen(false);
+    };
+
+    const handleReset = () => {
+        // Only reset rotation-related properties to preserve user's alignment choices
+        if (onApplyStyle) {
+            onApplyStyle({
+                textRotation: 0,
+                verticalText: false
+            });
+        } else {
+            onToggleStyle('textRotation', 0);
+            onToggleStyle('verticalText', false);
+        }
+        
+        // Also reset cell sizes if handler provided
+        if (onResetSize) {
+            onResetSize();
+        }
+        
         setOpen(false);
     };
 
@@ -37,21 +61,21 @@ const Orientation: React.FC<OrientationProps> = ({ currentStyle, onToggleStyle }
             <div className="flex flex-col py-1">
                 <button 
                     onClick={() => handleSelect(45, undefined)}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left w-full"
                 >
                     <ArrowUpRight size={16} className="text-slate-500" />
                     <span>Angle Counterclockwise</span>
                 </button>
                 <button 
                     onClick={() => handleSelect(-45, undefined)}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left w-full"
                 >
                     <ArrowDownRight size={16} className="text-slate-500" />
                     <span>Angle Clockwise</span>
                 </button>
                 <button 
                     onClick={() => handleSelect(undefined, true)}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left w-full"
                 >
                     <div className="w-4 flex flex-col items-center leading-[0.6] font-mono text-[9px] font-bold text-slate-500">
                         <span>v</span><span>e</span><span>r</span>
@@ -60,25 +84,38 @@ const Orientation: React.FC<OrientationProps> = ({ currentStyle, onToggleStyle }
                 </button>
                 <button 
                     onClick={() => handleSelect(90, undefined)}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left w-full"
                 >
                     <ArrowUp size={16} className="text-slate-500" />
                     <span>Rotate Text Up</span>
                 </button>
                 <button 
                     onClick={() => handleSelect(-90, undefined)}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left w-full"
                 >
                     <ArrowDown size={16} className="text-slate-500" />
                     <span>Rotate Text Down</span>
                 </button>
+                
                 <div className="h-[1px] bg-slate-200 my-1 mx-2" />
+                
                 <button 
-                    onClick={() => handleSelect(undefined, undefined)}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left"
+                    onClick={() => {
+                        setOpen(false);
+                        onOpenFormatDialog?.('Alignment');
+                    }}
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left w-full group"
                 >
-                    <RotateCw size={16} className="text-slate-500" />
-                    <span>Format Cell Alignment (Reset)</span>
+                    <Settings2 size={16} className="text-slate-500 group-hover:text-slate-800" />
+                    <span>Format Cell Alignment</span>
+                </button>
+
+                <button 
+                    onClick={handleReset}
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left w-full group"
+                >
+                    <RotateCcw size={16} className="text-red-500 group-hover:text-red-600" />
+                    <span>Reset Alignment</span>
                 </button>
             </div>
         </SmartDropdown>

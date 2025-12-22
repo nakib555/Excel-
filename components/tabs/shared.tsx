@@ -29,7 +29,7 @@ export interface TabProps {
   onDeleteSheet?: () => void;
 
   onSort?: (direction: 'asc' | 'desc') => void;
-  onMergeCenter?: () => void;
+  onMerge?: (type: 'center' | 'across' | 'cells' | 'unmerge') => void;
   onDataValidation?: () => void;
   onOpenFormatDialog?: (tab?: string) => void;
   onToggleAI?: () => void;
@@ -53,6 +53,7 @@ export interface TabProps {
   onMoveCopySheet?: () => void;
   onProtectSheet?: () => void;
   onLockCell?: () => void;
+  onResetSize?: () => void;
 
   // Insert Tab Features
   onInsertTable?: () => void;

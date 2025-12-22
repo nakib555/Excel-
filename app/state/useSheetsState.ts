@@ -89,10 +89,10 @@ export const useSheetsState = () => {
 
       // If AutoSave is ON and NOT previewing
       if (isAutoSave && !previewRevisionId) {
-          // Debounce the auto-save to run after user stops typing/editing for 2 seconds
+          // Debounce the auto-save to run after user stops typing/editing for 1 second
           const timer = setTimeout(() => {
               saveWorkbook('Auto');
-          }, 2000); 
+          }, 1000); 
           
           return () => clearTimeout(timer);
       }

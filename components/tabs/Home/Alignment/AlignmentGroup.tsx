@@ -14,7 +14,7 @@ import WrapText from './WrapText';
 import MergeCenter from './MergeCenter';
 import ShrinkToFit from './ShrinkToFit';
 
-const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onMergeCenter, onOpenFormatDialog }) => {
+const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onMerge, onOpenFormatDialog, onApplyStyle, onResetSize }) => {
   return (
     <RibbonGroup label="Alignment" showLauncher onLaunch={() => onOpenFormatDialog?.('Alignment')}>
         <div className="flex h-full py-0.5 gap-2 px-1">
@@ -39,7 +39,13 @@ const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, 
             <div className="flex flex-col justify-center h-full gap-1">
                 {/* Row 1 */}
                 <div className="flex gap-1">
-                     <Orientation currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                     <Orientation 
+                        currentStyle={currentStyle} 
+                        onToggleStyle={onToggleStyle} 
+                        onOpenFormatDialog={onOpenFormatDialog} 
+                        onApplyStyle={onApplyStyle}
+                        onResetSize={onResetSize}
+                     />
                      <WrapText currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                      <ShrinkToFit currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 </div>
@@ -47,7 +53,7 @@ const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, 
                 <div className="flex gap-1">
                     <DecreaseIndent currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                     <IncreaseIndent currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
-                    <MergeCenter onMergeCenter={onMergeCenter} />
+                    <MergeCenter onMerge={onMerge} />
                 </div>
             </div>
         </div>

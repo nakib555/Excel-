@@ -57,26 +57,32 @@ export const useResizeHandlers = ({ setSheets, activeSheetId, activeSheet, activ
     }, [activeCell, activeSheet.columnWidths, handleColumnResize]);
   
     const handleResetActiveResize = useCallback(() => { 
-        if (activeCell) { 
-            const { col, row } = parseCellId(activeCell)!; 
-            const c = numToChar(col); 
-            setSheets(prev => prev.map(s => {
-                if (s.id !== activeSheetId) return s;
-                
-                const newColWidths = Object.assign({}, s.columnWidths);
-                delete newColWidths[c];
-                
-                const newRowHeights = Object.assign({}, s.rowHeights);
-                delete newRowHeights[row];
-                
-                return { 
-                    ...s, 
-                    columnWidths: newColWidths, 
-                    rowHeights: newRowHeights 
-                };
-            })); 
-        } 
-    }, [activeCell, activeSheetId, setSheets]);
+        setSheets(prev => prev.map(s => {
+            if (s.id !== activeSheetId) return s;
+            
+            const newColWidths = { ...s.columnWidths };
+            const newRowHeights = { ...s.rowHeights };
+            
+            const targets = s.selectionRange && s.selectionRange.length > 0 
+                ? s.selectionRange 
+                : (activeCell ? [activeCell] : []);
+
+            targets.forEach(id => {
+                const p = parseCellId(id);
+                if (p) {
+                    const c = numToChar(p.col);
+                    delete newColWidths[c];
+                    delete newRowHeights[p.row];
+                }
+            });
+            
+            return { 
+                ...s, 
+                columnWidths: newColWidths, 
+                rowHeights: newRowHeights 
+            };
+        })); 
+    }, [activeSheetId, activeCell, setSheets]);
 
     return { 
         handleColumnResize, 
