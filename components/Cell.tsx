@@ -176,20 +176,32 @@ const Cell = memo(({
   const alignItemsH = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
 
   const indentPx = indent * 10 * scale; 
-  let paddingLeft = 4 * scale;
-  let paddingRight = 4 * scale;
+  
+  // Calculate Padding
+  // CRITICAL FIX: If text is rotated or vertical, we MUST remove padding to ensure the pivot point (transform-origin) 
+  // is exactly at the cell edge/center. Otherwise, rotation + padding = visual misalignment.
+  const isSpecialLayout = hasRotation || verticalText;
+  
+  let paddingLeft = isSpecialLayout ? 0 : 4 * scale;
+  let paddingRight = isSpecialLayout ? 0 : 4 * scale;
 
-  // Apply Indent only if NOT centered
-  if (align === 'right') {
-      paddingRight += indentPx;
-  } else if (align === 'left' || align === 'general' || align === 'distributed') {
-      paddingLeft += indentPx;
+  // Apply Indent only if NOT centered and NOT special layout
+  if (!isSpecialLayout) {
+      if (align === 'right') {
+          paddingRight += indentPx;
+      } else if (align === 'left' || align === 'general' || align === 'distributed') {
+          paddingLeft += indentPx;
+      }
   }
 
   const filterBtnSize = Math.max(14, 18 * scale);
   const showFilter = !!data.filterButton && !editing && !isMicroView && height > (filterBtnSize - 4);
   const filterPadding = showFilter ? (filterBtnSize + 2 * scale) : 0;
-  paddingRight += filterPadding;
+  
+  // Filter padding must effectively still exist for non-rotated text to prevent overlap
+  if (!hasRotation) {
+      paddingRight += filterPadding;
+  }
 
   const fontWeight = resolvedStyle.bold ? '600' : '400';
   const fontStyle = resolvedStyle.italic ? 'italic' : 'normal';
@@ -220,36 +232,11 @@ const Cell = memo(({
 
   const zIndex = isActive ? 30 : (hasRotation || verticalText) ? 20 : undefined;
 
-  // Calculate Flex Properties based on Orientation
-  let displayJustify: React.CSSProperties['justifyContent'];
-  let displayAlign: React.CSSProperties['alignItems'];
-
-  if (verticalText) {
-      // In Vertical-RL mode:
-      // Main Axis (justify-content) aligns vertically (Top/Bottom)
-      // Cross Axis (align-items) aligns horizontally (Right/Left)
-      
-      // Vertical Alignment -> justify-content
-      displayJustify = verticalAlign === 'top' ? 'flex-start' : verticalAlign === 'middle' ? 'center' : 'flex-end';
-      
-      // Horizontal Alignment -> align-items
-      // Note: vertical-rl cross axis starts from RIGHT.
-      // So 'flex-start' is Visual Right, 'flex-end' is Visual Left.
-      if (align === 'left') displayAlign = 'flex-end';
-      else if (align === 'right') displayAlign = 'flex-start';
-      else displayAlign = 'center';
-      
-  } else {
-      // Standard Horizontal Mode
-      displayJustify = justifyContentH;
-      displayAlign = alignItemsH;
-  }
-
-  // Override for Checkbox
-  if (data.isCheckbox) {
-      displayJustify = 'center';
-      displayAlign = 'center';
-  }
+  // Determine Flex Alignment (Always standard horizontal/vertical axes)
+  // We use standard Flexbox logic for both standard and rotated/vertical text.
+  // Standard Row Flexbox: justify = X axis (Left/Right), align = Y axis (Top/Bottom)
+  const displayJustify = data.isCheckbox ? 'center' : justifyContentH;
+  const displayAlign = data.isCheckbox ? 'center' : alignItemsH;
 
   const containerStyle: React.CSSProperties = {
     width: width,
@@ -259,9 +246,8 @@ const Cell = memo(({
     display: 'flex',
     justifyContent: displayJustify, 
     alignItems: displayAlign,
-    // Zero out padding for vertical text to prevent layout shifts, BUT keep filter padding to avoid overlap
-    paddingLeft: verticalText ? 0 : paddingLeft,
-    paddingRight: verticalText ? filterPadding : paddingRight,
+    paddingLeft: paddingLeft,
+    paddingRight: paddingRight,
     backgroundColor,
     borderRight,
     borderBottom,
@@ -307,7 +293,8 @@ const Cell = memo(({
       } : {
           transform: scaleFactor < 1 ? `scale(${scaleFactor})` : undefined,
           transformOrigin: align === 'right' ? 'right' : align === 'center' ? 'center' : 'left',
-          width: resolvedStyle.wrapText ? '100%' : 'auto'
+          // Force auto width for vertical text to prevent full-width stretching
+          width: (resolvedStyle.wrapText && !verticalText) ? '100%' : 'auto'
       }),
       lineHeight: 1.2,
       pointerEvents: 'none' // Let clicks pass through to cell container

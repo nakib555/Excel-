@@ -337,13 +337,16 @@ export const calculateRotatedDimensions = (text: string, style: CellStyle): { wi
     const bold = !!style.bold;
     const italic = !!style.italic;
 
-    const textWidth = measureTextWidth(text, fontSize, fontFamily, bold, italic);
+    // Use the formatted text to calculate actual visible dimensions
+    const formattedText = formatCellValue(text, style);
+
+    const textWidth = measureTextWidth(formattedText, fontSize, fontFamily, bold, italic);
     // Line height estimation (Excel is roughly 1.3-1.5x)
     const lineHeight = fontSize * 1.4; 
 
     if (isVertical) {
         // Stacked text vertical height
-        const h = (text.length * fontSize) + (text.length * 2) + 10;
+        const h = (formattedText.length * fontSize) + (formattedText.length * 2) + 10;
         // Width is roughly one char width + padding
         const w = fontSize + 10; 
         return { width: w, height: h }; 
@@ -368,3 +371,4 @@ export const calculateRotatedDimensions = (text: string, style: CellStyle): { wi
 export const calculateRequiredHeight = (text: string, style: CellStyle): number => {
     return calculateRotatedDimensions(text, style).height;
 };
+    

@@ -46,8 +46,11 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
                 };
 
                 // --- Auto-Resize Logic ---
-                // Trigger resizing if rotation, orientation, or font size changes
-                if ((key === 'textRotation' || key === 'verticalText' || key === 'fontSize' || key === 'fontFamily' || key === 'bold') && cell.value) {
+                // Trigger resizing if rotation, orientation, font size, OR FORMAT changes.
+                // Format changes (e.g. currency, decimals) can significantly change the length/size of vertically/rotated text.
+                const resizeTriggers = ['textRotation', 'verticalText', 'fontSize', 'fontFamily', 'bold', 'format', 'decimalPlaces', 'currencySymbol'];
+                
+                if (resizeTriggers.includes(key as string) && cell.value) {
                     const dims = calculateRotatedDimensions(cell.value, newStyle);
                     
                     if (dims.height > 0 || dims.width > 0) {
@@ -59,7 +62,6 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
                         const requiredH = Math.max(minH, dims.height);
                         
                         // We set the row height to the required height (or default if it shrank small)
-                        // This behavior satisfies "auto shrink" but "won't go beyond [default/before rotation size roughly]"
                         if (requiredH > 0) {
                             nextRowHeights[row] = requiredH;
                         }
@@ -128,3 +130,4 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
 
     return { handleStyleChange, handleApplyFullStyle };
 };
+    
