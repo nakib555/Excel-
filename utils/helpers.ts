@@ -328,9 +328,10 @@ export const measureTextWidth = (text: string, fontSize: number = 13, fontFamily
 export const calculateRotatedDimensions = (text: string, style: CellStyle): { width: number, height: number } => {
     const rotation = style.textRotation || 0;
     const isVertical = style.verticalText;
+    const shrinkToFit = style.shrinkToFit;
     
-    // If no rotation/vertical, return 0 to indicate no forced resize
-    if (rotation === 0 && !isVertical) return { width: 0, height: 0 };
+    // If no content, return 0
+    if (!text) return { width: 0, height: 0 };
 
     const fontSize = style.fontSize || 13;
     const fontFamily = style.fontFamily || 'Inter, sans-serif';
@@ -340,9 +341,20 @@ export const calculateRotatedDimensions = (text: string, style: CellStyle): { wi
     // Use the formatted text to calculate actual visible dimensions
     const formattedText = formatCellValue(text, style);
 
+    // If standard text (no rotation/vertical) AND no shrinkToFit, return 0 (no forced resize)
+    if (rotation === 0 && !isVertical && !shrinkToFit) return { width: 0, height: 0 };
+
     const textWidth = measureTextWidth(formattedText, fontSize, fontFamily, bold, italic);
     // Line height estimation (Excel is roughly 1.3-1.5x)
     const lineHeight = fontSize * 1.4; 
+
+    // Handle ShrinkToFit (Behaves as AutoFit) when not rotated
+    if (rotation === 0 && !isVertical && shrinkToFit) {
+        return { 
+            width: Math.ceil(textWidth) + 16, // + padding
+            height: Math.ceil(lineHeight) + 4
+        }; 
+    }
 
     if (isVertical) {
         // Stacked text vertical height
@@ -371,4 +383,3 @@ export const calculateRotatedDimensions = (text: string, style: CellStyle): { wi
 export const calculateRequiredHeight = (text: string, style: CellStyle): number => {
     return calculateRotatedDimensions(text, style).height;
 };
-    

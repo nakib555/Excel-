@@ -48,7 +48,7 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
                 // --- Auto-Resize Logic ---
                 // Trigger resizing if rotation, orientation, font size, OR FORMAT changes.
                 // Format changes (e.g. currency, decimals) can significantly change the length/size of vertically/rotated text.
-                const resizeTriggers = ['textRotation', 'verticalText', 'fontSize', 'fontFamily', 'bold', 'format', 'decimalPlaces', 'currencySymbol'];
+                const resizeTriggers = ['textRotation', 'verticalText', 'fontSize', 'fontFamily', 'bold', 'format', 'decimalPlaces', 'currencySymbol', 'shrinkToFit'];
                 
                 if (resizeTriggers.includes(key as string) && cell.value) {
                     const dims = calculateRotatedDimensions(cell.value, newStyle);
@@ -108,19 +108,19 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
                 nextCells[id] = { ...cell, styleId: res.id };
 
                 // --- Auto-Resize Logic ---
-                if ((mergedStyle.textRotation || mergedStyle.verticalText) && cell.value) {
+                if ((mergedStyle.textRotation || mergedStyle.verticalText || mergedStyle.shrinkToFit) && cell.value) {
                     const dims = calculateRotatedDimensions(cell.value, mergedStyle);
-                    if (dims.height > 0) {
+                    if (dims.height > 0 || dims.width > 0) {
                         const { row, col } = parseCellId(id)!;
                         const colChar = numToChar(col);
 
                         const minH = DEFAULT_ROW_HEIGHT;
                         const requiredH = Math.max(minH, dims.height);
-                        nextRowHeights[row] = requiredH;
+                        if (requiredH > 0) nextRowHeights[row] = requiredH;
 
                         const minW = DEFAULT_COL_WIDTH;
                         const requiredW = Math.max(minW, dims.width);
-                        nextColWidths[colChar] = requiredW;
+                        if (requiredW > 0) nextColWidths[colChar] = requiredW;
                     }
                 }
             });
@@ -130,4 +130,3 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
 
     return { handleStyleChange, handleApplyFullStyle };
 };
-    

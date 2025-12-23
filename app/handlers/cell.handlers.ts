@@ -84,22 +84,21 @@ export const useCellHandlers = ({
                 } as CellData;
             }
 
-            // Auto-Resize Logic if Rotated
+            // Auto-Resize Logic if Rotated OR ShrinkToFit
             const currentCell = nextCells[id];
             if (currentCell) {
                 const currentStyle = (currentCell.styleId && sheet.styles[currentCell.styleId]) ? sheet.styles[currentCell.styleId] : {};
-                if ((currentStyle.textRotation || currentStyle.verticalText)) {
+                
+                // Check rotation OR shrinkToFit
+                if (currentStyle.textRotation || currentStyle.verticalText || currentStyle.shrinkToFit) {
                      // Calculate required dimensions
                      const dims = calculateRotatedDimensions(rawValue, currentStyle);
                      
-                     // Row Height: Automatically expand to fit rotated text, shrink if text shrinks but not below default
-                     // We use DEFAULT_ROW_HEIGHT as a safe floor if shrinking.
+                     // Row Height: Automatically expand to fit, shrink if text shrinks but not below default
                      const minH = DEFAULT_ROW_HEIGHT;
                      const requiredH = Math.max(minH, dims.height);
                      
-                     // Only apply if it's actually larger than default OR effectively shrinking from a previous expansion
-                     // For simplicity and robustness (user request "auto shrink"):
-                     // We set it to required height (floored at default).
+                     // Only apply if it's actually larger than default OR resizing down
                      if (dims.height > 0) {
                          nextRowHeights[row] = requiredH;
                      }
