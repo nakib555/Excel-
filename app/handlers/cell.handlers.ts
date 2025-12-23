@@ -85,32 +85,35 @@ export const useCellHandlers = ({
             }
 
             // Auto-Resize Logic if Rotated OR ShrinkToFit
-            const currentCell = nextCells[id];
-            if (currentCell) {
-                const currentStyle = (currentCell.styleId && sheet.styles[currentCell.styleId]) ? sheet.styles[currentCell.styleId] : {};
-                
-                // Check rotation OR shrinkToFit
-                if (currentStyle.textRotation || currentStyle.verticalText || currentStyle.shrinkToFit) {
-                     // Calculate required dimensions
-                     const dims = calculateRotatedDimensions(rawValue, currentStyle);
-                     
-                     // Row Height: Automatically expand to fit, shrink if text shrinks but not below default
-                     const minH = DEFAULT_ROW_HEIGHT;
-                     const requiredH = Math.max(minH, dims.height);
-                     
-                     // Only apply if it's actually larger than default OR resizing down
-                     if (dims.height > 0) {
-                         nextRowHeights[row] = requiredH;
-                     }
-                     
-                     // Col Width
-                     const colChar = numToChar(col);
-                     const minW = DEFAULT_COL_WIDTH;
-                     const requiredW = Math.max(minW, dims.width);
-                     
-                     if (dims.width > 0) {
-                         nextColWidths[colChar] = requiredW;
-                     }
+            // Only perform resize if we have content. If empty, the feature is "off" (no resize calc).
+            if (rawValue) {
+                const currentCell = nextCells[id];
+                if (currentCell) {
+                    const currentStyle = (currentCell.styleId && sheet.styles[currentCell.styleId]) ? sheet.styles[currentCell.styleId] : {};
+                    
+                    // Check rotation OR shrinkToFit
+                    if (currentStyle.textRotation || currentStyle.verticalText || currentStyle.shrinkToFit) {
+                         // Calculate required dimensions
+                         const dims = calculateRotatedDimensions(rawValue, currentStyle);
+                         
+                         // Row Height: Automatically expand to fit, shrink if text shrinks but not below default
+                         const minH = DEFAULT_ROW_HEIGHT;
+                         const requiredH = Math.max(minH, dims.height);
+                         
+                         // Only apply if it's actually larger than default OR resizing down
+                         if (dims.height > 0) {
+                             nextRowHeights[row] = requiredH;
+                         }
+                         
+                         // Col Width
+                         const colChar = numToChar(col);
+                         const minW = DEFAULT_COL_WIDTH;
+                         const requiredW = Math.max(minW, dims.width);
+                         
+                         if (dims.width > 0) {
+                             nextColWidths[colChar] = requiredW;
+                         }
+                    }
                 }
             }
 

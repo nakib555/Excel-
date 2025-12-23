@@ -202,6 +202,7 @@ const Cell = memo(({
           transform: `rotate(${cssRotation}deg)`,
           transformOrigin: align === 'center' ? 'center' : align === 'right' ? 'center right' : 'center left',
       } : {
+          // Explicitly removed scale transform to support physical cell resizing instead of visual shrinking
           transformOrigin: align === 'right' ? 'right' : align === 'center' ? 'center' : 'left',
           width: resolvedStyle.wrapText ? '100%' : 'auto'
       }),
