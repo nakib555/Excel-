@@ -256,8 +256,8 @@ export const AppRoot: React.FC = () => {
             onDeleteCells={noOp}
             onFormatRowHeight={noOp}
             onFormatColWidth={noOp}
-            onAutoFitRowHeight={noOp}
-            onAutoFitColWidth={noOp}
+            onAutoFitRowHeight={resizeHandlers.autoFitSelectionRows}
+            onAutoFitColWidth={resizeHandlers.autoFitSelectionCols}
             onHideRow={noOp}
             onHideCol={noOp}
             onUnhideRow={noOp}
@@ -353,7 +353,8 @@ export const AppRoot: React.FC = () => {
               onExpandGrid={handleExpandGrid}
               onZoom={handleZoomWheel}
               onFill={cellHandlers.handleFill}
-              onAutoFit={resizeHandlers.handleAutoFit}
+              onAutoFit={resizeHandlers.handleAutoFitColumn}
+              onAutoFitRow={resizeHandlers.handleAutoFitRow}
               onScrollToActiveCell={() => setForceCenter(false)}
             />
         </Suspense>

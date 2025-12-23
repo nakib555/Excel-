@@ -26,6 +26,7 @@ interface GridRowProps {
   onCellChange: (id: string, value: string) => void;
   onNavigate: (direction: NavigationDirection, isShift: boolean) => void;
   startResize: (e: React.MouseEvent, type: 'col' | 'row', index: number, size: number) => void;
+  onAutoFitRow?: (rowIdx: number) => void;
   headerColW: number;
   isGhost: boolean;
   isScrollingFast: boolean;
@@ -38,7 +39,7 @@ interface GridRowProps {
 const EmptyCell = memo(({ width, height, id, onMouseDown, onMouseEnter, onDoubleClick, isHidden }: any) => (
     <div
       className={cn(
-          "border-r border-b border-slate-200 box-border flex-shrink-0 bg-white select-none transition-all duration-200 ease-out",
+          "border-r border-b border-slate-200 box-border flex-shrink-0 bg-white select-none transition-colors duration-200",
           isHidden && "border-none bg-transparent" // If hidden by merge
       )}
       style={{
@@ -76,6 +77,7 @@ const GridRow = memo(({
     onCellChange, 
     onNavigate, 
     startResize,
+    onAutoFitRow,
     headerColW,
     isGhost,
     bgPatternStyle,
@@ -91,7 +93,7 @@ const GridRow = memo(({
     
     return (
         <div 
-            className="flex transition-all duration-200 ease-out" 
+            className="flex" 
             style={{ 
                 width: 'max-content', 
                 height,
@@ -101,7 +103,7 @@ const GridRow = memo(({
             {/* Row Header */}
             <div 
                 className={cn(
-                    "sticky left-0 z-10 flex items-center justify-center border-r border-b border-slate-300 bg-[#f8f9fa] font-semibold text-slate-700 select-none flex-shrink-0 hover:bg-slate-200 transition-all duration-200 ease-out overflow-hidden", 
+                    "sticky left-0 z-10 flex items-center justify-center border-r border-b border-slate-300 bg-[#f8f9fa] font-semibold text-slate-700 select-none flex-shrink-0 hover:bg-slate-200 transition-colors duration-200 overflow-hidden", 
                     isActiveRow && "bg-emerald-100 text-emerald-800"
                 )}
                 style={{ width: headerColW, height, fontSize: `${headerFontSize}px` }}
@@ -111,6 +113,10 @@ const GridRow = memo(({
                 <div 
                     className="absolute bottom-0 left-0 right-0 h-1 cursor-row-resize hover:bg-emerald-500 z-10"
                     onMouseDown={(e) => startResize(e, 'row', rowIdx, height)} 
+                    onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        if (onAutoFitRow) onAutoFitRow(rowIdx);
+                    }}
                 />
             </div>
 

@@ -379,6 +379,40 @@ export const calculateRotatedDimensions = (text: string, style: CellStyle): { wi
     }; 
 };
 
+// --- ROW AUTO-FIT HELPER ---
+// Calculates required height for a cell including wrapped text logic
+export const calculateCellHeight = (text: string, style: CellStyle, colWidth: number): number => {
+    if (!text) return 0;
+    
+    // Formatting
+    const formattedText = formatCellValue(text, style);
+    
+    // Style Props
+    const fontSize = style.fontSize || 13;
+    const fontFamily = style.fontFamily || 'Inter, sans-serif';
+    const bold = !!style.bold;
+    const italic = !!style.italic;
+    const lineHeight = fontSize * 1.4; // Approx
+    
+    // 1. Rotation takes precedence
+    if (style.textRotation || style.verticalText) {
+        const dims = calculateRotatedDimensions(text, style);
+        return dims.height;
+    }
+    
+    // 2. Wrap Text
+    if (style.wrapText) {
+        const textWidth = measureTextWidth(formattedText, fontSize, fontFamily, bold, italic);
+        const padding = 8 + (style.indent || 0) * 10;
+        const avail = Math.max(10, colWidth - padding);
+        const lines = Math.max(1, Math.ceil(textWidth / avail));
+        return (lines * lineHeight) + 6; // + padding
+    }
+    
+    // 3. Default (Font Height)
+    return lineHeight + 6;
+};
+
 // Kept for backward compatibility if needed, wrapping new function
 export const calculateRequiredHeight = (text: string, style: CellStyle): number => {
     return calculateRotatedDimensions(text, style).height;

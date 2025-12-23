@@ -14,7 +14,16 @@ import WrapText from './WrapText';
 import MergeCenter from './MergeCenter';
 import ShrinkToFit from './ShrinkToFit';
 
-const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onMerge, onOpenFormatDialog, onApplyStyle, onResetSize }) => {
+const AlignmentGroup: React.FC<TabProps> = memo(({ 
+    currentStyle, 
+    onToggleStyle, 
+    onMerge, 
+    onOpenFormatDialog, 
+    onApplyStyle, 
+    onResetSize,
+    onAutoFitColWidth,
+    onAutoFitRowHeight
+}) => {
   return (
     <RibbonGroup label="Alignment" showLauncher onLaunch={() => onOpenFormatDialog?.('Alignment')}>
         <div className="flex h-full py-0.5 gap-2 px-1">
@@ -47,7 +56,12 @@ const AlignmentGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, 
                         onResetSize={onResetSize}
                      />
                      <WrapText currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
-                     <ShrinkToFit currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
+                     <ShrinkToFit 
+                        currentStyle={currentStyle} 
+                        onToggleStyle={onToggleStyle} 
+                        onAutoFitColWidth={onAutoFitColWidth}
+                        onAutoFitRowHeight={onAutoFitRowHeight}
+                     />
                 </div>
                 {/* Row 2 */}
                 <div className="flex gap-1">

@@ -1,7 +1,7 @@
 
 import React, { useCallback } from 'react';
 import { Sheet, CellData } from '../../types';
-import { parseCellId, numToChar, measureTextWidth } from '../../utils';
+import { parseCellId, numToChar, measureTextWidth, calculateCellHeight } from '../../utils';
 import { MIN_ROW_HEIGHT, MIN_COL_WIDTH, DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../../components/Grid';
 
 interface UseResizeHandlersProps {
@@ -21,7 +21,7 @@ export const useResizeHandlers = ({ setSheets, activeSheetId, activeSheet, activ
         setSheets(prev => prev.map(s => s.id === activeSheetId ? { ...s, rowHeights: { ...s.rowHeights, [rowIdx]: height } } : s));
     }, [activeSheetId, setSheets]);
 
-    const handleAutoFit = useCallback((colIdx: number) => {
+    const handleAutoFitColumn = useCallback((colIdx: number) => {
         const colChar = numToChar(colIdx);
         let maxWidth = 0;
         Object.values(activeSheet.cells).forEach((cell: CellData) => {
@@ -40,6 +40,26 @@ export const useResizeHandlers = ({ setSheets, activeSheetId, activeSheet, activ
         const finalWidth = Math.max(MIN_COL_WIDTH, Math.min(500, maxWidth + padding));
         handleColumnResize(colChar, finalWidth);
     }, [activeSheet, handleColumnResize]);
+
+    const handleAutoFitRow = useCallback((rowIdx: number) => {
+        let maxH = DEFAULT_ROW_HEIGHT;
+        const rowCells = Object.values(activeSheet.cells).filter(c => {
+            const p = parseCellId(c.id);
+            return p && p.row === rowIdx;
+        });
+
+        rowCells.forEach(cell => {
+            const p = parseCellId(cell.id)!;
+            const colChar = numToChar(p.col);
+            const width = activeSheet.columnWidths[colChar] || DEFAULT_COL_WIDTH;
+            const style = cell.styleId ? activeSheet.styles[cell.styleId] : {};
+            
+            const dims = calculateCellHeight(cell.value, style, width);
+            if (dims > maxH) maxH = dims;
+        });
+        
+        handleRowResize(rowIdx, maxH);
+    }, [activeSheet, handleRowResize]);
 
     const resizeActiveRow = useCallback((delta: number) => { 
         if (activeCell) { 
@@ -84,12 +104,39 @@ export const useResizeHandlers = ({ setSheets, activeSheetId, activeSheet, activ
         })); 
     }, [activeSheetId, activeCell, setSheets]);
 
+    const autoFitSelectionCols = useCallback(() => {
+        const targets = activeSheet.selectionRange || (activeCell ? [activeCell] : []);
+        const cols = new Set<number>();
+        
+        targets.forEach(id => {
+            const p = parseCellId(id);
+            if(p) cols.add(p.col);
+        });
+        
+        cols.forEach(c => handleAutoFitColumn(c));
+    }, [activeSheet, activeCell, handleAutoFitColumn]);
+
+    const autoFitSelectionRows = useCallback(() => {
+        const targets = activeSheet.selectionRange || (activeCell ? [activeCell] : []);
+        const rows = new Set<number>();
+        
+        targets.forEach(id => {
+            const p = parseCellId(id);
+            if(p) rows.add(p.row);
+        });
+        
+        rows.forEach(r => handleAutoFitRow(r));
+    }, [activeSheet, activeCell, handleAutoFitRow]);
+
     return { 
         handleColumnResize, 
         handleRowResize, 
-        handleAutoFit, 
+        handleAutoFitColumn,
+        handleAutoFitRow,
         resizeActiveRow, 
         resizeActiveCol, 
-        handleResetActiveResize 
+        handleResetActiveResize,
+        autoFitSelectionCols,
+        autoFitSelectionRows
     };
 };

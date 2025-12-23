@@ -42,6 +42,7 @@ interface GridProps {
   onZoom: (delta: number) => void;
   onFill?: (sourceRange: CellId[], targetRange: CellId[]) => void;
   onAutoFit?: (col: number) => void;
+  onAutoFitRow?: (row: number) => void;
   onScrollToActiveCell?: () => void;
 }
 
@@ -68,6 +69,7 @@ const Grid: React.FC<GridProps> = ({
   onZoom,
   onFill,
   onAutoFit,
+  onAutoFitRow,
   onScrollToActiveCell
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -604,6 +606,10 @@ const Grid: React.FC<GridProps> = ({
       if(onAutoFit) onAutoFit(col);
   }, [onAutoFit]);
 
+  const handleAutoFitRow = useCallback((row: number) => {
+      if(onAutoFitRow) onAutoFitRow(row);
+  }, [onAutoFitRow]);
+
   const handleWheel = (e: React.WheelEvent) => {
       if (e.ctrlKey) {
           e.preventDefault();
@@ -790,6 +796,7 @@ const Grid: React.FC<GridProps> = ({
                     onCellChange={onCellChange}
                     onNavigate={onNavigate}
                     startResize={startResize}
+                    onAutoFitRow={handleAutoFitRow}
                     isGhost={isScrolling && Math.abs(scrollState.velocityFactor) > 6} 
                     isScrollingFast={isScrollingFast}
                     bgPatternStyle={bgPatternStyle}

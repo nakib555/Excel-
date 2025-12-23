@@ -1,23 +1,20 @@
 
 import React from 'react';
-import { Minimize2 } from 'lucide-react';
+import { Scaling } from 'lucide-react';
 import { RibbonButton, TabProps } from '../../shared';
 
-interface ShrinkToFitProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle'> {}
+interface ShrinkToFitProps extends Pick<TabProps, 'currentStyle' | 'onToggleStyle' | 'onAutoFitRowHeight' | 'onAutoFitColWidth'> {}
 
-const ShrinkToFit: React.FC<ShrinkToFitProps> = ({ currentStyle, onToggleStyle }) => (
+// Renamed internally to AutoFitContent but exported as ShrinkToFit to avoid file refactoring issues in parent
+const ShrinkToFit: React.FC<ShrinkToFitProps> = ({ onAutoFitRowHeight, onAutoFitColWidth }) => (
     <RibbonButton
         variant="icon-only"
-        icon={<Minimize2 size={16} className={currentStyle.shrinkToFit ? "text-emerald-600" : "text-slate-600"} />}
-        active={currentStyle.shrinkToFit}
+        icon={<Scaling size={16} className="text-slate-600" />}
         onClick={() => {
-            // Shrink to fit usually disables wrap text in Excel logic
-            if (!currentStyle.shrinkToFit) {
-                onToggleStyle('wrapText', false);
-            }
-            onToggleStyle('shrinkToFit', !currentStyle.shrinkToFit);
+            if (onAutoFitColWidth) onAutoFitColWidth();
+            // onAutoFitRowHeight can also be called if needed, but primary use is width
         }}
-        title="Shrink to Fit"
+        title="Auto Fit Content"
     />
 );
 
