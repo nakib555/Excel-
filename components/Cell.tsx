@@ -1,7 +1,6 @@
-
-import React, { memo, useState, useRef, useEffect, lazy, Suspense } from 'react';
+import React, { memo, useState, useRef, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
-import { cn, formatCellValue, useSmartPosition } from '../utils';
+import { cn, formatCellValue, measureTextWidth, useSmartPosition } from '../utils';
 import { CellSkeleton } from './Skeletons';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -59,6 +58,7 @@ const Cell = memo(({
   const spanRef = useRef<HTMLSpanElement>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [scaleFactor, setScaleFactor] = useState(1);
   const commentRef = useRef<HTMLDivElement>(null);
   const filterBtnRef = useRef<HTMLDivElement>(null);
   
@@ -99,6 +99,44 @@ const Cell = memo(({
   const isMicroView = scale < 0.25; 
   const fontSize = Math.max(scale < 0.6 ? 7 : 9, (resolvedStyle.fontSize || 13) * scale);
   const displayValue = formatCellValue(data.value, resolvedStyle);
+
+  useLayoutEffect(() => {
+    if (resolvedStyle.shrinkToFit && !resolvedStyle.wrapText && !editing && displayValue) {
+       const indentPx = (resolvedStyle.indent || 0) * 10 * scale; 
+       const totalPadding = 8 + indentPx; // 4px left + 4px right base
+       const avail = width - totalPadding;
+       
+       if (avail > 0) {
+           // Always use canvas measurement for ShrinkToFit to avoid DOM layout constraints (flex-shrink)
+           const fontName = resolvedStyle.fontFamily || 'Inter, sans-serif';
+           const isBold = !!resolvedStyle.bold;
+           const isItalic = !!resolvedStyle.italic;
+           
+           // Use measureTextWidth to get the true unconstrained width
+           const textWidth = measureTextWidth(displayValue, fontSize, fontName, isBold, isItalic);
+           
+           // Calculate Scale
+           if (textWidth > 0) {
+                // Add a small buffer to ensure visual clearance
+                const requiredWidth = textWidth + 1;
+                
+                if (requiredWidth > avail) {
+                    const ratio = avail / requiredWidth;
+                    // Cap scale between 0.1 and 1 to avoid invisibility or scaling up
+                    setScaleFactor(Math.max(0.1, Math.min(1, ratio)));
+                } else {
+                    setScaleFactor(1);
+                }
+           } else {
+               setScaleFactor(1);
+           }
+       } else {
+           setScaleFactor(1);
+       }
+    } else {
+        if (scaleFactor !== 1) setScaleFactor(1);
+    }
+  }, [displayValue, resolvedStyle, width, fontSize, scale, editing]);
 
   const handleBlur = () => {
     setTimeout(() => {
@@ -202,7 +240,7 @@ const Cell = memo(({
           transform: `rotate(${cssRotation}deg)`,
           transformOrigin: align === 'center' ? 'center' : align === 'right' ? 'center right' : 'center left',
       } : {
-          // Explicitly removed scale transform to support physical cell resizing instead of visual shrinking
+          transform: scaleFactor < 1 ? `scale(${scaleFactor})` : undefined,
           transformOrigin: align === 'right' ? 'right' : align === 'center' ? 'center' : 'left',
           width: resolvedStyle.wrapText ? '100%' : 'auto'
       }),
