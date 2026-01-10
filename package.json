@@ -31,7 +31,7 @@
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
-    "wrangler": "^3.80.0",
+    "wrangler": "^4.0.0",
     "babel-plugin-react-compiler": "latest",
     "eslint-plugin-react-compiler": "latest",
     "eslint-plugin-react-hooks": "latest",
