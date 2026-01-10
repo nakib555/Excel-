@@ -33,9 +33,18 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
   // Function Menu State
   const [activeCategory, setActiveCategory] = useState<keyof typeof FUNCTION_CATEGORIES>('Recent');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Use smart positioning for the function menu
-  const menuPosition = useSmartPosition(showFunctionMenu, functionButtonRef, dropdownRef, { fixedWidth: 384 });
+  // Mobile Detection
+  useEffect(() => {
+      const checkMobile = () => setIsMobile(window.innerWidth < 640);
+      checkMobile();
+      window.addEventListener('resize', checkMobile);
+      return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Use smart positioning for the function menu (Desktop only)
+  const menuPosition = useSmartPosition(showFunctionMenu && !isMobile, functionButtonRef, dropdownRef, { fixedWidth: 384 });
 
   // Sync name box with selected cell when selection changes externally
   useEffect(() => {
@@ -46,15 +55,19 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
 
   // Close dropdown when clicking outside
   useEffect(() => {
+      if (!showFunctionMenu) return;
       const handleClickOutside = (e: MouseEvent) => {
           if (functionButtonRef.current && !functionButtonRef.current.contains(e.target as Node) &&
               dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
               setShowFunctionMenu(false);
           }
       };
-      if(showFunctionMenu) window.addEventListener('click', handleClickOutside);
+      // Only attach global click listener on desktop mode where portal isn't full screen
+      if (!isMobile) {
+          window.addEventListener('click', handleClickOutside);
+      }
       return () => window.removeEventListener('click', handleClickOutside);
-  }, [showFunctionMenu]);
+  }, [showFunctionMenu, isMobile]);
 
   // Reset menu state on open
   useEffect(() => {
@@ -180,102 +193,211 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
                 <ChevronDown size={10} className="opacity-50 hidden md:block" />
             </button>
 
-            {/* Portal for menu */}
-            {showFunctionMenu && menuPosition && createPortal(
-                <AnimatePresence>
-                    <motion.div 
-                        ref={dropdownRef}
-                        initial={{ opacity: 0, y: menuPosition.placement === 'bottom' ? -5 : 5, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: menuPosition.placement === 'bottom' ? -5 : 5, scale: 0.95 }}
-                        transition={{ duration: 0.1 }}
-                        className="fixed bg-white border border-slate-200 shadow-xl rounded-lg z-[2000] flex flex-col overflow-hidden ring-1 ring-black/5"
-                        style={{
-                            top: menuPosition.top,
-                            bottom: menuPosition.bottom,
-                            left: menuPosition.left,
-                            maxHeight: 400,
-                            transformOrigin: menuPosition.transformOrigin,
-                            width: menuPosition.width // Dynamically set by useSmartPosition logic
-                        }}
-                    >
-                        {/* Search Bar */}
-                        <div className="p-2 border-b border-slate-100 bg-slate-50/50">
-                            <div className="relative">
-                                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input 
-                                    type="text" 
-                                    placeholder="Search functions..."
-                                    className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    autoFocus
-                                    onClick={(e) => e.stopPropagation()}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex flex-1 min-h-0">
-                            {/* Categories Sidebar */}
-                            <div className="w-1/3 bg-slate-50 border-r border-slate-200 flex flex-col overflow-y-auto scrollbar-thin">
-                                {Object.keys(FUNCTION_CATEGORIES).map((cat) => {
-                                    const category = cat as keyof typeof FUNCTION_CATEGORIES;
-                                    const Icon = FUNCTION_CATEGORIES[category].icon;
-                                    const isActive = activeCategory === category;
-                                    return (
-                                        <button
-                                            key={cat}
-                                            onClick={(e) => { e.stopPropagation(); setActiveCategory(category); setSearchTerm(''); }}
-                                            className={cn(
-                                                "px-3 py-2 text-[11px] font-medium text-left flex items-center gap-2 transition-colors",
-                                                isActive ? "bg-white text-emerald-700 shadow-sm border-r-2 border-r-emerald-500" : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
-                                            )}
-                                        >
-                                            <Icon size={12} className={isActive ? "text-emerald-500" : "text-slate-400"} />
-                                            {/* Hide label on very small screens? Maybe just clip it. */}
-                                            <span className="truncate">{cat}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Functions List */}
-                            <div className="w-2/3 flex flex-col overflow-hidden bg-white">
-                                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-white border-b border-slate-50 flex-shrink-0">
-                                    {searchTerm ? 'Search Results' : activeCategory}
+            {/* Portal for menu - Mobile Bottom Sheet vs Desktop Dropdown */}
+            {showFunctionMenu && (
+                isMobile ? createPortal(
+                    <AnimatePresence>
+                        <motion.div className="fixed inset-0 z-[5000] flex flex-col justify-end isolate">
+                            {/* Backdrop */}
+                            <motion.div 
+                                initial={{ opacity: 0 }} 
+                                animate={{ opacity: 1 }} 
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                                onClick={() => setShowFunctionMenu(false)}
+                            />
+                            
+                            {/* Sheet Content */}
+                            <motion.div
+                                initial={{ y: "100%" }} 
+                                animate={{ y: 0 }} 
+                                exit={{ y: "100%" }}
+                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                                className="relative bg-white rounded-t-2xl shadow-2xl flex flex-col h-[75vh] w-full overflow-hidden"
+                            >
+                                {/* Drag Handle */}
+                                <div className="w-full flex justify-center pt-3 pb-1 flex-shrink-0" onClick={() => setShowFunctionMenu(false)}>
+                                    <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
                                 </div>
-                                <div className="overflow-y-auto scrollbar-thin flex-1 p-1">
+
+                                {/* Header & Search */}
+                                <div className="px-4 pb-2 flex-shrink-0 flex flex-col gap-3">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-lg font-bold text-slate-800">Insert Function</h3>
+                                        <button onClick={() => setShowFunctionMenu(false)} className="p-2 bg-slate-100 rounded-full text-slate-500 hover:bg-slate-200 transition-colors">
+                                            <X size={20} />
+                                        </button>
+                                    </div>
+                                    <div className="relative">
+                                        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input 
+                                            type="text" 
+                                            placeholder="Search functions..."
+                                            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-base focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Horizontal Categories */}
+                                <div className="flex-shrink-0 border-b border-slate-100">
+                                    <div className="flex overflow-x-auto px-4 py-3 gap-2 no-scrollbar">
+                                        {Object.keys(FUNCTION_CATEGORIES).map(cat => {
+                                            const category = cat as keyof typeof FUNCTION_CATEGORIES;
+                                            const Icon = FUNCTION_CATEGORIES[category].icon;
+                                            return (
+                                                <button
+                                                    key={cat}
+                                                    onClick={() => { setActiveCategory(category); setSearchTerm(''); }}
+                                                    className={cn(
+                                                        "px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors flex items-center gap-2 border",
+                                                        activeCategory === cat 
+                                                            ? "bg-slate-900 text-white border-slate-900 shadow-md" 
+                                                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                                                    )}
+                                                >
+                                                    <Icon size={14} className={activeCategory === cat ? "text-white" : "text-slate-400"} />
+                                                    {cat}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* List */}
+                                <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
                                     {displayedFunctions.length > 0 ? (
-                                        displayedFunctions.map(fn => (
-                                            <button
-                                                key={fn}
-                                                className="w-full text-left px-3 py-1.5 hover:bg-emerald-50 text-xs text-slate-700 hover:text-emerald-800 font-medium font-mono flex items-center gap-2 group transition-colors rounded-md"
-                                                onClick={(e) => handleFunctionClick(e, fn)}
-                                            >
-                                                <FunctionSquare size={12} className="opacity-30 group-hover:opacity-100 group-hover:text-emerald-500 transition-opacity" />
-                                                {fn}
-                                            </button>
-                                        ))
+                                        <div className="grid grid-cols-1 gap-1 pb-safe">
+                                            {displayedFunctions.map(fn => (
+                                                <button
+                                                    key={fn}
+                                                    onClick={(e) => handleFunctionClick(e, fn)}
+                                                    className="flex items-center gap-4 p-4 hover:bg-slate-50 active:bg-emerald-50 rounded-xl text-left transition-colors border border-transparent hover:border-slate-100 group"
+                                                >
+                                                    <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 font-serif italic font-bold text-lg group-active:scale-110 transition-transform">
+                                                        fx
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-base font-bold text-slate-800">{fn}</span>
+                                                        <span className="text-xs text-slate-400">Insert function</span>
+                                                    </div>
+                                                    <div className="ml-auto text-slate-300">
+                                                        <ChevronRight size={20} />
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
                                     ) : (
-                                        <div className="p-4 text-center text-xs text-slate-400 italic">
-                                            No functions found.
+                                        <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-2 opacity-60">
+                                            <Search size={32} />
+                                            <p className="text-sm font-medium">No functions found</p>
                                         </div>
                                     )}
                                 </div>
-                            </div>
-                        </div>
-                        
-                        <div className="border-t border-slate-100 p-2 bg-slate-50/30 flex justify-end">
-                            <button 
-                                className="text-[10px] text-blue-600 hover:underline flex items-center gap-1"
-                                onClick={(e) => e.stopPropagation()}
+                            </motion.div>
+                        </motion.div>
+                    </AnimatePresence>,
+                    document.body
+                ) 
+                : (
+                    menuPosition && createPortal(
+                        <AnimatePresence>
+                            <motion.div 
+                                ref={dropdownRef}
+                                initial={{ opacity: 0, y: menuPosition.placement === 'bottom' ? -5 : 5, scale: 0.95 }}
+                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                exit={{ opacity: 0, y: menuPosition.placement === 'bottom' ? -5 : 5, scale: 0.95 }}
+                                transition={{ duration: 0.1 }}
+                                className="fixed bg-white border border-slate-200 shadow-xl rounded-lg z-[2000] flex flex-col overflow-hidden ring-1 ring-black/5"
+                                style={{
+                                    top: menuPosition.top,
+                                    bottom: menuPosition.bottom,
+                                    left: menuPosition.left,
+                                    maxHeight: 400,
+                                    transformOrigin: menuPosition.transformOrigin,
+                                    width: menuPosition.width
+                                }}
                             >
-                                More functions <ChevronRight size={10} />
-                            </button>
-                        </div>
-                    </motion.div>
-                </AnimatePresence>,
-                document.body
+                                {/* Search Bar */}
+                                <div className="p-2 border-b border-slate-100 bg-slate-50/50">
+                                    <div className="relative">
+                                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input 
+                                            type="text" 
+                                            placeholder="Search functions..."
+                                            className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:border-primary-400 focus:ring-2 focus:ring-primary-100 transition-all"
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            autoFocus
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-1 min-h-0">
+                                    {/* Categories Sidebar */}
+                                    <div className="w-1/3 bg-slate-50 border-r border-slate-200 flex flex-col overflow-y-auto scrollbar-thin">
+                                        {Object.keys(FUNCTION_CATEGORIES).map((cat) => {
+                                            const category = cat as keyof typeof FUNCTION_CATEGORIES;
+                                            const Icon = FUNCTION_CATEGORIES[category].icon;
+                                            const isActive = activeCategory === category;
+                                            return (
+                                                <button
+                                                    key={cat}
+                                                    onClick={(e) => { e.stopPropagation(); setActiveCategory(category); setSearchTerm(''); }}
+                                                    className={cn(
+                                                        "px-3 py-2 text-[11px] font-medium text-left flex items-center gap-2 transition-colors",
+                                                        isActive ? "bg-white text-emerald-700 shadow-sm border-r-2 border-r-emerald-500" : "text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+                                                    )}
+                                                >
+                                                    <Icon size={12} className={isActive ? "text-emerald-500" : "text-slate-400"} />
+                                                    <span className="truncate">{cat}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Functions List */}
+                                    <div className="w-2/3 flex flex-col overflow-hidden bg-white">
+                                        <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-white border-b border-slate-50 flex-shrink-0">
+                                            {searchTerm ? 'Search Results' : activeCategory}
+                                        </div>
+                                        <div className="overflow-y-auto scrollbar-thin flex-1 p-1">
+                                            {displayedFunctions.length > 0 ? (
+                                                displayedFunctions.map(fn => (
+                                                    <button
+                                                        key={fn}
+                                                        className="w-full text-left px-3 py-1.5 hover:bg-emerald-50 text-xs text-slate-700 hover:text-emerald-800 font-medium font-mono flex items-center gap-2 group transition-colors rounded-md"
+                                                        onClick={(e) => handleFunctionClick(e, fn)}
+                                                    >
+                                                        <FunctionSquare size={12} className="opacity-30 group-hover:opacity-100 group-hover:text-emerald-500 transition-opacity" />
+                                                        {fn}
+                                                    </button>
+                                                ))
+                                            ) : (
+                                                <div className="p-4 text-center text-xs text-slate-400 italic">
+                                                    No functions found.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="border-t border-slate-100 p-2 bg-slate-50/30 flex justify-end">
+                                    <button 
+                                        className="text-[10px] text-blue-600 hover:underline flex items-center gap-1"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        More functions <ChevronRight size={10} />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </AnimatePresence>,
+                        document.body
+                    )
+                )
             )}
         </div>
       </div>

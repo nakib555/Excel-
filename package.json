@@ -18,7 +18,9 @@
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "tailwind-merge": "^2.2.2",
-    "@google/genai": "*"
+    "@google/genai": "*",
+    "react-window": "1.8.10",
+    "react-virtualized-auto-sizer": "1.0.24"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
