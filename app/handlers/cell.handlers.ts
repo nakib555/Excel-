@@ -138,7 +138,8 @@ export const useCellHandlers = ({
                 if (!cell) continue;
 
                 if (cell.raw.startsWith('=')) {
-                    cell.value = evaluateFormula(cell.raw, nextCells);
+                    // Pass currentId for cycle detection
+                    cell.value = evaluateFormula(cell.raw, nextCells, currentId);
                 } 
 
                 const dependents = nextDependents[currentId];
@@ -267,7 +268,7 @@ export const useCellHandlers = ({
                 });
                 Object.keys(updates).forEach(id => {
                     if (nextCells[id].raw.startsWith('=')) {
-                        nextCells[id].value = evaluateFormula(nextCells[id].raw, nextCells);
+                        nextCells[id].value = evaluateFormula(nextCells[id].raw, nextCells, id);
                     }
                 });
                 return { ...sheet, cells: nextCells };
@@ -392,7 +393,7 @@ export const useCellHandlers = ({
 
             Object.keys(nextCells).forEach(k => {
                 if (nextCells[k].raw.startsWith('=')) {
-                    nextCells[k].value = evaluateFormula(nextCells[k].raw, nextCells);
+                    nextCells[k].value = evaluateFormula(nextCells[k].raw, nextCells, k);
                 }
             });
 

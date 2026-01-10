@@ -61,7 +61,8 @@ export const generateSparseData = (): { cells: Record<CellId, CellData>, depende
     Object.keys(cells).forEach(key => {
         const cell = cells[key];
         if (cell.raw.startsWith('=')) {
-            cell.value = evaluateFormula(cell.raw, cells);
+            // Pass key as currentId
+            cell.value = evaluateFormula(cell.raw, cells, key);
             const deps = extractDependencies(cell.raw);
             deps.forEach(dep => {
                 if (!dependentsMap[dep]) dependentsMap[dep] = [];
