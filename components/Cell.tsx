@@ -66,14 +66,18 @@ const Cell = memo(({
   
   const [isHovered, setIsHovered] = useState(false);
   
+  // Touch detection for mobile adjustment
+  const isTouch = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
   // Logic for showing comment: 
   // 1. Must have comment data
-  // 2. Must be hovered (with delay logic below)
-  // 3. Must NOT be editing
-  // 4. Removed 'isActive' to prevent comments from obscuring grid during navigation
-  const showComment = !!data.comment && isHovered && !editing;
+  // 2. Must NOT be editing
+  // 3. Desktop: Must be hovered
+  // 4. Mobile/Touch: Can be active (selected) to allow viewing without hover
+  const showComment = !!data.comment && !editing && (isHovered || (isActive && isTouch));
   
   // Use smart positioning for the comment tooltip
+  // Note: useSmartPosition handles mobile axis adjustment automatically (forces vertical on mobile)
   const dropdownPosition = useSmartPosition(showDropdown, containerRef, dropdownRef, { fixedWidth: Math.max(120, width) });
   const commentPosition = useSmartPosition(showComment, containerRef, commentRef, { axis: 'horizontal', gap: 8, widthClass: 'max-w-[200px]' });
 
