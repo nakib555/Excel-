@@ -1,6 +1,7 @@
+
 import React, { useEffect, useRef, memo, useCallback, useState, useMemo, forwardRef } from 'react';
 import { motion } from 'framer-motion';
-import { VariableSizeGrid, VariableSizeList, GridOnScrollProps } from 'react-window';
+import { VariableSizeGrid, VariableSizeList, GridOnScrollProps, areEqual } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
 import { numToChar, getCellId, parseCellId, cn, getRange, getMergeRangeDimensions } from '../utils';
@@ -41,6 +42,136 @@ interface GridProps {
   onAutoFitRow?: (row: number) => void;
   onScrollToActiveCell?: () => void;
 }
+
+interface ItemData {
+    cells: Record<CellId, CellData>;
+    styles: Record<string, CellStyle>;
+    merges: string[];
+    validations: Record<CellId, ValidationRule>;
+    activeCell: CellId | null;
+    selectionSet: Set<string>;
+    mergedCellsSet: Set<string>;
+    columnWidths: Record<string, number>;
+    rowHeights: Record<number, number>;
+    scale: number;
+    isScrolling: boolean;
+    activeFilterId: string | null;
+    onCellClick: (id: CellId, isShift: boolean) => void;
+    onCellDoubleClick: (id: CellId) => void;
+    onCellChange: (id: CellId, val: string) => void;
+    onNavigate: (direction: NavigationDirection, isShift: boolean) => void;
+    setActiveFilterId: (id: string | null) => void;
+}
+
+// Optimized Cell Renderer defined OUTSIDE the component
+const CellRenderer = memo(({ columnIndex, rowIndex, style, data }: { columnIndex: number, rowIndex: number, style: React.CSSProperties, data: ItemData }) => {
+    const { 
+        cells, styles, merges, validations, activeCell, selectionSet, mergedCellsSet,
+        columnWidths, rowHeights, scale, isScrolling, activeFilterId,
+        onCellClick, onCellDoubleClick, onCellChange, onNavigate, setActiveFilterId
+    } = data;
+
+    const id = getCellId(columnIndex, rowIndex);
+    
+    // If this cell is "hidden" by a merge (i.e. it's covered by another cell), don't render it.
+    if (mergedCellsSet.has(id)) {
+        return null; 
+    }
+
+    const cellData = cells[id];
+    const safeData = cellData || { id, raw: '', value: '' };
+    const cellStyle = (safeData.styleId && styles[safeData.styleId]) ? styles[safeData.styleId] : {};
+    const isSelected = activeCell === id;
+    const isInRange = selectionSet.has(id);
+    
+    // Check if this cell is the START of a merge
+    // We need to adjust width/height if it is.
+    const mergeRange = merges.find(m => m.startsWith(id + ':'));
+    let finalStyle = style;
+    
+    if (mergeRange) {
+        const dims = getMergeRangeDimensions(mergeRange, columnWidths, rowHeights, DEFAULT_COL_WIDTH, DEFAULT_ROW_HEIGHT);
+        finalStyle = {
+            ...style,
+            width: dims.width * scale,
+            height: dims.height * scale,
+            zIndex: 10 // Ensure merged cells sit on top
+        };
+    }
+
+    return (
+        <div style={finalStyle}>
+            <Cell 
+                id={id}
+                data={safeData}
+                style={cellStyle}
+                isSelected={isSelected}
+                isActive={isSelected}
+                isInRange={isInRange}
+                width={Number(finalStyle.width)}
+                height={Number(finalStyle.height)}
+                scale={scale}
+                isGhost={isScrolling}
+                validation={validations[id]}
+                onMouseDown={(id, shift) => onCellClick(id, shift)}
+                onMouseEnter={() => {}} // Disabled specific drag hover for perf
+                onDoubleClick={onCellDoubleClick}
+                onChange={onCellChange}
+                onNavigate={(dir) => onNavigate(dir, false)}
+                isFilterActive={activeFilterId === id}
+                onToggleFilter={setActiveFilterId}
+            />
+        </div>
+    );
+}, (prev, next) => {
+    // Custom Comparator for Performance
+    if (
+        prev.style.left !== next.style.left ||
+        prev.style.top !== next.style.top ||
+        prev.style.width !== next.style.width ||
+        prev.style.height !== next.style.height
+    ) {
+        return false;
+    }
+
+    const prevData = prev.data;
+    const nextData = next.data;
+
+    // Globals
+    if (prevData.scale !== nextData.scale) return false;
+    if (prevData.isScrolling !== nextData.isScrolling) return false;
+    if (prevData.activeFilterId !== nextData.activeFilterId) return false;
+
+    const id = getCellId(prev.columnIndex, prev.rowIndex);
+
+    // Data Change
+    // We check if the cells object reference changed, and if so, did THIS cell change?
+    if (prevData.cells !== nextData.cells) {
+        if (prevData.cells[id] !== nextData.cells[id]) return false;
+    }
+
+    // Selection Change
+    if (prevData.selectionSet !== nextData.selectionSet || prevData.activeCell !== nextData.activeCell) {
+        const wasSelected = prevData.activeCell === id || prevData.selectionSet.has(id);
+        const isSelected = nextData.activeCell === id || nextData.selectionSet.has(id);
+        if (wasSelected !== isSelected) return false;
+    }
+
+    // Styles Change
+    if (prevData.styles !== nextData.styles) {
+        const cell = prevData.cells[id];
+        if (cell?.styleId) {
+             if (prevData.styles[cell.styleId] !== nextData.styles[cell.styleId]) return false;
+        }
+    }
+    
+    // Merges
+    if (prevData.mergedCellsSet !== nextData.mergedCellsSet) {
+        if (prevData.mergedCellsSet.has(id) !== nextData.mergedCellsSet.has(id)) return false;
+    }
+
+    return true;
+});
 
 const Grid: React.FC<GridProps> = ({
   size,
@@ -108,14 +239,6 @@ const Grid: React.FC<GridProps> = ({
     scrollTimeoutRef.current = setTimeout(() => {
       setIsScrolling(false);
     }, 150);
-
-    // Infinite Scroll Logic (Simplified)
-    if (!loadingRef.current && containerRef.current) {
-        // Need to access grid's outer element to check scrollHeight vs scrollTop
-        // react-window doesn't expose this easily in onScroll, but we can infer from indices if needed
-        // For now, let's trigger expansion if we are near the end of configured size
-        // This is a naive implementation for react-window
-    }
   }, []);
 
   // Update Grid when dimensions change
@@ -131,7 +254,6 @@ const Grid: React.FC<GridProps> = ({
       merges.forEach(range => {
           const cellsInRange = getRange(range.split(':')[0], range.split(':')[1] || range.split(':')[0]);
           // We add all cells EXCEPT the top-left one to the set of "hidden" cells
-          // The top-left one needs to be rendered specially
           const s = parseCellId(range.split(':')[0]);
           if(s) {
              const startId = getCellId(s.col, s.row);
@@ -145,10 +267,20 @@ const Grid: React.FC<GridProps> = ({
 
   const selectionSet = useMemo(() => new Set(selectionRange || []), [selectionRange]);
 
+  // Construct item data to pass to virtual grid
+  const itemData = useMemo<ItemData>(() => ({
+      cells, styles, merges, validations, activeCell,
+      selectionSet, mergedCellsSet, columnWidths, rowHeights, scale,
+      isScrolling, activeFilterId,
+      onCellClick, onCellDoubleClick, onCellChange, onNavigate, setActiveFilterId
+  }), [
+      cells, styles, merges, validations, activeCell, 
+      selectionSet, mergedCellsSet, columnWidths, rowHeights, 
+      scale, isScrolling, activeFilterId, 
+      onCellClick, onCellDoubleClick, onCellChange, onNavigate
+  ]);
+
   // --- SELECTION CALCULATIONS ---
-  // We need to calculate the absolute position (top, left, width, height) of the selection overlay
-  // relative to the grid content. Since we have variable sizes, we must sum them up.
-  // Optimization: Only re-calc when selection changes.
   const selectionBounds = useMemo(() => {
     if (!selectionRange || selectionRange.length === 0) return null;
     const start = parseCellId(selectionRange[0]);
@@ -164,22 +296,14 @@ const Grid: React.FC<GridProps> = ({
   }, [selectionRange]);
 
   const getRectForRange = useCallback((minRow: number, maxRow: number, minCol: number, maxCol: number) => {
-      // This is expensive if loop is large, but usually selection is small.
-      // react-window has "getItemMetadata" but it's private.
-      // We manually sum. Ideally we cache offsets.
-      
       let top = 0;
       for (let r = 0; r < minRow; r++) top += getRowHeight(r);
-      
       let left = 0;
       for (let c = 0; c < minCol; c++) left += getColWidth(c);
-      
       let height = 0;
       for (let r = minRow; r <= maxRow; r++) height += getRowHeight(r);
-      
       let width = 0;
       for (let c = minCol; c <= maxCol; c++) width += getColWidth(c);
-      
       return { top, left, width, height };
   }, [getRowHeight, getColWidth]);
 
@@ -265,77 +389,6 @@ const Grid: React.FC<GridProps> = ({
     </div>
   ));
 
-  // Cell Renderer
-  const CellRenderer = memo(({ columnIndex, rowIndex, style }: any) => {
-      const id = getCellId(columnIndex, rowIndex);
-      
-      // If this cell is "hidden" by a merge (i.e. it's covered by another cell), don't render it.
-      // NOTE: This assumes standard grid layout. 
-      if (mergedCellsSet.has(id)) {
-          return null; 
-      }
-
-      const data = cells[id];
-      const safeData = data || { id, raw: '', value: '' };
-      const cellStyle = (safeData.styleId && styles[safeData.styleId]) ? styles[safeData.styleId] : {};
-      const isSelected = activeCell === id;
-      const isInRange = selectionSet.has(id);
-      
-      // Check if this cell is the START of a merge
-      // We need to adjust width/height if it is.
-      // Limitation: react-window calculates style based on single cell. We must override it.
-      const mergeRange = merges.find(m => m.startsWith(id + ':'));
-      let finalStyle = { ...style };
-      
-      if (mergeRange) {
-          const dims = getMergeRangeDimensions(mergeRange, columnWidths, rowHeights, DEFAULT_COL_WIDTH, DEFAULT_ROW_HEIGHT);
-          finalStyle.width = dims.width * scale;
-          finalStyle.height = dims.height * scale;
-          finalStyle.zIndex = 10; // Ensure merged cells sit on top
-      }
-
-      return (
-          <div style={finalStyle}>
-              <Cell 
-                  id={id}
-                  data={safeData}
-                  style={cellStyle}
-                  isSelected={isSelected}
-                  isActive={isSelected}
-                  isInRange={isInRange}
-                  width={finalStyle.width}
-                  height={finalStyle.height}
-                  scale={scale}
-                  isGhost={isScrolling} // Pass scrolling state for optimization
-                  validation={validations[id]}
-                  onMouseDown={(id, shift) => onCellClick(id, shift)}
-                  onMouseEnter={(id) => {
-                      if (activeCell && !isScrolling) { // Only track drag if not scrolling fast
-                          // onSelectionDrag logic handled via Grid level mouse handlers or passing prop
-                          // We rely on Global Mouse Up usually
-                      }
-                  }}
-                  onDoubleClick={onCellDoubleClick}
-                  onChange={onCellChange}
-                  onNavigate={(dir) => onNavigate(dir, false)}
-                  isFilterActive={activeFilterId === id}
-                  onToggleFilter={setActiveFilterId}
-              />
-          </div>
-      );
-  }, (prev, next) => {
-      return (
-          prev.columnIndex === next.columnIndex &&
-          prev.rowIndex === next.rowIndex &&
-          prev.style.left === next.style.left &&
-          prev.style.top === next.style.top && 
-          prev.style.width === next.style.width &&
-          prev.style.height === next.style.height &&
-          // Explicit props check
-          prev.data.activeCell === next.data.activeCell // We'll pass extra data via itemData if needed
-      );
-  });
-
   // Column Header Renderer
   const ColHeaderRenderer = ({ index, style }: any) => {
       const colChar = numToChar(index);
@@ -385,22 +438,9 @@ const Grid: React.FC<GridProps> = ({
   // --- GLOBAL MOUSE HANDLERS (Drag Selection) ---
   useEffect(() => {
       const handleMouseMove = (e: MouseEvent) => {
-          // Calculate grid-relative coordinates
           if (!containerRef.current || (!e.buttons && !isFillDraggingRef.current)) return;
-          
-          const rect = containerRef.current.getBoundingClientRect();
-          const x = e.clientX - rect.left - headerColW + (gridRef.current?.state.scrollLeft || 0);
-          const y = e.clientY - rect.top - headerRowH + (gridRef.current?.state.scrollTop || 0);
-          
-          // Naive reverse lookup for Hover/Drag
-          // For virtualized grids, reverse lookup from pixel to cell index is tricky without helper.
-          // react-window doesn't expose `getIndicesForPosition`.
-          // But we can approximate or use binary search if needed.
-          // For now, dragging support in this react-window implementation is limited without extra logic.
-          
           if (isFillDraggingRef.current) {
-              // Fill Logic
-              // ... reuse logic from previous implementation but adapted for pixel math ...
+              // Fill Logic can be expanded here for visual updates
           }
       };
 
@@ -491,6 +531,7 @@ const Grid: React.FC<GridProps> = ({
                         innerElementType={InnerGridElement}
                         overscanRowCount={10}
                         overscanColumnCount={5}
+                        itemData={itemData}
                     >
                         {CellRenderer}
                     </VariableSizeGrid>
