@@ -18,7 +18,7 @@ const parseSeries = (val: string): number[] => {
 
 export const Sparkline: React.FC<Props> = ({ value, config, width, height }) => {
     const data = useMemo(() => parseSeries(value), [value]);
-    if (data.length === 0) return null;
+    if (data.length < 2) return null; // Need at least 2 points for a line
 
     const min = Math.min(...data);
     const max = Math.max(...data);
@@ -29,39 +29,53 @@ export const Sparkline: React.FC<Props> = ({ value, config, width, height }) => 
     const drawHeight = height - (p * 2);
     const drawWidth = width - (p * 2);
 
+    // Column / WinLoss Logic
     if (config.subtype === 'column' || config.subtype === 'winloss') {
-        const barWidth = (drawWidth / data.length) - 2;
         // Zero baseline logic
         // If all positive, baseline is bottom. If mixed, baseline is proportional.
-        const baseline = max <= 0 ? 0 : min >= 0 ? drawHeight : (max / range) * drawHeight;
+        const zeroY = max <= 0 ? 0 : min >= 0 ? drawHeight : (max / range) * drawHeight;
         
         return (
             <div className="w-full h-full flex items-end justify-between px-1 pb-1 pt-1 gap-[1px]">
                <svg width="100%" height="100%">
+                   {/* Zero Line */}
+                   <line x1="0" y1={zeroY + p} x2="100%" y2={zeroY + p} stroke="#cbd5e1" strokeWidth="1" />
+                   
                    {data.map((d, i) => {
-                       // Normalize
-                       const normalized = config.subtype === 'winloss' 
-                            ? (d > 0 ? 1 : d < 0 ? -1 : 0) 
-                            : d;
+                       const isWinLoss = config.subtype === 'winloss';
+                       const normalized = isWinLoss ? (d > 0 ? 1 : d < 0 ? -1 : 0) : d;
                        
-                       // For simple column (all positive assumed for simplicity or relative to min)
-                       // Robust Logic:
-                       // h = (val / max) * height
-                       const h = Math.abs(d) / Math.max(Math.abs(min), Math.abs(max)) * drawHeight;
-                       const x = i * (drawWidth / data.length);
-                       const y = d >= 0 ? (drawHeight / 2) - h : (drawHeight / 2);
+                       // Calculate bar height relative to zero line
+                       // d positive: goes up from zeroY
+                       // d negative: goes down from zeroY
                        
-                       // Simplified "Column" for positive data usually:
-                       const barH = ((d - min) / range) * drawHeight;
+                       let barHeight = 0;
+                       let y = 0;
+
+                       if (isWinLoss) {
+                           // Fixed height for win/loss
+                           barHeight = drawHeight / 2; 
+                           y = normalized > 0 ? zeroY - barHeight : zeroY;
+                           if (normalized === 0) barHeight = 0;
+                       } else {
+                           barHeight = (Math.abs(d) / range) * drawHeight;
+                           y = d >= 0 ? zeroY - barHeight : zeroY;
+                       }
+
+                       const barWidth = (drawWidth / data.length) - 1;
+                       const x = i * (drawWidth / data.length) + p;
                        
+                       const color = d < 0 ? '#ef4444' : (d === max ? '#10b981' : (config.color || '#3b82f6'));
+
                        return (
                            <rect 
                                 key={i}
                                 x={x}
-                                y={drawHeight - barH}
-                                width={drawWidth / data.length - 1}
-                                height={Math.max(1, barH)}
-                                fill={d < 0 ? '#ef4444' : (config.color || '#3b82f6')}
+                                y={y + p}
+                                width={Math.max(1, barWidth)}
+                                height={Math.max(1, barHeight)}
+                                fill={color}
+                                rx={1}
                            />
                        );
                    })}
@@ -73,12 +87,27 @@ export const Sparkline: React.FC<Props> = ({ value, config, width, height }) => 
     // Line Chart (Default)
     const points = data.map((d, i) => {
         const x = (i / (data.length - 1)) * drawWidth + p;
-        const y = height - p - ((d - min) / range) * drawHeight;
+        const y = (height - p) - ((d - min) / range) * drawHeight;
         return `${x},${y}`;
     }).join(' ');
 
+    // Find indices for markers
+    const maxIdx = data.indexOf(max);
+    const minIdx = data.indexOf(min);
+    const lastIdx = data.length - 1;
+
+    const getCoord = (idx: number, val: number) => ({
+        cx: (idx / (data.length - 1)) * drawWidth + p,
+        cy: (height - p) - ((val - min) / range) * drawHeight
+    });
+
+    const maxPoint = getCoord(maxIdx, max);
+    const minPoint = getCoord(minIdx, min);
+    const lastPoint = getCoord(lastIdx, data[lastIdx]);
+
     return (
         <svg width="100%" height="100%" className="overflow-visible">
+            {/* Smooth curve approximation or Polyline */}
             <polyline 
                 points={points} 
                 fill="none" 
@@ -87,15 +116,14 @@ export const Sparkline: React.FC<Props> = ({ value, config, width, height }) => 
                 strokeLinecap="round" 
                 strokeLinejoin="round" 
             />
-            {/* End Dot */}
-            {data.length > 0 && (
-                <circle 
-                    cx={(data.length > 1 ? drawWidth : 0) + p} 
-                    cy={height - p - ((data[data.length-1] - min) / range) * drawHeight} 
-                    r={2} 
-                    fill={config.color || "#2563eb"} 
-                />
-            )}
+            
+            {/* Markers */}
+            {/* Max (Green) */}
+            <circle cx={maxPoint.cx} cy={maxPoint.cy} r={2.5} fill="#10b981" stroke="white" strokeWidth={1} />
+            {/* Min (Red) */}
+            <circle cx={minPoint.cx} cy={minPoint.cy} r={2.5} fill="#ef4444" stroke="white" strokeWidth={1} />
+            {/* Last (Blue/Theme) */}
+            <circle cx={lastPoint.cx} cy={lastPoint.cy} r={2.5} fill={config.color || "#2563eb"} stroke="white" strokeWidth={1} />
         </svg>
     );
 };
@@ -105,33 +133,63 @@ export const DataBar: React.FC<Props> = ({ value, config, width }) => {
     if (isNaN(val)) return null;
 
     const max = config.max || 100;
-    const min = 0; // Assume 0 baseline for simple data bars
-    const percent = Math.min(100, Math.max(0, (val / max) * 100));
+    const min = 0;
+    const rawPercent = (val / max) * 100;
+    const percent = Math.min(100, Math.max(0, rawPercent));
     
     return (
         <div className="absolute inset-0 z-0 flex items-center px-1">
             <div 
-                className="h-[80%] rounded-[2px] opacity-30 transition-all duration-300"
+                className="h-[70%] rounded-[3px] transition-all duration-300 relative overflow-hidden"
                 style={{ 
                     width: `${percent}%`, 
-                    backgroundColor: config.color || '#3b82f6' 
+                    backgroundColor: config.color ? `${config.color}33` : '#3b82f633', // transparent version
+                    borderRight: `2px solid ${config.color || '#3b82f6'}`
                 }} 
-            />
+            >
+                {/* Gradient Overlay */}
+                <div 
+                    className="absolute inset-0 opacity-20"
+                    style={{ background: `linear-gradient(90deg, transparent, ${config.color || '#3b82f6'})` }}
+                />
+            </div>
         </div>
     );
 };
 
 export const RatingStars: React.FC<Props> = ({ value, config }) => {
-    const val = Math.min(5, Math.max(0, parseInt(value) || 0));
+    const val = Math.min(5, Math.max(0, parseFloat(value) || 0));
+    
     return (
         <div className="flex items-center gap-0.5 h-full px-1">
-            {[1, 2, 3, 4, 5].map(i => (
-                <Star 
-                    key={i} 
-                    size={10} 
-                    className={i <= val ? "fill-yellow-400 text-yellow-500" : "fill-slate-100 text-slate-200"} 
-                />
-            ))}
+            {[1, 2, 3, 4, 5].map(i => {
+                const filled = i <= Math.floor(val);
+                const partial = i === Math.ceil(val) && val % 1 !== 0; // if val is 3.5, i=4 is partial
+                const percent = partial ? (val % 1) * 100 : 0;
+
+                return (
+                    <div key={i} className="relative w-3 h-3">
+                        {/* Background Star (Gray) */}
+                        <Star 
+                            size={12} 
+                            className="text-slate-200 fill-slate-200 absolute inset-0" 
+                            strokeWidth={0}
+                        />
+                        
+                        {/* Foreground Star (Yellow) - Masked for partial */}
+                        <div 
+                            className="absolute inset-0 overflow-hidden" 
+                            style={{ width: filled ? '100%' : partial ? `${percent}%` : '0%' }}
+                        >
+                            <Star 
+                                size={12} 
+                                className="text-yellow-400 fill-yellow-400" 
+                                strokeWidth={0}
+                            />
+                        </div>
+                    </div>
+                );
+            })}
         </div>
     );
 };
