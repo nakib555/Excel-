@@ -5,6 +5,7 @@ import { cn, formatCellValue, measureTextWidth, useSmartPosition } from '../util
 import { CellSkeleton } from './Skeletons';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { Sparkline, DataBar, RatingStars } from './CellVisualizations';
 
 // Lazy load the new FilterMenu
 const FilterMenu = lazy(() => import('./menus/FilterMenu'));
@@ -62,23 +63,13 @@ const Cell = memo(({
   const [scaleFactor, setScaleFactor] = useState(1);
   const commentRef = useRef<HTMLDivElement>(null);
   const filterBtnRef = useRef<HTMLDivElement>(null);
-  const hoverTimeoutRef = useRef<any>(null);
   
+  // Use centralized positioning
+  const dropdownPosition = useSmartPosition(showDropdown, containerRef, dropdownRef, { fixedWidth: Math.max(120, width) });
+
   const [isHovered, setIsHovered] = useState(false);
   
-  // Touch detection for mobile adjustment
-  const isTouch = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-
-  // Logic for showing comment: 
-  // 1. Must have comment data
-  // 2. Must NOT be editing
-  // 3. Desktop: Must be hovered
-  // 4. Mobile/Touch: Can be active (selected) to allow viewing without hover
-  const showComment = !!data.comment && !editing && (isHovered || (isActive && isTouch));
-  
-  // Use smart positioning for the comment tooltip
-  // Note: useSmartPosition handles mobile axis adjustment automatically (forces vertical on mobile)
-  const dropdownPosition = useSmartPosition(showDropdown, containerRef, dropdownRef, { fixedWidth: Math.max(120, width) });
+  const showComment = !!data.comment && (isHovered || isActive);
   const commentPosition = useSmartPosition(showComment, containerRef, commentRef, { axis: 'horizontal', gap: 8, widthClass: 'max-w-[200px]' });
 
   useEffect(() => { setEditValue(data.raw); }, [data.raw]);
@@ -90,13 +81,6 @@ const Cell = memo(({
   useEffect(() => {
     if (isActive && editing) inputRef.current?.focus();
   }, [isActive, editing]);
-
-  useEffect(() => {
-      // Cleanup timeout on unmount
-      return () => {
-          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-      };
-  }, []);
 
   useEffect(() => {
       if (!showDropdown) return;
@@ -119,7 +103,7 @@ const Cell = memo(({
   const displayValue = formatCellValue(data.value, resolvedStyle);
 
   useLayoutEffect(() => {
-    if (resolvedStyle.shrinkToFit && !resolvedStyle.wrapText && !editing && displayValue) {
+    if (resolvedStyle.shrinkToFit && !resolvedStyle.wrapText && !editing && displayValue && !data.visualization) {
        const indentPx = (resolvedStyle.indent || 0) * 10 * scale; 
        const totalPadding = 8 + indentPx; // 4px left + 4px right base
        const avail = width - totalPadding;
@@ -154,7 +138,7 @@ const Cell = memo(({
     } else {
         if (scaleFactor !== 1) setScaleFactor(1);
     }
-  }, [displayValue, resolvedStyle, width, fontSize, scale, editing]);
+  }, [displayValue, resolvedStyle, width, fontSize, scale, editing, data.visualization]);
 
   const handleBlur = () => {
     setTimeout(() => {
@@ -173,28 +157,6 @@ const Cell = memo(({
       handleBlur();
       onNavigate(e.shiftKey ? 'left' : 'right');
     }
-  };
-
-  // --- Hover Handlers with Debounce ---
-  const handleMouseEnter = () => {
-      onMouseEnter(id); // Trigger parent selection/drag logic immediately
-      
-      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-      // Delay showing comment by 600ms to avoid flashing during quick mouse movement
-      hoverTimeoutRef.current = setTimeout(() => {
-          setIsHovered(true);
-      }, 600);
-  };
-
-  const handleMouseLeave = () => {
-      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-      setIsHovered(false);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-      setIsHovered(false); // Hide comment immediately on click
-      onMouseDown(id, e.shiftKey);
   };
 
   if (isGhost) {
@@ -284,7 +246,8 @@ const Cell = memo(({
           transformOrigin: align === 'right' ? 'right' : align === 'center' ? 'center' : 'left',
           width: resolvedStyle.wrapText ? '100%' : 'auto'
       }),
-      lineHeight: 1.2
+      lineHeight: 1.2,
+      zIndex: 10 // Above data bar
   };
   
   // Validation Dropdown Logic
@@ -300,11 +263,16 @@ const Cell = memo(({
       )}
       style={containerStyle}
       data-cell-id={id}
-      onMouseDown={handleMouseDown}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseDown={(e) => onMouseDown(id, e.shiftKey)}
+      onMouseEnter={() => { onMouseEnter(id); setIsHovered(true); }}
+      onMouseLeave={() => setIsHovered(false)}
       onDoubleClick={() => { setEditing(true); onDoubleClick(id); }}
     >
+      {/* Background Visualizations (DataBar) */}
+      {!editing && data.visualization?.type === 'dataBar' && (
+          <DataBar value={String(data.value)} config={data.visualization} width={width} height={height} />
+      )}
+
       {editing ? (
         <input
           ref={inputRef}
@@ -324,7 +292,7 @@ const Cell = memo(({
       ) : (
         !isMicroView && (
             data.isCheckbox ? (
-                 <div className="flex items-center justify-center w-full h-full pointer-events-none">
+                 <div className="flex items-center justify-center w-full h-full pointer-events-none z-10">
                      <input 
                         type="checkbox" 
                         checked={String(data.value).toUpperCase() === 'TRUE'} 
@@ -332,6 +300,14 @@ const Cell = memo(({
                         className="w-4 h-4 accent-emerald-600 cursor-pointer pointer-events-auto"
                         onMouseDown={(e) => e.stopPropagation()} 
                      />
+                 </div>
+            ) : data.visualization?.type === 'sparkline' ? (
+                 <div className="w-full h-full px-1 py-1 z-10">
+                     <Sparkline value={String(data.value)} config={data.visualization} width={width} height={height} />
+                 </div>
+            ) : data.visualization?.type === 'rating' ? (
+                 <div className="w-full h-full flex items-center justify-center z-10">
+                     <RatingStars value={String(data.value)} config={data.visualization} width={width} height={height} />
                  </div>
             ) : (
                 <span ref={spanRef} style={textStyle} className="relative">
