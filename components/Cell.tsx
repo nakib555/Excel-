@@ -369,7 +369,7 @@ const Cell = memo(({
                     <div 
                         ref={commentRef}
                         className={cn(
-                            "fixed z-[9999] bg-[#ffffe1] border border-slate-300 shadow-xl rounded-[2px] p-2 text-xs text-slate-800 max-w-[200px] break-words pointer-events-none flex flex-col gap-1",
+                            "fixed z-[1] bg-[#ffffe1] border border-slate-300 shadow-xl rounded-[2px] p-2 text-xs text-slate-800 max-w-[200px] break-words pointer-events-none flex flex-col gap-1",
                             commentPosition.ready && "animate-in fade-in zoom-in-95 duration-150"
                         )}
                         style={{

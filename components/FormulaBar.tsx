@@ -35,7 +35,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
   const [searchTerm, setSearchTerm] = useState('');
 
   // Use smart positioning for the function menu
-  const menuPosition = useSmartPosition(showFunctionMenu, functionButtonRef, dropdownRef, { fixedWidth: 320 });
+  const menuPosition = useSmartPosition(showFunctionMenu, functionButtonRef, dropdownRef, { fixedWidth: 384 });
 
   // Sync name box with selected cell when selection changes externally
   useEffect(() => {
@@ -150,18 +150,20 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
         <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-[1px] h-5 bg-slate-300 hidden md:block"></div>
       </div>
 
-      {/* Function Icons - Desktop */}
-      <div className="flex items-center gap-1 text-slate-400 hidden md:flex pl-2">
-        <button className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors" title="Cancel">
-             <X size={14} />
-        </button>
-        <button 
-            className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-green-600 transition-colors" 
-            title="Enter"
-            onClick={onSubmit}
-        >
-             <Check size={14} />
-        </button>
+      {/* Function Icons & Controls */}
+      <div className="flex items-center gap-1 text-slate-400 pl-1 md:pl-2 flex-shrink-0">
+        <div className="hidden md:flex items-center gap-1">
+            <button className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors" title="Cancel">
+                <X size={14} />
+            </button>
+            <button 
+                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-green-600 transition-colors" 
+                title="Enter"
+                onClick={onSubmit}
+            >
+                <Check size={14} />
+            </button>
+        </div>
         
         {/* Function Dropdown */}
         <div className="relative">
@@ -175,7 +177,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
                 title="Insert Function"
             >
                 <span className="font-serif italic font-bold text-sm px-0.5">fx</span>
-                <ChevronDown size={10} className="opacity-50" />
+                <ChevronDown size={10} className="opacity-50 hidden md:block" />
             </button>
 
             {/* Portal for menu */}
@@ -194,7 +196,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
                             left: menuPosition.left,
                             maxHeight: 400,
                             transformOrigin: menuPosition.transformOrigin,
-                            width: '24rem'
+                            width: menuPosition.width // Dynamically set by useSmartPosition logic
                         }}
                     >
                         {/* Search Bar */}
@@ -230,7 +232,8 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
                                             )}
                                         >
                                             <Icon size={12} className={isActive ? "text-emerald-500" : "text-slate-400"} />
-                                            {cat}
+                                            {/* Hide label on very small screens? Maybe just clip it. */}
+                                            <span className="truncate">{cat}</span>
                                         </button>
                                     );
                                 })}
@@ -275,11 +278,6 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
                 document.body
             )}
         </div>
-      </div>
-      
-      {/* Function Icon - Mobile placeholder */}
-      <div className="md:hidden text-slate-400">
-          <span className="font-serif italic font-bold text-sm px-0.5">fx</span>
       </div>
 
       {/* Input Field */}
