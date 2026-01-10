@@ -1,3 +1,4 @@
+
 import React, { memo, useState, useRef, useEffect, useLayoutEffect, lazy, Suspense } from 'react';
 import { CellData, CellStyle, ValidationRule } from '../types';
 import { cn, formatCellValue, measureTextWidth, useSmartPosition } from '../utils';
@@ -61,13 +62,19 @@ const Cell = memo(({
   const [scaleFactor, setScaleFactor] = useState(1);
   const commentRef = useRef<HTMLDivElement>(null);
   const filterBtnRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<any>(null);
   
-  // Use centralized positioning
-  const dropdownPosition = useSmartPosition(showDropdown, containerRef, dropdownRef, { fixedWidth: Math.max(120, width) });
-
   const [isHovered, setIsHovered] = useState(false);
   
-  const showComment = !!data.comment && (isHovered || isActive);
+  // Logic for showing comment: 
+  // 1. Must have comment data
+  // 2. Must be hovered (with delay logic below)
+  // 3. Must NOT be editing
+  // 4. Removed 'isActive' to prevent comments from obscuring grid during navigation
+  const showComment = !!data.comment && isHovered && !editing;
+  
+  // Use smart positioning for the comment tooltip
+  const dropdownPosition = useSmartPosition(showDropdown, containerRef, dropdownRef, { fixedWidth: Math.max(120, width) });
   const commentPosition = useSmartPosition(showComment, containerRef, commentRef, { axis: 'horizontal', gap: 8, widthClass: 'max-w-[200px]' });
 
   useEffect(() => { setEditValue(data.raw); }, [data.raw]);
@@ -79,6 +86,13 @@ const Cell = memo(({
   useEffect(() => {
     if (isActive && editing) inputRef.current?.focus();
   }, [isActive, editing]);
+
+  useEffect(() => {
+      // Cleanup timeout on unmount
+      return () => {
+          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      };
+  }, []);
 
   useEffect(() => {
       if (!showDropdown) return;
@@ -155,6 +169,28 @@ const Cell = memo(({
       handleBlur();
       onNavigate(e.shiftKey ? 'left' : 'right');
     }
+  };
+
+  // --- Hover Handlers with Debounce ---
+  const handleMouseEnter = () => {
+      onMouseEnter(id); // Trigger parent selection/drag logic immediately
+      
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      // Delay showing comment by 600ms to avoid flashing during quick mouse movement
+      hoverTimeoutRef.current = setTimeout(() => {
+          setIsHovered(true);
+      }, 600);
+  };
+
+  const handleMouseLeave = () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      setIsHovered(false);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      setIsHovered(false); // Hide comment immediately on click
+      onMouseDown(id, e.shiftKey);
   };
 
   if (isGhost) {
@@ -260,9 +296,9 @@ const Cell = memo(({
       )}
       style={containerStyle}
       data-cell-id={id}
-      onMouseDown={(e) => onMouseDown(id, e.shiftKey)}
-      onMouseEnter={() => { onMouseEnter(id); setIsHovered(true); }}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseDown={handleMouseDown}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onDoubleClick={() => { setEditing(true); onDoubleClick(id); }}
     >
       {editing ? (

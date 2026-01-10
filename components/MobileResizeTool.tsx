@@ -1,5 +1,6 @@
+
 import React, { memo, useState, useEffect } from 'react';
-import { Minus, Plus, X, MoveHorizontal, MoveVertical, RotateCcw, BoxSelect, Columns, Rows } from 'lucide-react';
+import { Minus, Plus, X, MoveHorizontal, MoveVertical, RotateCcw, BoxSelect, Columns, Rows, MessageSquare } from 'lucide-react';
 import { cn } from '../utils';
 
 interface MobileResizeToolProps {
@@ -9,6 +10,7 @@ interface MobileResizeToolProps {
   onResizeRow: (delta: number) => void;
   onResizeCol: (delta: number) => void;
   onReset: () => void;
+  onEditComment?: () => void;
 }
 
 const MobileResizeTool: React.FC<MobileResizeToolProps> = ({ 
@@ -17,7 +19,8 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
   activeCell, 
   onResizeRow, 
   onResizeCol,
-  onReset 
+  onReset,
+  onEditComment
 }) => {
   const [resizeMode, setResizeMode] = useState<'cell' | 'row' | 'col'>('cell');
 
@@ -99,17 +102,29 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
             </div>
         </div>
 
-        {/* Vertical Divider */}
+        {/* Actions Divider */}
         <div className="w-[1px] h-5 bg-slate-200 flex-shrink-0" />
 
-        {/* Reset Button */}
-        <button
-            onClick={onReset}
-            className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors active:rotate-180 duration-500"
-            title="Reset to Default"
-        >
-            <RotateCcw size={16} />
-        </button>
+        {/* Additional Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0 pl-1">
+             {onEditComment && (
+                <button
+                    onClick={onEditComment}
+                    className="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
+                    title="Edit Comment"
+                >
+                    <MessageSquare size={16} />
+                </button>
+             )}
+             
+             <button
+                onClick={onReset}
+                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors active:rotate-180 duration-500"
+                title="Reset to Default"
+            >
+                <RotateCcw size={16} />
+            </button>
+        </div>
 
       </div>
     </div>

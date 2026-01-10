@@ -1,6 +1,45 @@
 
 import { ValidationRule } from '../types';
 
+// Helper to parse "HH:MM:SS AM/PM" or "HH:MM" into minutes from midnight
+const parseTime = (timeStr: string): number | null => {
+    if (!timeStr) return null;
+    
+    // Normalize input
+    const normalized = timeStr.trim().toLowerCase();
+    
+    // Check for AM/PM
+    const isPM = normalized.includes('pm');
+    const isAM = normalized.includes('am');
+    const is12Hour = isPM || isAM;
+    
+    // Remove AM/PM for parsing digits
+    const cleanTime = normalized.replace(/[a-z\s]/g, '');
+    
+    // Try matching HH:MM:SS or HH:MM
+    const parts = cleanTime.split(':');
+    
+    if (parts.length < 2 || parts.length > 3) return null;
+    
+    let h = parseInt(parts[0], 10);
+    let m = parseInt(parts[1], 10);
+    let s = parts[2] ? parseInt(parts[2], 10) : 0;
+    
+    if (isNaN(h) || isNaN(m) || isNaN(s)) return null;
+    
+    // Validate ranges
+    if (m < 0 || m > 59 || s < 0 || s > 59) return null;
+    if (is12Hour) {
+        if (h < 1 || h > 12) return null;
+        if (isPM && h !== 12) h += 12;
+        if (isAM && h === 12) h = 0;
+    } else {
+        if (h < 0 || h > 23) return null;
+    }
+    
+    return h * 60 + m + (s / 60);
+};
+
 export const validateCellValue = (value: string, rule: ValidationRule): boolean => {
     // If empty and blank is allowed, return true immediately
     if (value === '' || value === null || value === undefined) {
@@ -41,9 +80,15 @@ export const validateCellValue = (value: string, rule: ValidationRule): boolean 
              return checkNumber(date, rule.operator, d1, d2);
              
         case 'time':
-            // Simple time validation could be complex (parsing "13:30"), for now treat as text/date check or simple existence
-            // Ideally, we'd convert HH:MM to minutes from midnight for comparison
-            return true; // Placeholder for robust time logic
+            const timeVal = parseTime(value);
+            if (timeVal === null) return false;
+            
+            const t1 = parseTime(rule.value1);
+            if (t1 === null) return true; // Config error
+            
+            const t2 = rule.value2 ? parseTime(rule.value2) : undefined;
+            
+            return checkNumber(timeVal, rule.operator, t1, t2);
             
         case 'custom':
             // Custom formula validation requires evaluator context (cells), 

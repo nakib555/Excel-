@@ -389,7 +389,15 @@ export const AppRoot: React.FC = () => {
 
       {/* Dialogs */}
       <Suspense fallback={null}>
-          <MobileResizeTool isOpen={dialogs.showMobileResize} onClose={() => dialogs.setShowMobileResize(false)} activeCell={activeCell} onResizeRow={resizeHandlers.resizeActiveRow} onResizeCol={resizeHandlers.resizeActiveCol} onReset={resizeHandlers.handleResetActiveResize} />
+          <MobileResizeTool 
+            isOpen={dialogs.showMobileResize} 
+            onClose={() => dialogs.setShowMobileResize(false)} 
+            activeCell={activeCell} 
+            onResizeRow={resizeHandlers.resizeActiveRow} 
+            onResizeCol={resizeHandlers.resizeActiveCol} 
+            onReset={resizeHandlers.handleResetActiveResize} 
+            onEditComment={handleOpenCommentDialog} 
+          />
       </Suspense>
       <Suspense fallback={null}>
           <AIAssistant isOpen={dialogs.showAI} onClose={() => dialogs.setShowAI(false)} onApply={handleAIApply} apiKey={apiKey} />
