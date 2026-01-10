@@ -43,21 +43,12 @@ export interface CellStyle {
   };
 }
 
-export interface CellVisualization {
-  type: 'sparkline' | 'dataBar' | 'rating';
-  subtype?: 'line' | 'column' | 'winloss'; 
-  color?: string; 
-  max?: number; // For scaling (data bars, sparklines)
-  showValue?: boolean; // For data bars
-}
-
 export interface CellData {
   id: CellId;
   raw: string;      // The user input (e.g., "=SUM(A1:A5)" or "100")
   value: string;    // The computed display value (e.g., "500")
   styleId?: string; // Memory Optimization: Reference to a style in the Sheet's style registry
   isCheckbox?: boolean; // If true, renders as a checkbox
-  visualization?: CellVisualization; // New: In-cell visualization
   filterButton?: boolean; // If true, renders a filter dropdown button
   link?: string;    // URL if the cell is a hyperlink
   comment?: string; // Comment text
@@ -75,6 +66,7 @@ export interface ValidationRule {
   showErrorMessage?: boolean;
   errorTitle?: string;
   errorMessage?: string;
+  // For backward compatibility during migration, we can treat 'options' as value1.split(',')
 }
 
 export interface TableStylePreset {
