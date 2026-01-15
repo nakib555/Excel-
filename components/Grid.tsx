@@ -1,5 +1,6 @@
 
-import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { DataGrid, Column, RenderCellProps } from 'react-data-grid';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
 import { numToChar, getCellId, formatCellValue, parseCellId, cn } from '../utils';
@@ -35,6 +36,22 @@ interface GridProps {
   onScrollToActiveCell?: () => void;
 }
 
+const CommentTooltip = ({ text, rect }: { text: string, rect: DOMRect }) => {
+    return createPortal(
+        <div 
+            className="fixed z-[9999] bg-[#ffffe1] border border-slate-400 shadow-[2px_2px_5px_rgba(0,0,0,0.2)] p-2 text-xs text-slate-900 pointer-events-none max-w-[200px] break-words"
+            style={{
+                top: rect.top,
+                left: rect.right + 5,
+            }}
+        >
+            <div className="font-bold mb-1 text-slate-500 text-[10px] uppercase tracking-wider">Comment</div>
+            {text}
+        </div>,
+        document.body
+    );
+};
+
 const CustomCellRenderer = ({ 
     row, 
     column, 
@@ -56,6 +73,8 @@ const CustomCellRenderer = ({
 }) => {
   const cellId = getCellId(parseInt(column.key), row.id);
   const cellData = cells[cellId];
+  const [isHovered, setIsHovered] = useState(false);
+  const cellRef = useRef<HTMLDivElement>(null);
   
   const isActive = activeCell === cellId;
   const isInRange = selectionSet.has(cellId);
@@ -67,11 +86,13 @@ const CustomCellRenderer = ({
       padding: '0 4px',
       display: 'flex',
       alignItems: 'center', // Default vertical align
-      overflow: 'hidden',
+      overflow: 'visible', // Changed to visible to allow handle/borders to overlap if needed, though they are inside. 
+      // Note: overflow visible might cause text to bleed. 
+      // Ideally we use a inner wrapper for content with overflow hidden and outer for borders.
       position: 'relative',
       cursor: 'cell',
-      fontFamily: 'Calibri, "Segoe UI", sans-serif', // Excel default font
-      fontSize: '11pt', // Excel default size
+      fontFamily: 'Calibri, "Segoe UI", sans-serif',
+      fontSize: '11pt',
   };
 
   const styleId = cellData?.styleId;
@@ -84,9 +105,7 @@ const CustomCellRenderer = ({
       fontWeight: style.bold ? '700' : '400',
       fontStyle: style.italic ? 'italic' : 'normal',
       textDecoration: style.underline ? 'underline' : 'none',
-      // Excel selection: Active cell is white (or default), Range is gray
-      // We do NOT add border here for selection, we use overlays
-      backgroundColor: style.bg || (isInRange && !isActive ? 'rgba(0, 0, 0, 0.05)' : undefined),
+      backgroundColor: style.bg || (isInRange && !isActive ? 'rgba(33, 115, 70, 0.1)' : undefined), // Excel green selection tint
       color: style.color || 'inherit',
       textAlign: style.align || 'left',
       justifyContent: style.align === 'center' ? 'center' : style.align === 'right' ? 'flex-end' : 'flex-start',
@@ -100,7 +119,7 @@ const CustomCellRenderer = ({
       cssStyle.textDecoration = `${cssStyle.textDecoration} line-through`;
   }
 
-  // Handle Borders (Partial Implementation)
+  // Handle Borders
   if (style.borders) {
       if (style.borders.bottom) cssStyle.borderBottom = `${style.borders.bottom.style === 'thick' ? '2px' : '1px'} solid ${style.borders.bottom.color}`;
       if (style.borders.top) cssStyle.borderTop = `${style.borders.top.style === 'thick' ? '2px' : '1px'} solid ${style.borders.top.color}`;
@@ -123,29 +142,41 @@ const CustomCellRenderer = ({
       if (c === selectionBounds.minCol) isLeft = true;
       if (c === selectionBounds.maxCol) isRight = true;
 
-      // Handle appears on the bottom-right corner of the selection
       if (isBottom && isRight) isHandle = true;
   }
+
+  // Wrapper style for content to handle overflow hidden
+  const contentStyle: React.CSSProperties = {
+      width: '100%',
+      height: '100%',
+      overflow: 'hidden',
+      display: 'flex',
+      alignItems: cssStyle.alignItems,
+      justifyContent: cssStyle.justifyContent,
+      textOverflow: 'ellipsis',
+  };
 
   // Checkbox Rendering
   if (cellData?.isCheckbox) {
       const isChecked = String(cellData.value).toUpperCase() === 'TRUE';
       return (
           <div 
+            ref={cellRef}
             style={{ ...cssStyle, justifyContent: 'center' }}
             onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
-            onMouseEnter={() => onMouseEnter(cellId)}
-            className="relative"
+            onMouseEnter={() => { onMouseEnter(cellId); setIsHovered(true); }}
+            onMouseLeave={() => setIsHovered(false)}
+            className="relative group"
           >
               <input type="checkbox" checked={isChecked} readOnly className="w-4 h-4 accent-[#217346] pointer-events-none" />
               {showSelectionBorder && (
                   <>
-                    {isTop && <div className="absolute top-0 left-0 right-0 h-[2px] bg-[#217346] z-20 pointer-events-none" />}
-                    {isBottom && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#217346] z-20 pointer-events-none" />}
-                    {isLeft && <div className="absolute top-0 bottom-0 left-0 w-[2px] bg-[#217346] z-20 pointer-events-none" />}
-                    {isRight && <div className="absolute top-0 bottom-0 right-0 w-[2px] bg-[#217346] z-20 pointer-events-none" />}
+                    {isTop && <div className="absolute top-[-1px] left-[-1px] right-[-1px] h-[3px] bg-[#217346] z-10 pointer-events-none" />}
+                    {isBottom && <div className="absolute bottom-[-1px] left-[-1px] right-[-1px] h-[3px] bg-[#217346] z-10 pointer-events-none" />}
+                    {isLeft && <div className="absolute top-[-1px] bottom-[-1px] left-[-1px] w-[3px] bg-[#217346] z-10 pointer-events-none" />}
+                    {isRight && <div className="absolute top-[-1px] bottom-[-1px] right-[-1px] w-[3px] bg-[#217346] z-10 pointer-events-none" />}
                     {isHandle && (
-                        <div className="absolute -bottom-[3px] -right-[3px] w-[7px] h-[7px] bg-[#217346] border border-white z-30 cursor-crosshair box-content" />
+                        <div className="absolute -bottom-[5px] -right-[5px] w-[9px] h-[9px] bg-[#217346] border border-white z-20 cursor-crosshair shadow-sm" />
                     )}
                   </>
               )}
@@ -155,39 +186,47 @@ const CustomCellRenderer = ({
 
   return (
     <div 
+        ref={cellRef}
         style={cssStyle}
         onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
-        onMouseEnter={() => onMouseEnter(cellId)}
-        // Remove ring-2, rely on overlays
-        className="relative"
+        onMouseEnter={() => { onMouseEnter(cellId); setIsHovered(true); }}
+        onMouseLeave={() => setIsHovered(false)}
+        className="relative group"
     >
-      {displayValue}
+      <div style={contentStyle}>
+          {displayValue}
+      </div>
       
       {/* Hyperlink Icon */}
       {cellData?.link && (
-          <ExternalLink size={10} className="ml-1 text-blue-500 opacity-50" />
+          <ExternalLink size={10} className="absolute top-1 right-1 text-blue-500 opacity-50" />
       )}
 
-      {/* Comment Indicator (Red Triangle) */}
+      {/* Comment Indicator */}
       {cellData?.comment && (
-          <div 
-            className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-600" 
-            title={cellData.comment}
-          />
+          <>
+            <div 
+                className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-600 z-[5]" 
+            />
+            {isHovered && cellRef.current && (
+                <CommentTooltip text={cellData.comment} rect={cellRef.current.getBoundingClientRect()} />
+            )}
+          </>
       )}
 
       {/* Selection Box Overlays */}
       {showSelectionBorder && (
           <>
-            {isTop && <div className="absolute top-0 left-0 right-0 h-[2px] bg-[#217346] z-20 pointer-events-none shadow-sm" />}
-            {isBottom && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#217346] z-20 pointer-events-none shadow-sm" />}
-            {isLeft && <div className="absolute top-0 bottom-0 left-0 w-[2px] bg-[#217346] z-20 pointer-events-none shadow-sm" />}
-            {isRight && <div className="absolute top-0 bottom-0 right-0 w-[2px] bg-[#217346] z-20 pointer-events-none shadow-sm" />}
+            {/* Using slightly negative margins to overlap grid lines and create a continuous box */}
+            {isTop && <div className="absolute top-[-1px] left-[-1px] right-[-1px] h-[3px] bg-[#217346] z-10 pointer-events-none" />}
+            {isBottom && <div className="absolute bottom-[-1px] left-[-1px] right-[-1px] h-[3px] bg-[#217346] z-10 pointer-events-none" />}
+            {isLeft && <div className="absolute top-[-1px] bottom-[-1px] left-[-1px] w-[3px] bg-[#217346] z-10 pointer-events-none" />}
+            {isRight && <div className="absolute top-[-1px] bottom-[-1px] right-[-1px] w-[3px] bg-[#217346] z-10 pointer-events-none" />}
             
-            {/* Handle - positioned slightly outside to overlap grid lines */}
+            {/* Handle - Larger and clearly visible */}
             {isHandle && (
                 <div 
-                    className="absolute -bottom-[3px] -right-[3px] w-[7px] h-[7px] bg-[#217346] border border-white z-30 cursor-crosshair box-content shadow-sm"
+                    className="absolute -bottom-[5px] -right-[5px] w-[9px] h-[9px] bg-[#217346] border border-white z-20 cursor-crosshair shadow-sm"
                     onMouseDown={(e) => { e.stopPropagation(); /* Drag handle logic here */ }}
                 />
             )}
@@ -221,6 +260,8 @@ const Grid: React.FC<GridProps> = ({
   const selectionBounds = useMemo(() => {
       if (!selectionRange || selectionRange.length === 0) return null;
       
+      // Optimization: assume range is sorted or defined by corners. 
+      // We take first and last to determine bounds.
       const pFirst = parseCellId(selectionRange[0]);
       const pLast = parseCellId(selectionRange[selectionRange.length - 1]);
       
@@ -314,17 +355,14 @@ const Grid: React.FC<GridProps> = ({
                     </div>
                 );
             },
-            editor: ({ row, column, onRowChange, onClose }) => {
+            editor: ({ row, column, onClose }) => {
                 const id = getCellId(parseInt(column.key), row.id);
                 return (
                     <div className="w-full h-full relative z-[100]">
                         <input 
                             autoFocus
                             className="w-full h-full px-1 outline-none bg-white text-slate-900 font-[Calibri] text-[11pt] border-2 border-[#217346] shadow-lg"
-                            value={row[column.key]?.raw || ''}
-                            onChange={(e) => {
-                                // Local state handled by DataGrid via onRowChange if we were using it for data
-                            }}
+                            onChange={(e) => {}} // Local state handled by DataGrid via onRowChange if we were using it for data
                             onBlur={(e) => {
                                 onCellChange(id, e.target.value);
                                 onClose(true);
@@ -362,7 +400,7 @@ const Grid: React.FC<GridProps> = ({
                 if (col && col.name) onColumnResize(col.name, width);
             }}
             className="rdg-light fill-grid h-full"
-            style={{ blockSize: '100%' }}
+            style={{ blockSize: '100%', border: 'none' }}
             rowKeyGetter={(r) => r.id}
         />
     </div>
