@@ -93,7 +93,8 @@ export const useCellHandlers = ({
             
             return { 
                 ...sheet, 
-                activeCell: id, 
+                // Excel Behavior: Active cell stays put if extending selection (Shift)
+                activeCell: isShift && sheet.activeCell ? sheet.activeCell : id, 
                 selectionAnchor: anchor,
                 selectionRange: newSelection 
             };
@@ -105,6 +106,7 @@ export const useCellHandlers = ({
             if (s.id !== activeSheetId) return s;
             
             // If dragging, we anchor at startId and extend to endId
+            // Active cell is NOT updated during drag, consistent with Excel
             return { 
                 ...s, 
                 selectionAnchor: startId,
@@ -173,35 +175,19 @@ export const useCellHandlers = ({
             if (sheet.id !== activeSheetId) return sheet;
 
             const nextCells = { ...sheet.cells };
-            // Note: sourceRange might not be sorted by ID, but selection usually is top-left to bottom-right order in logic
-            // We need source data in order.
-            
-            // Optimization: If target range is large, this is heavy. 
-            
-            // Simple Pattern: Copy first cell of source to all targets (MVP)
-            // Enhanced: Repeat source pattern.
             
             const sourceStart = parseCellId(sourceRange[0]);
             if (!sourceStart) return sheet;
 
-            // We iterate target cells and map back to source cells
-            // This supports both "Drag Down" and "Drag Right" logic implicitly
-            
             targetRange.forEach(targetId => {
-                // Skip if target is actually part of source (seed data)
                 if (sourceRange.includes(targetId)) return;
 
                 const targetPos = parseCellId(targetId);
                 if (!targetPos) return;
 
-                // Find corresponding source cell based on offset
-                // Calculate offset from start of source
                 const rowOffset = targetPos.row - sourceStart.row;
                 const colOffset = targetPos.col - sourceStart.col;
                 
-                // Map to source dimensions to cycle pattern
-                // We need dimensions of source range. 
-                // Assumes rectangular source.
                 const sourceRows = new Set(sourceRange.map(id => parseCellId(id)!.row)).size;
                 const sourceCols = new Set(sourceRange.map(id => parseCellId(id)!.col)).size;
                 
@@ -214,7 +200,6 @@ export const useCellHandlers = ({
                 if (sourceCell) {
                     let newRaw = sourceCell.raw;
                     
-                    // Adjust formulas
                     if (newRaw.startsWith('=')) {
                          const rDelta = targetPos.row - srcRowIdx;
                          const cDelta = targetPos.col - srcColIdx;
@@ -225,12 +210,11 @@ export const useCellHandlers = ({
                         ...sourceCell,
                         id: targetId,
                         raw: newRaw,
-                        value: newRaw // Placeholder, updated via HF below
+                        value: newRaw 
                     };
                     
                     updateCellInHF(targetId, newRaw, activeSheetName);
                 } else {
-                    // Source was empty, clear target
                     if (nextCells[targetId]) {
                         delete nextCells[targetId];
                         updateCellInHF(targetId, '', activeSheetName);
@@ -238,7 +222,6 @@ export const useCellHandlers = ({
                 }
             });
             
-            // Recalculate only the new formulas
             targetRange.forEach(id => {
                 if (nextCells[id]?.raw.startsWith('=')) {
                     nextCells[id].value = getCellValueFromHF(id, activeSheetName);

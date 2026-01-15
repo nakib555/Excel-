@@ -74,7 +74,16 @@ export const AppRoot: React.FC = () => {
   const styleHandlers = useStyleHandlers({ setSheets, activeSheetId });
   const tableHandlers = useTableHandlers({ setSheets, activeSheetId, setCreateTableState: dialogs.setCreateTableState, selectionRange, createTableState: dialogs.createTableState });
   const clipboardHandlers = useClipboardHandlers({ setSheets, activeSheetId, activeCell, selectionRange, cells });
-  const navigationHandlers = useNavigationHandlers({ activeCell, gridSize, handleCellClick: cellHandlers.handleCellClick, setGridSize });
+  
+  const navigationHandlers = useNavigationHandlers({ 
+      activeCell, 
+      selectionAnchor: activeSheet.selectionAnchor,
+      selectionRange,
+      gridSize, 
+      handleCellClick: cellHandlers.handleCellClick, 
+      setGridSize 
+  });
+  
   const resizeHandlers = useResizeHandlers({ setSheets, activeSheetId, activeSheet, activeCell });
 
   // 5. Derived Stats

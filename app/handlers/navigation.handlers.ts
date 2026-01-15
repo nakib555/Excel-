@@ -7,15 +7,50 @@ import { GridSize } from '../../types';
 
 interface UseNavigationHandlersProps {
     activeCell: string | null;
+    selectionAnchor: string | null;
+    selectionRange: string[] | null;
     gridSize: GridSize;
     handleCellClick: (id: string, isShift: boolean) => void;
     setGridSize: React.Dispatch<React.SetStateAction<GridSize>>;
 }
 
-export const useNavigationHandlers = ({ activeCell, gridSize, handleCellClick, setGridSize }: UseNavigationHandlersProps) => {
+export const useNavigationHandlers = ({ 
+    activeCell, 
+    selectionAnchor, 
+    selectionRange,
+    gridSize, 
+    handleCellClick, 
+    setGridSize 
+}: UseNavigationHandlersProps) => {
     
     const handleNavigate = useCallback((direction: NavigationDirection, isShift: boolean) => {
         if (!activeCell) return;
+        
+        let cursorCell = activeCell;
+
+        // If expanding selection with Shift, we need to navigate from the "Lead" cell,
+        // not necessarily the Active Cell (which might be the anchor).
+        if (isShift && selectionAnchor && selectionRange && selectionRange.length > 0) {
+            const first = parseCellId(selectionRange[0]);
+            const last = parseCellId(selectionRange[selectionRange.length - 1]);
+            const anchor = parseCellId(selectionAnchor);
+
+            if (first && last && anchor) {
+                // Determine Lead based on Anchor position relative to bounds
+                // Lead is the corner opposite to Anchor in the bounding box
+                
+                const minR = first.row;
+                const minC = first.col;
+                const maxR = last.row;
+                const maxC = last.col;
+
+                const leadR = (anchor.row === minR) ? maxR : minR;
+                const leadC = (anchor.col === minC) ? maxC : minC;
+                
+                cursorCell = getCellId(leadC, leadR);
+            }
+        }
+
         let dRow = 0, dCol = 0;
         switch (direction) {
             case 'up': dRow = -1; break;
@@ -23,9 +58,13 @@ export const useNavigationHandlers = ({ activeCell, gridSize, handleCellClick, s
             case 'left': dCol = -1; break;
             case 'right': dCol = 1; break;
         }
-        const nextId = getNextCellId(activeCell, dRow, dCol, gridSize.rows, gridSize.cols);
-        if (nextId && nextId !== activeCell) handleCellClick(nextId, isShift);
-    }, [activeCell, gridSize, handleCellClick]);
+        
+        const nextId = getNextCellId(cursorCell, dRow, dCol, gridSize.rows, gridSize.cols);
+        
+        if (nextId && nextId !== cursorCell) {
+             handleCellClick(nextId, isShift);
+        }
+    }, [activeCell, selectionAnchor, selectionRange, gridSize, handleCellClick]);
 
     const handleNameBoxSubmit = useCallback((input: string) => {
         const coords = parseCellId(input);
