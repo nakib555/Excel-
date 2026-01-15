@@ -106,7 +106,7 @@ const CustomCellRenderer = memo(({
       fontWeight: style.bold ? '700' : '400',
       fontStyle: style.italic ? 'italic' : 'normal',
       textDecoration: style.underline ? 'underline' : 'none',
-      backgroundColor: style.bg, 
+      backgroundColor: style.bg || 'transparent', 
       color: style.color || 'inherit',
       whiteSpace: style.wrapText ? 'pre-wrap' : 'nowrap',
   };
@@ -153,10 +153,11 @@ const CustomCellRenderer = memo(({
         onMouseEnter={() => { onMouseEnter(cellId); setIsHovered(true); }}
         onMouseLeave={() => setIsHovered(false)}
         className="relative group select-none"
+        data-cell-id={cellId}
     >
       {/* Selection Overlay (Dim inactive cells in range) - with transition */}
       {isInRange && !isActive && (
-          <div className="absolute inset-0 bg-[#107c41] bg-opacity-10 pointer-events-none z-[5] transition-opacity duration-150 ease-in-out" />
+          <div className="absolute inset-0 bg-[#107c41] bg-opacity-10 pointer-events-none z-[5] transition-colors duration-150 ease-in-out" />
       )}
 
       <div className="relative z-0 w-full h-full flex" style={{ alignItems: baseStyle.alignItems, justifyContent: baseStyle.justifyContent }}>
@@ -176,11 +177,33 @@ const CustomCellRenderer = memo(({
 
       {showSelectionBorder && (
           <>
-            {/* Main Selection Borders - High Z-index to float over neighbors */}
-            {isTop && <div className="absolute top-[-2px] left-[-2px] right-[-2px] h-[3px] z-[50] pointer-events-none transition-all duration-150 ease-out" style={{ backgroundColor: selectionColor }} />}
-            {isBottom && <div className="absolute bottom-[-2px] left-[-2px] right-[-2px] h-[3px] z-[50] pointer-events-none transition-all duration-150 ease-out" style={{ backgroundColor: selectionColor }} />}
-            {isLeft && <div className="absolute top-[-2px] bottom-[-2px] left-[-2px] w-[3px] z-[50] pointer-events-none transition-all duration-150 ease-out" style={{ backgroundColor: selectionColor }} />}
-            {isRight && <div className="absolute top-[-2px] bottom-[-2px] right-[-2px] w-[3px] z-[50] pointer-events-none transition-all duration-150 ease-out" style={{ backgroundColor: selectionColor }} />}
+            {/* Main Selection Borders - Animated Transition */}
+            {/* We use specific class combinations to ensure borders connect cleanly without gaps during scale animation */}
+            
+            <div 
+                className={cn(
+                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-100 ease-out origin-center",
+                    isTop ? "h-[2px] top-[-1px] left-[-1px] right-[-1px] scale-x-100" : "h-[0px] top-[-1px] left-0 right-0 scale-x-0"
+                )}
+            />
+            <div 
+                className={cn(
+                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-100 ease-out origin-center",
+                    isBottom ? "h-[2px] bottom-[-1px] left-[-1px] right-[-1px] scale-x-100" : "h-[0px] bottom-[-1px] left-0 right-0 scale-x-0"
+                )}
+            />
+            <div 
+                className={cn(
+                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-100 ease-out origin-center",
+                    isLeft ? "w-[2px] left-[-1px] top-[-1px] bottom-[-1px] scale-y-100" : "w-[0px] left-[-1px] top-0 bottom-0 scale-y-0"
+                )}
+            />
+            <div 
+                className={cn(
+                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-100 ease-out origin-center",
+                    isRight ? "w-[2px] right-[-1px] top-[-1px] bottom-[-1px] scale-y-100" : "w-[0px] right-[-1px] top-0 bottom-0 scale-y-0"
+                )}
+            />
             
             {/* Top-Left Handle (Mobile Selection) */}
             {isTopLeft && isTouch && (
@@ -215,6 +238,7 @@ const CustomCellRenderer = memo(({
     const rowId = next.row.id;
     const cellId = getCellId(colKey, rowId);
     
+    // Deep compare relevant props to prevent unnecessary renders while allowing selection updates
     if (prev.cells[cellId] !== next.cells[cellId]) return false;
     if (prev.styles !== next.styles) return false;
 
@@ -226,7 +250,8 @@ const CustomCellRenderer = memo(({
     const isInSelection = next.selectionSet.has(cellId);
     if (wasInSelection !== isInSelection) return false;
     
-    // Re-render if selection bounds changed (to update borders)
+    // Check if selection BOUNDS changed. This is critical for drawing the borders correctly.
+    // Even if a cell remains "in selection", its border status (top/left/etc) depends on the bounds.
     if ((isInSelection || wasInSelection) && prev.selectionBounds !== next.selectionBounds) return false;
 
     return true;
@@ -294,13 +319,16 @@ const Grid: React.FC<GridProps> = ({
   // --- Handlers ---
 
   const handleMouseDown = useCallback((id: string, shift: boolean) => {
+      // If we are filling, don't start a new selection
+      if (isFilling) return;
+
       if (!shift) {
           // Start Selection Drag
           setIsSelecting(true);
           setDragStartCell(id);
       }
       onCellClick(id, shift);
-  }, [onCellClick]);
+  }, [onCellClick, isFilling]);
 
   const handleMouseEnter = useCallback((id: string) => {
       // 1. Handle Fill Drag
@@ -311,16 +339,15 @@ const Grid: React.FC<GridProps> = ({
           return;
       }
 
-      // 2. Handle Selection Drag
+      // 2. Handle Selection Drag (Only if mouse is down and we are selecting)
       if (isSelecting && dragStartCell && onSelectionDrag) {
-          // If we are actively selecting, update range
           onSelectionDrag(dragStartCell, id);
       }
   }, [isFilling, fillStartRange, isSelecting, dragStartCell, onSelectionDrag]);
 
   const handleFillHandleDown = useCallback((e: React.MouseEvent, id: string) => {
       e.stopPropagation();
-      e.preventDefault();
+      e.preventDefault(); // Prevent text selection
       if (selectionRange && selectionRange.length > 0) {
           setIsFilling(true);
           setFillStartRange(selectionRange);
@@ -329,7 +356,8 @@ const Grid: React.FC<GridProps> = ({
   }, [selectionRange]);
 
   const handleMobileHandleDown = useCallback((e: React.TouchEvent, handleCellId: string, type: 'start' | 'end') => {
-        // e.preventDefault(); // Warning: might block scroll if not careful, but needed for reliable drag start sometimes.
+        // Prevent default to avoid scrolling while dragging handle
+        // e.preventDefault(); 
         if (!selectionBounds) return;
         
         // When dragging the 'start' (top-left) handle, the anchor is the BOTTOM-RIGHT.
@@ -356,7 +384,7 @@ const Grid: React.FC<GridProps> = ({
             if (e.cancelable) e.preventDefault(); // Prevent scrolling while selecting
             const touch = e.touches[0];
             const el = document.elementFromPoint(touch.clientX, touch.clientY);
-            // Look for closest cell container or input
+            // Look for closest cell container
             const cellEl = el?.closest('[data-cell-id]');
             
             if (cellEl) {
@@ -380,6 +408,7 @@ const Grid: React.FC<GridProps> = ({
         };
   }, [mobileDrag, onSelectionDrag]);
 
+  // Global Mouse Up to end drag states
   useEffect(() => {
       const handleMouseUp = () => {
           // End Fill
