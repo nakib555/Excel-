@@ -235,8 +235,6 @@ const Grid: React.FC<GridProps> = ({
   onExpandGrid,
   onFill
 }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStartCell, setDragStartCell] = useState<string | null>(null);
   const [isTouch, setIsTouch] = useState(false);
   
   const [isFilling, setIsFilling] = useState(false);
@@ -276,22 +274,18 @@ const Grid: React.FC<GridProps> = ({
   // --- Handlers ---
 
   const handleMouseDown = useCallback((id: string, shift: boolean) => {
+      // Just select the cell. Drag initiation removed.
       onCellClick(id, shift);
-      if (!shift) {
-          setIsDragging(true);
-          setDragStartCell(id);
-      }
   }, [onCellClick]);
 
   const handleMouseEnter = useCallback((id: string) => {
+      // Only handle fill drag, regular selection drag removed.
       if (isFilling && fillStartRange) {
           const start = fillStartRange[0];
           const newRange = getRange(start, id); 
           setFillTargetRange(newRange);
-      } else if (isDragging && dragStartCell && onSelectionDrag) {
-          onSelectionDrag(dragStartCell, id);
       }
-  }, [isDragging, dragStartCell, onSelectionDrag, isFilling, fillStartRange]);
+  }, [isFilling, fillStartRange]);
 
   const handleFillHandleDown = useCallback((e: React.MouseEvent, id: string) => {
       e.stopPropagation();
@@ -308,9 +302,7 @@ const Grid: React.FC<GridProps> = ({
           if (isFilling && fillStartRange && fillTargetRange && onFill) {
               onFill(fillStartRange, fillTargetRange);
           }
-          setIsDragging(false);
           setIsFilling(false);
-          setDragStartCell(null);
           setFillStartRange(null);
           setFillTargetRange(null);
       };
