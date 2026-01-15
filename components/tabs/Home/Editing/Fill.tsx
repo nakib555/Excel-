@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ArrowDown, ArrowRight, ArrowUp, ArrowLeft, Layers, AlignJustify, Zap, ChevronDown } from 'lucide-react';
-import { RibbonButton, SmartDropdown } from '../../shared';
+import { RibbonButton, SmartDropdown, Tooltip } from '../../shared';
 
 const Fill = () => {
     const [open, setOpen] = useState(false);
@@ -19,49 +19,66 @@ const Fill = () => {
                     hasDropdown 
                     active={open}
                     onClick={() => {}} 
+                    title="Fill"
                 />
             }
         >
             <div className="flex flex-col py-1">
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
-                    <ArrowDown size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
-                    <span className="flex-1">Down</span>
-                    <span className="text-[9px] text-slate-400 font-mono">Ctrl+D</span>
-                </button>
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
-                    <ArrowRight size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
-                    <span className="flex-1">Right</span>
-                    <span className="text-[9px] text-slate-400 font-mono">Ctrl+R</span>
-                </button>
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
-                    <ArrowUp size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
-                    <span>Up</span>
-                </button>
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
-                    <ArrowLeft size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
-                    <span>Left</span>
-                </button>
+                <Tooltip content="Fill down" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                        <ArrowDown size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                        <span className="flex-1">Down</span>
+                        <span className="text-[9px] text-slate-400 font-mono">Ctrl+D</span>
+                    </button>
+                </Tooltip>
+                <Tooltip content="Fill right" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                        <ArrowRight size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                        <span className="flex-1">Right</span>
+                        <span className="text-[9px] text-slate-400 font-mono">Ctrl+R</span>
+                    </button>
+                </Tooltip>
+                <Tooltip content="Fill up" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                        <ArrowUp size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                        <span>Up</span>
+                    </button>
+                </Tooltip>
+                <Tooltip content="Fill left" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                        <ArrowLeft size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
+                        <span>Left</span>
+                    </button>
+                </Tooltip>
                 
                 <div className="h-[1px] bg-slate-200 my-1 mx-2" />
                 
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-400 hover:bg-slate-50 transition-colors text-left cursor-default" disabled>
-                    <div className="w-4"></div>
-                    <span>Across Worksheets...</span>
-                </button>
+                <Tooltip content="Fill across worksheets" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-400 hover:bg-slate-50 transition-colors text-left cursor-default" disabled>
+                        <div className="w-4"></div>
+                        <span>Across Worksheets...</span>
+                    </button>
+                </Tooltip>
                 
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
-                    <Layers size={16} className="text-slate-500 group-hover:text-slate-700" />
-                    <span>Series...</span>
-                </button>
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
-                    <AlignJustify size={16} className="text-slate-500 group-hover:text-slate-700" />
-                    <span>Justify</span>
-                </button>
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
-                    <Zap size={16} className="text-amber-500 fill-amber-100 group-hover:scale-110 transition-transform" />
-                    <span className="flex-1">Flash Fill</span>
-                    <span className="text-[9px] text-slate-400 font-mono">Ctrl+E</span>
-                </button>
+                <Tooltip content="Fill series" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                        <Layers size={16} className="text-slate-500 group-hover:text-slate-700" />
+                        <span>Series...</span>
+                    </button>
+                </Tooltip>
+                <Tooltip content="Justify" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                        <AlignJustify size={16} className="text-slate-500 group-hover:text-slate-700" />
+                        <span>Justify</span>
+                    </button>
+                </Tooltip>
+                <Tooltip content="Flash fill" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                        <Zap size={16} className="text-amber-500 fill-amber-100 group-hover:scale-110 transition-transform" />
+                        <span className="flex-1">Flash Fill</span>
+                        <span className="text-[9px] text-slate-400 font-mono">Ctrl+E</span>
+                    </button>
+                </Tooltip>
             </div>
         </SmartDropdown>
     );

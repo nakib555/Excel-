@@ -309,10 +309,10 @@ const CustomCellRenderer = memo(({
 
       {isFilling && (
           <>
-            <Border type="top" visible={fTop && !sTop} style="dashed" color="#64748b" thickness={selectionBorderThickness} />
-            <Border type="bottom" visible={fBottom && !sBottom} style="dashed" color="#64748b" thickness={selectionBorderThickness} />
-            <Border type="left" visible={fLeft && !sLeft} style="dashed" color="#64748b" thickness={selectionBorderThickness} />
-            <Border type="right" visible={fRight && !sRight} style="dashed" color="#64748b" thickness={selectionBorderThickness} />
+            <Border type="top" visible={fTop && !sTop} style="solid" color="#64748b" thickness={selectionBorderThickness} />
+            <Border type="bottom" visible={fBottom && !sBottom} style="solid" color="#64748b" thickness={selectionBorderThickness} />
+            <Border type="left" visible={fLeft && !sLeft} style="solid" color="#64748b" thickness={selectionBorderThickness} />
+            <Border type="right" visible={fRight && !sRight} style="solid" color="#64748b" thickness={selectionBorderThickness} />
           </>
       )}
 
@@ -430,6 +430,15 @@ const Grid: React.FC<GridProps> = ({
           }
       }
   }, [centerActiveCell, activeCell, onScrollToActiveCell]);
+
+  // Update cursor during filling
+  useEffect(() => {
+      if (isFilling) {
+          document.body.style.cursor = 'crosshair';
+      } else {
+          document.body.style.cursor = '';
+      }
+  }, [isFilling]);
 
   const selectionSet = useMemo(() => new Set(selectionRange || []), [selectionRange]);
   const fillSet = useMemo(() => new Set(fillTargetRange || []), [fillTargetRange]);
@@ -759,6 +768,7 @@ const Grid: React.FC<GridProps> = ({
             columns={columns} 
             rows={rows} 
             rowHeight={(row) => (rowHeights[row.id] || 24) * scale}
+            headerRowHeight={32 * scale}
             onColumnResize={(idx, width) => {
                 const col = columns[idx];
                 if (col && col.name) onColumnResize(col.name, Math.round(width / scale));

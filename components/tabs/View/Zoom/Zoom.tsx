@@ -3,7 +3,7 @@ import { Search } from 'lucide-react';
 import { RibbonButton } from '../../../shared';
 
 const Zoom = () => (
-    <RibbonButton variant="large" icon={<Search size={20} className="text-blue-500" />} label="Zoom" onClick={() => {}} />
+    <RibbonButton variant="large" icon={<Search size={20} className="text-blue-500" />} label="Zoom" onClick={() => {}} title="Zoom" />
 );
 
 export default Zoom;

@@ -1,4 +1,3 @@
-
 import React, { useState, lazy, Suspense } from 'react';
 import { Table } from 'lucide-react';
 import { RibbonButton, SmartDropdown } from '../../shared';
@@ -40,6 +39,7 @@ const FormatAsTable: React.FC<FormatAsTableProps> = ({ onFormatAsTable }) => {
                     onClick={() => {}} 
                     hasDropdown 
                     active={open}
+                    title="Format as Table"
                 />
             }
         >

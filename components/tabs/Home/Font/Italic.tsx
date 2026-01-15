@@ -10,7 +10,7 @@ const Italic: React.FC<ItalicProps> = ({ currentStyle, onToggleStyle }) => (
         icon={<ItalicIcon size={14} className="text-slate-800" />} 
         active={currentStyle.italic} 
         onClick={() => onToggleStyle('italic', !currentStyle.italic)} 
-        title="Italic" 
+        title="Italic (Ctrl+I)" 
     />
 );
 

@@ -3,7 +3,7 @@ import { Tag } from 'lucide-react';
 import { RibbonButton } from '../../../shared';
 
 const NameManager = () => (
-    <RibbonButton variant="large" icon={<Tag size={20} className="text-pink-500" />} label="Name" subLabel="Manager" onClick={() => {}} />
+    <RibbonButton variant="large" icon={<Tag size={20} className="text-pink-500" />} label="Name" subLabel="Manager" onClick={() => {}} title="Name Manager (Ctrl+F3)" />
 );
 
 export default NameManager;

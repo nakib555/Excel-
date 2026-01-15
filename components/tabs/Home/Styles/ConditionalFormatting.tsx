@@ -1,7 +1,6 @@
-
 import React, { useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { LayoutList, ChevronRight, Check, Highlighter, Percent, BarChart, Palette, Shapes, Trash2, Settings2 } from 'lucide-react';
-import { RibbonButton, SmartDropdown } from '../../shared';
+import { RibbonButton, SmartDropdown, Tooltip } from '../../shared';
 import { createPortal } from 'react-dom';
 import { cn, useSmartPosition } from '../../../../utils';
 import { DropdownListSkeleton } from '../../../Skeletons';
@@ -50,6 +49,7 @@ const ConditionalFormatting = () => {
                     hasDropdown 
                     onClick={() => {}} 
                     active={open}
+                    title="Conditional Formatting"
                 />
             }
         >
@@ -145,12 +145,16 @@ const ConditionalFormatting = () => {
                     >
                         <div className="flex flex-col py-1 min-w-[max-content]">
                             <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50 mb-1">Clear</div>
-                            <button className="flex items-center gap-3 px-4 py-2 text-[13px] text-slate-700 hover:bg-red-50 hover:text-red-700 transition-all text-left w-full group whitespace-nowrap">
-                                <span>Clear Rules from Selected Cells</span>
-                            </button>
-                            <button className="flex items-center gap-3 px-4 py-2 text-[13px] text-slate-700 hover:bg-red-50 hover:text-red-700 transition-all text-left w-full group whitespace-nowrap">
-                                <span>Clear Rules from Entire Sheet</span>
-                            </button>
+                            <Tooltip content="Clear Rules from Selected Cells" side="right">
+                                <button className="flex items-center gap-3 px-4 py-2 text-[13px] text-slate-700 hover:bg-red-50 hover:text-red-700 transition-all text-left w-full group whitespace-nowrap">
+                                    <span>Clear Rules from Selected Cells</span>
+                                </button>
+                            </Tooltip>
+                            <Tooltip content="Clear Rules from Entire Sheet" side="right">
+                                <button className="flex items-center gap-3 px-4 py-2 text-[13px] text-slate-700 hover:bg-red-50 hover:text-red-700 transition-all text-left w-full group whitespace-nowrap">
+                                    <span>Clear Rules from Entire Sheet</span>
+                                </button>
+                            </Tooltip>
                         </div>
                     </CFMenuItem>
 
@@ -196,23 +200,25 @@ const CFMenuItem: React.FC<CFMenuItemProps> = ({ label, icon, hasSubMenu, isActi
 
     return (
         <div className="relative" onMouseEnter={onMouseEnter}>
-            <button
-                ref={itemRef}
-                className={cn(
-                    "flex items-center justify-between px-3 py-2 text-[13px] text-slate-700 transition-all w-full border border-transparent outline-none relative rounded-md mx-1",
-                    isActive ? "bg-blue-50 text-slate-900 font-medium" : "hover:bg-slate-50 hover:text-slate-900",
-                    "w-[calc(100%-8px)]"
-                )}
-                onClick={handleInteraction}
-            >
-                <div className="flex items-center gap-3">
-                    <div className={cn("w-6 h-6 rounded-md flex justify-center items-center transition-colors", isActive ? "text-blue-600" : "bg-transparent")}>
-                        {icon}
+            <Tooltip content={label} side="right" delayDuration={500}>
+                <button
+                    ref={itemRef}
+                    className={cn(
+                        "flex items-center justify-between px-3 py-2 text-[13px] text-slate-700 transition-all w-full border border-transparent outline-none relative rounded-md mx-1",
+                        isActive ? "bg-blue-50 text-slate-900 font-medium" : "hover:bg-slate-50 hover:text-slate-900",
+                        "w-[calc(100%-8px)]"
+                    )}
+                    onClick={handleInteraction}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className={cn("w-6 h-6 rounded-md flex justify-center items-center transition-colors", isActive ? "text-blue-600" : "bg-transparent")}>
+                            {icon}
+                        </div>
+                        <span className="flex-1 text-left">{label}</span>
                     </div>
-                    <span className="flex-1 text-left">{label}</span>
-                </div>
-                {hasSubMenu && <ChevronRight size={14} className={cn("transition-colors", isActive ? "text-blue-600" : "text-slate-300")} />}
-            </button>
+                    {hasSubMenu && <ChevronRight size={14} className={cn("transition-colors", isActive ? "text-blue-600" : "text-slate-300")} />}
+                </button>
+            </Tooltip>
 
             {isActive && hasSubMenu && position && createPortal(
                 <div 

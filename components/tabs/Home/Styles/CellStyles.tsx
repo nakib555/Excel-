@@ -1,4 +1,3 @@
-
 import React, { useState, lazy, Suspense } from 'react';
 import { Palette } from 'lucide-react';
 import { RibbonButton, SmartDropdown } from '../../shared';
@@ -53,6 +52,7 @@ const CellStyles: React.FC<CellStylesProps> = ({ onApplyStyle, onMergeStyles }) 
                     hasDropdown 
                     onClick={() => {}} 
                     active={open}
+                    title="Cell Styles"
                 />
             }
         >

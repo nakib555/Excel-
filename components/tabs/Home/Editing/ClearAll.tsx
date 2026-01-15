@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Eraser, PaintBucket, FileX, MessageSquareX, Link2Off, Trash2 } from 'lucide-react';
-import { RibbonButton, SmartDropdown, TabProps } from '../../shared';
+import { RibbonButton, SmartDropdown, TabProps, Tooltip } from '../../shared';
 
 interface ClearAllProps extends Pick<TabProps, 'onClear'> {}
 
@@ -26,56 +26,68 @@ const ClearAll: React.FC<ClearAllProps> = ({ onClear }) => {
             }
         >
             <div className="flex flex-col py-1">
-                <button 
-                    onClick={() => {
-                        if (onClear) onClear('all');
-                        setOpen(false);
-                    }}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
-                >
-                    <Eraser size={16} className="text-fuchsia-600 group-hover:scale-110 transition-transform" />
-                    <span>Clear All</span>
-                </button>
-                <button 
-                    onClick={() => {
-                        if (onClear) onClear('formats');
-                        setOpen(false);
-                    }}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
-                >
-                    <div className="relative">
-                        <Eraser size={16} className="text-fuchsia-500" />
-                        <span className="absolute -bottom-1 -right-1 text-[8px] font-bold text-fuchsia-700 bg-white rounded-full px-0.5">%</span>
-                    </div>
-                    <span>Clear Formats</span>
-                </button>
-                <button 
-                    onClick={() => {
-                        if (onClear) onClear('contents');
-                        setOpen(false);
-                    }}
-                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
-                >
-                    <div className="w-4 flex justify-center">
-                        <span className="font-serif border-b border-transparent group-hover:border-slate-400 text-slate-600 underline decoration-slate-300 underline-offset-2">Abc</span>
-                    </div>
-                    <span>Clear Contents</span>
-                </button>
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-400 hover:bg-slate-50 transition-colors text-left cursor-default" disabled>
-                    <MessageSquareX size={16} className="text-slate-300" />
-                    <span>Clear Comments and Notes</span>
-                </button>
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
-                    <Link2Off size={16} className="text-slate-500 group-hover:text-red-500 transition-colors" />
-                    <span>Clear Hyperlinks</span>
-                </button>
+                <Tooltip content="Clear all content and formatting" side="right">
+                    <button 
+                        onClick={() => {
+                            if (onClear) onClear('all');
+                            setOpen(false);
+                        }}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
+                    >
+                        <Eraser size={16} className="text-fuchsia-600 group-hover:scale-110 transition-transform" />
+                        <span>Clear All</span>
+                    </button>
+                </Tooltip>
+                <Tooltip content="Clear formatting only" side="right">
+                    <button 
+                        onClick={() => {
+                            if (onClear) onClear('formats');
+                            setOpen(false);
+                        }}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
+                    >
+                        <div className="relative">
+                            <Eraser size={16} className="text-fuchsia-500" />
+                            <span className="absolute -bottom-1 -right-1 text-[8px] font-bold text-fuchsia-700 bg-white rounded-full px-0.5">%</span>
+                        </div>
+                        <span>Clear Formats</span>
+                    </button>
+                </Tooltip>
+                <Tooltip content="Clear contents only" side="right">
+                    <button 
+                        onClick={() => {
+                            if (onClear) onClear('contents');
+                            setOpen(false);
+                        }}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
+                    >
+                        <div className="w-4 flex justify-center">
+                            <span className="font-serif border-b border-transparent group-hover:border-slate-400 text-slate-600 underline decoration-slate-300 underline-offset-2">Abc</span>
+                        </div>
+                        <span>Clear Contents</span>
+                    </button>
+                </Tooltip>
+                <Tooltip content="Clear comments and notes" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-400 hover:bg-slate-50 transition-colors text-left cursor-default" disabled>
+                        <MessageSquareX size={16} className="text-slate-300" />
+                        <span>Clear Comments and Notes</span>
+                    </button>
+                </Tooltip>
+                <Tooltip content="Clear hyperlinks" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                        <Link2Off size={16} className="text-slate-500 group-hover:text-red-500 transition-colors" />
+                        <span>Clear Hyperlinks</span>
+                    </button>
+                </Tooltip>
                 
                 <div className="h-[1px] bg-slate-200 my-1 mx-2" />
                 
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
-                    <Trash2 size={16} className="text-slate-400 group-hover:text-red-500 transition-colors" />
-                    <span>Remove Hyperlinks</span>
-                </button>
+                <Tooltip content="Remove hyperlinks" side="right">
+                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                        <Trash2 size={16} className="text-slate-400 group-hover:text-red-500 transition-colors" />
+                        <span>Remove Hyperlinks</span>
+                    </button>
+                </Tooltip>
             </div>
         </SmartDropdown>
     );

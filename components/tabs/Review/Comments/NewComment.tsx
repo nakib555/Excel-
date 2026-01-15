@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { MessageSquarePlus } from 'lucide-react';
 import { RibbonButton } from '../../../shared';
@@ -14,6 +13,7 @@ const NewComment: React.FC<NewCommentProps> = ({ onInsertComment }) => (
         label="New" 
         subLabel="Comment" 
         onClick={onInsertComment || (() => {})} 
+        title="New Comment (Shift+F2)"
     />
 );
 

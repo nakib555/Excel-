@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Copy as CopyIcon } from 'lucide-react';
 import { RibbonButton } from '../../shared';

@@ -6,18 +6,21 @@ import {
     TrendingUp, TrendingDown
 } from 'lucide-react';
 import { cn } from '../../../../utils';
+import { Tooltip } from '../../shared';
 
 // --- HELPER COMPONENTS ---
 
 const SubMenuItem = ({ label, icon, shortcut, onClick }: { label: string, icon?: React.ReactNode, shortcut?: string, onClick?: () => void }) => (
-    <button 
-        onClick={onClick}
-        className="flex items-center gap-3 px-4 py-2 text-[13px] text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent transition-all text-left w-full whitespace-nowrap group"
-    >
-        {icon && <div className="w-5 flex justify-center items-center opacity-80 group-hover:opacity-100">{icon}</div>}
-        <span className="flex-1 font-medium">{label}</span>
-        {shortcut && <span className="text-[10px] text-slate-400">{shortcut}</span>}
-    </button>
+    <Tooltip content={label} side="right" sideOffset={5} delayDuration={500}>
+        <button 
+            onClick={onClick}
+            className="flex items-center gap-3 px-4 py-2 text-[13px] text-slate-700 hover:bg-slate-50 hover:text-slate-900 border border-transparent transition-all text-left w-full whitespace-nowrap group"
+        >
+            {icon && <div className="w-5 flex justify-center items-center opacity-80 group-hover:opacity-100">{icon}</div>}
+            <span className="flex-1 font-medium">{label}</span>
+            {shortcut && <span className="text-[10px] text-slate-400">{shortcut}</span>}
+        </button>
+    </Tooltip>
 );
 
 const MenuHeader = ({ label }: { label: string }) => (
@@ -68,22 +71,24 @@ export const TopBottomRulesMenu = () => {
 // --- 3. DATA BARS ---
 
 const BarPreview: React.FC<{ color: string, gradient?: boolean }> = ({ color, gradient = false }) => (
-    <button className="p-1 hover:bg-slate-100 hover:scale-110 transition-all rounded-md border border-transparent hover:border-slate-200 group">
-        <div className="w-10 h-10 bg-white border border-slate-200 p-1 flex flex-col justify-center gap-[3px] shadow-sm rounded-sm">
-            {[0.8, 0.6, 0.4, 0.9].map((w, i) => (
-                <div 
-                    key={i} 
-                    className="h-1 rounded-[1px]" 
-                    style={{ 
-                        width: `${w * 100}%`,
-                        background: gradient 
-                            ? `linear-gradient(to right, ${color}, white)` 
-                            : color
-                    }} 
-                />
-            ))}
-        </div>
-    </button>
+    <Tooltip content={gradient ? `Gradient Fill - ${color}` : `Solid Fill - ${color}`} delayDuration={300}>
+        <button className="p-1 hover:bg-slate-100 hover:scale-110 transition-all rounded-md border border-transparent hover:border-slate-200 group">
+            <div className="w-10 h-10 bg-white border border-slate-200 p-1 flex flex-col justify-center gap-[3px] shadow-sm rounded-sm">
+                {[0.8, 0.6, 0.4, 0.9].map((w, i) => (
+                    <div 
+                        key={i} 
+                        className="h-1 rounded-[1px]" 
+                        style={{ 
+                            width: `${w * 100}%`,
+                            background: gradient 
+                                ? `linear-gradient(to right, ${color}, white)` 
+                                : color
+                        }} 
+                    />
+                ))}
+            </div>
+        </button>
+    </Tooltip>
 );
 
 const BAR_COLORS = ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#06b6d4', '#d946ef'];
@@ -110,13 +115,15 @@ export const DataBarsMenu = () => {
 // --- 4. COLOR SCALES ---
 
 const ScalePreview: React.FC<{ colors: string[] }> = ({ colors }) => (
-    <button className="p-1 hover:bg-slate-100 hover:scale-110 transition-all rounded-md border border-transparent hover:border-slate-200 group">
-        <div className="w-10 h-10 bg-white border border-slate-200 p-[2px] grid grid-cols-2 gap-[1px] shadow-sm rounded-sm overflow-hidden">
-            {colors.map((c, i) => (
-                <div key={i} className="w-full h-full" style={{ backgroundColor: c }} />
-            ))}
-        </div>
-    </button>
+    <Tooltip content="Color Scale" delayDuration={300}>
+        <button className="p-1 hover:bg-slate-100 hover:scale-110 transition-all rounded-md border border-transparent hover:border-slate-200 group">
+            <div className="w-10 h-10 bg-white border border-slate-200 p-[2px] grid grid-cols-2 gap-[1px] shadow-sm rounded-sm overflow-hidden">
+                {colors.map((c, i) => (
+                    <div key={i} className="w-full h-full" style={{ backgroundColor: c }} />
+                ))}
+            </div>
+        </button>
+    </Tooltip>
 );
 
 const SCALES = [

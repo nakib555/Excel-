@@ -10,7 +10,7 @@ const Bold: React.FC<BoldProps> = ({ currentStyle, onToggleStyle }) => (
         icon={<BoldIcon size={14} className="text-slate-800" />} 
         active={currentStyle.bold} 
         onClick={() => onToggleStyle('bold', !currentStyle.bold)} 
-        title="Bold" 
+        title="Bold (Ctrl+B)" 
     />
 );
 

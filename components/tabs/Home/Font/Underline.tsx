@@ -10,7 +10,7 @@ const Underline: React.FC<UnderlineProps> = ({ currentStyle, onToggleStyle }) =>
         icon={<UnderlineIcon size={14} className="text-slate-800" />} 
         active={currentStyle.underline} 
         onClick={() => onToggleStyle('underline', !currentStyle.underline)} 
-        title="Underline" 
+        title="Underline (Ctrl+U)" 
     />
 );
 

@@ -1,6 +1,7 @@
 
 import React, { memo } from 'react';
 import { cn, getCellId } from '../utils';
+import { Tooltip } from './shared';
 
 interface ColumnHeaderProps {
   col: number;
@@ -18,24 +19,26 @@ const ColumnHeader = memo(({
   col, width, height, colChar, isActive, fontSize, onCellClick, startResize, onAutoFit 
 }: ColumnHeaderProps) => {
   return (
-    <div 
-        className={cn(
-            "relative flex items-center justify-center border-r border-slate-300 select-none flex-shrink-0 text-slate-700 font-semibold bg-[#f8f9fa] hover:bg-slate-200 transition-colors overflow-hidden", 
-            isActive && "bg-emerald-100 text-emerald-800"
-        )}
-        style={{ width, height, fontSize: `${fontSize}px` }}
-        onClick={() => onCellClick(getCellId(col, 0), false)}
-    >
-        {colChar}
+    <Tooltip content={`Column ${colChar}`}>
         <div 
-            className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-emerald-500 z-10 translate-x-1/2"
-            onMouseDown={(e) => startResize(e, 'col', col, width)} 
-            onDoubleClick={(e) => {
-                e.stopPropagation();
-                if(onAutoFit) onAutoFit();
-            }}
-        />
-    </div>
+            className={cn(
+                "relative flex items-center justify-center border-r border-slate-300 select-none flex-shrink-0 text-slate-700 font-semibold bg-[#f8f9fa] hover:bg-slate-200 transition-colors overflow-hidden", 
+                isActive && "bg-emerald-100 text-emerald-800"
+            )}
+            style={{ width, height, fontSize: `${fontSize}px` }}
+            onClick={() => onCellClick(getCellId(col, 0), false)}
+        >
+            {colChar}
+            <div 
+                className="absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-emerald-500 z-10 translate-x-1/2"
+                onMouseDown={(e) => startResize(e, 'col', col, width)} 
+                onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    if(onAutoFit) onAutoFit();
+                }}
+            />
+        </div>
+    </Tooltip>
   );
 });
 

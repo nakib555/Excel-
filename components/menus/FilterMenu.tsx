@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { cn, useSmartPosition } from '../../utils';
 import { DropdownListSkeleton } from '../Skeletons';
+import { Tooltip } from '../shared';
 
 // Lazy imports for submenus
 const ColorSortMenu = lazy(() => import('./FilterSubMenus').then(m => ({ default: m.ColorSortMenu })));
@@ -96,23 +97,25 @@ const SubMenuItem = ({
             className="relative"
             onMouseEnter={onMouseEnter}
         >
-            <button 
-                ref={itemRef}
-                disabled={disabled}
-                className={cn(
-                    "flex items-center w-full px-4 py-2 text-[13px] text-slate-700 text-left transition-all gap-3 group relative select-none whitespace-nowrap",
-                    isActive ? "bg-blue-50 text-slate-900 font-medium" : "hover:bg-slate-50 hover:text-slate-900",
-                    disabled && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-slate-700"
-                )}
-                onClick={handleInteraction}
-            >
-                <div className={cn("w-4 flex justify-center items-center transition-colors flex-shrink-0", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")}>
-                    {icon}
-                </div>
-                <span className="flex-1 truncate leading-none pt-0.5">{label}</span>
-                {shortcut && <span className="text-[10px] text-slate-400 ml-2">{shortcut}</span>}
-                {hasSubMenu && <ChevronRight size={12} className={cn("transition-colors ml-2", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />}
-            </button>
+            <Tooltip content={label} side="right" delayDuration={500}>
+                <button 
+                    ref={itemRef}
+                    disabled={disabled}
+                    className={cn(
+                        "flex items-center w-full px-4 py-2 text-[13px] text-slate-700 text-left transition-all gap-3 group relative select-none whitespace-nowrap",
+                        isActive ? "bg-blue-50 text-slate-900 font-medium" : "hover:bg-slate-50 hover:text-slate-900",
+                        disabled && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-slate-700"
+                    )}
+                    onClick={handleInteraction}
+                >
+                    <div className={cn("w-4 flex justify-center items-center transition-colors flex-shrink-0", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")}>
+                        {icon}
+                    </div>
+                    <span className="flex-1 truncate leading-none pt-0.5">{label}</span>
+                    {shortcut && <span className="text-[10px] text-slate-400 ml-2">{shortcut}</span>}
+                    {hasSubMenu && <ChevronRight size={12} className={cn("transition-colors ml-2", isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600")} />}
+                </button>
+            </Tooltip>
             
             {isActive && children && (
                 <SmartSubMenuContent parentRef={itemRef}>
