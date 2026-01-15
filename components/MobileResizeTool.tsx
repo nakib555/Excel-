@@ -31,11 +31,12 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-[84px] left-1/2 -translate-x-1/2 w-fit max-w-[calc(100%-16px)] md:hidden z-[1000] animate-in slide-in-from-bottom-5 fade-in duration-200">
+    <div className="fixed bottom-[84px] left-1/2 -translate-x-1/2 w-fit max-w-[calc(100%-16px)] lg:hidden z-[1000] animate-in slide-in-from-bottom-5 fade-in duration-200 pointer-events-auto">
       <div className="h-14 bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-full flex items-center px-1.5 gap-1.5 ring-1 ring-black/5 overflow-hidden mx-auto">
         
         {/* Close Button */}
         <button 
+            type="button"
             onClick={onClose}
             className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
         >
@@ -51,6 +52,7 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
             {/* Mode Switcher */}
             <div className="flex items-center bg-slate-100/80 p-1 rounded-full flex-shrink-0 gap-1">
                 <button
+                    type="button"
                     onClick={() => setResizeMode('cell')}
                     className={cn(
                         "p-1.5 rounded-full transition-all",
@@ -61,6 +63,7 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
                     <BoxSelect size={16} />
                 </button>
                 <button
+                    type="button"
                     onClick={() => setResizeMode('row')}
                     className={cn(
                         "p-1.5 rounded-full transition-all",
@@ -71,6 +74,7 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
                     <Rows size={16} />
                 </button>
                 <button
+                    type="button"
                     onClick={() => setResizeMode('col')}
                     className={cn(
                         "p-1.5 rounded-full transition-all",
@@ -87,16 +91,16 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
                 {(resizeMode === 'col' || resizeMode === 'cell') && (
                     <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/50 rounded-full p-0.5 pr-1">
                         <div className="w-7 h-7 flex items-center justify-center text-slate-400 rounded-full"><MoveHorizontal size={14} /></div>
-                        <button onClick={() => onResizeCol(-5)} className="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm border border-slate-200 text-slate-600 active:scale-90 transition-all hover:border-emerald-400"><Minus size={14} strokeWidth={2.5} /></button>
-                        <button onClick={() => onResizeCol(5)} className="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm border border-slate-200 text-slate-600 active:scale-90 transition-all hover:border-emerald-400"><Plus size={14} strokeWidth={2.5} /></button>
+                        <button type="button" onClick={() => onResizeCol(-5)} className="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm border border-slate-200 text-slate-600 active:scale-90 transition-all hover:border-emerald-400"><Minus size={14} strokeWidth={2.5} /></button>
+                        <button type="button" onClick={() => onResizeCol(5)} className="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm border border-slate-200 text-slate-600 active:scale-90 transition-all hover:border-emerald-400"><Plus size={14} strokeWidth={2.5} /></button>
                     </div>
                 )}
 
                 {(resizeMode === 'row' || resizeMode === 'cell') && (
                     <div className="flex items-center gap-1 bg-slate-50 border border-slate-200/50 rounded-full p-0.5 pr-1">
                         <div className="w-7 h-7 flex items-center justify-center text-slate-400 rounded-full"><MoveVertical size={14} /></div>
-                        <button onClick={() => onResizeRow(-5)} className="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm border border-slate-200 text-slate-600 active:scale-90 transition-all hover:border-emerald-400"><Minus size={14} strokeWidth={2.5} /></button>
-                        <button onClick={() => onResizeRow(5)} className="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm border border-slate-200 text-slate-600 active:scale-90 transition-all hover:border-emerald-400"><Plus size={14} strokeWidth={2.5} /></button>
+                        <button type="button" onClick={() => onResizeRow(-5)} className="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm border border-slate-200 text-slate-600 active:scale-90 transition-all hover:border-emerald-400"><Minus size={14} strokeWidth={2.5} /></button>
+                        <button type="button" onClick={() => onResizeRow(5)} className="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm border border-slate-200 text-slate-600 active:scale-90 transition-all hover:border-emerald-400"><Plus size={14} strokeWidth={2.5} /></button>
                     </div>
                 )}
             </div>
@@ -109,6 +113,7 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
         <div className="flex items-center gap-1 flex-shrink-0 pl-1">
              {onEditComment && (
                 <button
+                    type="button"
                     onClick={onEditComment}
                     className="w-8 h-8 flex items-center justify-center text-slate-600 hover:text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
                     title="Edit Comment"
@@ -118,6 +123,7 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
              )}
              
              <button
+                type="button"
                 onClick={onReset}
                 className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors active:rotate-180 duration-500"
                 title="Reset to Default"

@@ -110,7 +110,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
         )}
 
         {/* Mobile Resize Toggle */}
-        <div className="md:hidden flex items-center border-l border-slate-700 pl-3">
+        <div className="lg:hidden flex items-center border-l border-slate-700 pl-3">
             <button 
                 onClick={onToggleMobileResize}
                 className="p-1.5 text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 border border-emerald-400/20 rounded-md transition-all active:scale-95"

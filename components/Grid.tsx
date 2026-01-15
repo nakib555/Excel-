@@ -264,7 +264,7 @@ const CustomCellRenderer = memo(({
       {/* Top-Left Handle (Mobile Selection) */}
       {isTopLeft && isTouch && !isFilling && (
         <div 
-            className="absolute -top-[12px] -left-[12px] w-[24px] h-[24px] rounded-full bg-transparent border-[5px] border-[#107c41] z-[70] pointer-events-auto touch-none active:scale-125 transition-transform duration-100 ease-out"
+            className="absolute -top-[1px] -left-[1px] w-[20px] h-[20px] bg-white border-[3px] border-[#107c41] rounded-full z-[70] shadow-[0_2px_4px_rgba(0,0,0,0.2)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto touch-none"
             onTouchStart={(e) => onMobileHandleDown(e, cellId, 'start')}
         />
       )}
@@ -272,7 +272,7 @@ const CustomCellRenderer = memo(({
       {/* Bottom-Right Handle (Mobile Selection) */}
       {isBottomRight && isTouch && !isFilling && (
         <div 
-            className="absolute -bottom-[12px] -right-[12px] w-[24px] h-[24px] rounded-full bg-transparent border-[5px] border-[#107c41] z-[70] pointer-events-auto touch-none active:scale-125 transition-transform duration-100 ease-out"
+            className="absolute -bottom-[1px] -right-[1px] w-[20px] h-[20px] bg-white border-[3px] border-[#107c41] rounded-full z-[70] shadow-[0_2px_4px_rgba(0,0,0,0.2)] translate-x-1/2 translate-y-1/2 pointer-events-auto touch-none"
             onTouchStart={(e) => onMobileHandleDown(e, cellId, 'end')}
         />
       )}
@@ -429,10 +429,13 @@ const Grid: React.FC<GridProps> = ({
         if (!selectionBounds) return;
         let anchorRow, anchorCol;
         
+        // When dragging a handle, the anchor is the OPPOSITE corner
+        // If dragging Start (Top-Left), anchor is End (Bottom-Right)
         if (type === 'start') {
             anchorRow = selectionBounds.maxRow;
             anchorCol = selectionBounds.maxCol;
         } else {
+            // If dragging End (Bottom-Right), anchor is Start (Top-Left)
             anchorRow = selectionBounds.minRow;
             anchorCol = selectionBounds.minCol;
         }
