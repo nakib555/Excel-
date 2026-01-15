@@ -5,6 +5,7 @@ import { cn, formatCellValue, measureTextWidth, useSmartPosition } from '../util
 import { CellSkeleton } from './Skeletons';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { Tooltip } from './shared';
 
 // Lazy load the new FilterMenu
 const FilterMenu = lazy(() => import('./menus/FilterMenu'));
@@ -353,9 +354,14 @@ const Cell = memo(({
       )}
 
       {data.link && !editing && isActive && (
-          <div className="absolute top-0 right-0 p-0.5 bg-blue-50 z-20 cursor-pointer" title={`Go to ${data.link}`} onMouseDown={(e) => { e.stopPropagation(); window.open(data.link, '_blank'); }}>
-               <ExternalLink size={10} className="text-blue-500" />
-          </div>
+          <Tooltip content={`Go to ${data.link}`}>
+              <div 
+                className="absolute top-0 right-0 p-0.5 bg-blue-50 z-20 cursor-pointer" 
+                onMouseDown={(e) => { e.stopPropagation(); window.open(data.link, '_blank'); }}
+              >
+                   <ExternalLink size={10} className="text-blue-500" />
+              </div>
+          </Tooltip>
       )}
 
       {data.comment && (

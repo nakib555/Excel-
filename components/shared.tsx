@@ -1,9 +1,8 @@
-
 import React, { useRef, useState, useEffect, useLayoutEffect, memo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, SquareArrowOutDownRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import { CellStyle, Table } from '../types';
-import { cn, useSmartPosition } from '../utils';
+import { CellStyle, Table } from '../../types';
+import { cn, useSmartPosition } from '../../utils';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 
 export interface TabProps {
@@ -211,7 +210,15 @@ export const DraggableScrollContainer = memo(({ children, className = "" }: { ch
 });
 
 // --- Radix UI Tooltip Wrapper ---
-export const Tooltip = ({ children, content, side = 'top', align = 'center', delayDuration = 300 }: { children?: React.ReactNode, content?: string | React.ReactNode, side?: 'top'|'bottom'|'left'|'right', align?: 'start'|'center'|'end', delayDuration?: number }) => {
+export interface TooltipProps {
+    children?: React.ReactNode;
+    content?: string | React.ReactNode;
+    side?: 'top' | 'bottom' | 'left' | 'right';
+    align?: 'start' | 'center' | 'end';
+    delayDuration?: number;
+}
+
+export const Tooltip: React.FC<TooltipProps> = ({ children, content, side = 'top', align = 'center', delayDuration = 300 }) => {
     if (!content) return <>{children}</>;
     
     return (
@@ -297,13 +304,12 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
     ? React.cloneElement(icon as React.ReactElement<any>, iconConfig) 
     : icon;
 
-  let buttonElement;
-
   if (variant === 'large') {
-    buttonElement = (
+    return (
       <button 
         onClick={onClick} 
         onDoubleClick={onDoubleClick}
+        title={title} 
         disabled={disabled} 
         className={cn(`${baseClass} flex-col px-1 py-1 h-full min-w-[52px] md:min-w-[60px] gap-0.5 justify-center`, className)}
       >
@@ -315,11 +321,14 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
         </div>
       </button>
     );
-  } else if (variant === 'small') {
-    buttonElement = (
+  }
+
+  if (variant === 'small') {
+    return (
       <button 
         onClick={onClick} 
         onDoubleClick={onDoubleClick}
+        title={title} 
         disabled={disabled} 
         className={cn(`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`, className)}
       >
@@ -328,45 +337,35 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
         {hasDropdown && <ChevronDown size={10} className="ml-auto opacity-50 stroke-[3]" />}
       </button>
     );
-  } else {
-    // Icon Only
-    buttonElement = (
-        <button 
-            onClick={onClick} 
-            onDoubleClick={onDoubleClick}
-            disabled={disabled} 
-            className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}
+  }
+
+  return (
+    <button 
+        onClick={onClick} 
+        onDoubleClick={onDoubleClick}
+        title={title} 
+        disabled={disabled} 
+        className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}
+    >
+      {styledIcon}
+      {hasDropdown && (
+        <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="8" 
+            height="8" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className="lucide lucide-chevron-down absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]"
         >
-        {styledIcon}
-        {hasDropdown && (
-            <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="8" 
-                height="8" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                className="lucide lucide-chevron-down absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]"
-            >
-                <path d="m6 9 6 6 6-6"/>
-            </svg>
-        )}
-        </button>
-    );
-  }
-
-  if (title) {
-      return (
-          <Tooltip content={title}>
-              {buttonElement}
-          </Tooltip>
-      );
-  }
-
-  return buttonElement;
+            <path d="m6 9 6 6 6-6"/>
+        </svg>
+      )}
+    </button>
+  );
 });
 
 export const SmartDropdown = ({ 
@@ -489,19 +488,20 @@ export const ColorPicker: React.FC<{
         >
              <div className="grid grid-cols-5 gap-1.5 p-2">
                 {colors.map(c => (
-                    <button
-                        key={c}
-                        className="w-6 h-6 rounded border border-slate-200 hover:scale-110 hover:border-slate-400 hover:shadow-sm transition-all relative overflow-hidden"
-                        style={{ backgroundColor: c === 'transparent' ? 'white' : c }}
-                        onClick={() => { onChange(c); setOpen(false); }}
-                        title={c}
-                    >
-                         {c === 'transparent' && (
-                             <div className="absolute inset-0 flex items-center justify-center">
-                                 <div className="w-full h-[1px] bg-red-500 rotate-45 transform" />
-                             </div>
-                         )}
-                    </button>
+                    <Tooltip key={c} content={c} side="top" delayDuration={300}>
+                        <button
+                            className="w-6 h-6 rounded border border-slate-200 hover:scale-110 hover:border-slate-400 hover:shadow-sm transition-all relative overflow-hidden"
+                            style={{ backgroundColor: c === 'transparent' ? 'white' : c }}
+                            onClick={() => { onChange(c); setOpen(false); }}
+                            title={c}
+                        >
+                             {c === 'transparent' && (
+                                 <div className="absolute inset-0 flex items-center justify-center">
+                                     <div className="w-full h-[1px] bg-red-500 rotate-45 transform" />
+                                 </div>
+                             )}
+                        </button>
+                    </Tooltip>
                 ))}
             </div>
         </SmartDropdown>

@@ -4,47 +4,49 @@ import { TABLE_STYLES } from './tableData';
 import { cn } from '../../../../utils';
 import { Plus, LayoutTemplate } from 'lucide-react';
 import { TableStylePreset } from '../../../../types';
+import { Tooltip } from '../../../shared';
 
 export const StylePreviewItem: React.FC<{ style: TableStylePreset, onClick: () => void, selected?: boolean }> = ({ style, onClick, selected }) => {
     return (
-        <button 
-            onClick={onClick}
-            className={cn(
-                "group relative w-full aspect-[5/3] rounded-lg transition-all duration-200 outline-none isolate",
-                "hover:scale-105 hover:z-20 hover:shadow-xl",
-                selected 
-                    ? "ring-2 ring-primary-500 ring-offset-2 z-10 shadow-md" 
-                    : "hover:ring-2 hover:ring-primary-200 hover:ring-offset-2"
-            )}
-            title={style.name}
-        >
-            <div className="w-full h-full flex flex-col overflow-hidden rounded-[6px] shadow-sm bg-white ring-1 ring-black/5 group-hover:ring-black/10">
-                {/* Header Row */}
-                <div 
-                    className="h-[32%] w-full flex items-center justify-center relative"
-                    style={{ backgroundColor: style.headerBg }}
-                >
-                    {/* Abstract Text Line */}
-                    <div className="w-[60%] h-[2px] rounded-full opacity-60" style={{ backgroundColor: style.headerColor === '#ffffff' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.2)' }} />
+        <Tooltip content={style.name} side="top" delayDuration={300}>
+            <button 
+                onClick={onClick}
+                className={cn(
+                    "group relative w-full aspect-[5/3] rounded-lg transition-all duration-200 outline-none isolate",
+                    "hover:scale-105 hover:z-20 hover:shadow-xl",
+                    selected 
+                        ? "ring-2 ring-primary-500 ring-offset-2 z-10 shadow-md" 
+                        : "hover:ring-2 hover:ring-primary-200 hover:ring-offset-2"
+                )}
+            >
+                <div className="w-full h-full flex flex-col overflow-hidden rounded-[6px] shadow-sm bg-white ring-1 ring-black/5 group-hover:ring-black/10">
+                    {/* Header Row */}
+                    <div 
+                        className="h-[32%] w-full flex items-center justify-center relative"
+                        style={{ backgroundColor: style.headerBg }}
+                    >
+                        {/* Abstract Text Line */}
+                        <div className="w-[60%] h-[2px] rounded-full opacity-60" style={{ backgroundColor: style.headerColor === '#ffffff' ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.2)' }} />
+                    </div>
+                    
+                    {/* Body Rows */}
+                    <div className="flex-1 flex flex-col">
+                        <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowOddBg }}>
+                            <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
+                        </div>
+                        <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowEvenBg }}>
+                            <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
+                        </div>
+                        <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowOddBg }}>
+                            <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
+                        </div>
+                        <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowEvenBg }}>
+                            <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
+                        </div>
+                    </div>
                 </div>
-                
-                {/* Body Rows */}
-                <div className="flex-1 flex flex-col">
-                    <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowOddBg }}>
-                        <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
-                    </div>
-                    <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowEvenBg }}>
-                        <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
-                    </div>
-                    <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowOddBg }}>
-                        <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
-                    </div>
-                    <div className="flex-1 w-full flex items-center px-1" style={{ backgroundColor: style.rowEvenBg }}>
-                        <div className="w-[30%] h-[1.5px] bg-slate-900/5 rounded-full" />
-                    </div>
-                </div>
-            </div>
-        </button>
+            </button>
+        </Tooltip>
     );
 };
 

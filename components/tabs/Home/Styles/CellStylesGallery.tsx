@@ -2,6 +2,7 @@
 import React from 'react';
 import { CellStyle } from '../../../../types';
 import { Plus, ChevronRight, Layers } from 'lucide-react';
+import { Tooltip } from '../../../shared';
 
 interface StylePreset {
     name: string;
@@ -97,20 +98,21 @@ const StylePreviewBox: React.FC<{ preset: StylePreset; onClick: () => void }> = 
     };
 
     return (
-        <button 
-            className="group w-full relative outline-none focus:outline-none"
-            onClick={onClick}
-            title={preset.name}
-        >
-            <div 
-                className="w-full h-10 flex items-center justify-center overflow-hidden transition-all duration-200 rounded-md group-hover:scale-[1.05] group-hover:shadow-lg group-hover:z-10 relative bg-white"
-                style={style}
+        <Tooltip content={preset.name} side="top" delayDuration={300}>
+            <button 
+                className="group w-full relative outline-none focus:outline-none"
+                onClick={onClick}
             >
-                <span className="truncate px-2 w-full text-center leading-none select-none">{preset.name}</span>
-            </div>
-            {/* Hover Outline */}
-            <div className="absolute inset-0 border-2 border-primary-500/0 group-hover:border-primary-500 rounded-md pointer-events-none transition-colors -m-[1px]" />
-        </button>
+                <div 
+                    className="w-full h-10 flex items-center justify-center overflow-hidden transition-all duration-200 rounded-md group-hover:scale-[1.05] group-hover:shadow-lg group-hover:z-10 relative bg-white"
+                    style={style}
+                >
+                    <span className="truncate px-2 w-full text-center leading-none select-none">{preset.name}</span>
+                </div>
+                {/* Hover Outline */}
+                <div className="absolute inset-0 border-2 border-primary-500/0 group-hover:border-primary-500 rounded-md pointer-events-none transition-colors -m-[1px]" />
+            </button>
+        </Tooltip>
     );
 };
 

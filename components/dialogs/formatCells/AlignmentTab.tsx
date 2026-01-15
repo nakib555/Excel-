@@ -5,6 +5,7 @@ import { cn } from '../../../utils';
 import { CellStyle } from '../../../types';
 import ModernSelect from './ModernSelect';
 import GroupBox from './GroupBox';
+import { Tooltip } from '../../shared';
 
 interface AlignmentTabProps {
     style: CellStyle;
@@ -262,13 +263,14 @@ const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }
                                 >
                                     <span className="font-black">Vertical</span>
                                 </button>
-                                <button 
-                                    onClick={() => { onChange('textRotation', 0); onChange('verticalText', false); }}
-                                    className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all hover:bg-slate-200"
-                                    title="Reset Orientation"
-                                >
-                                    <RotateCw size={18} />
-                                </button>
+                                <Tooltip content="Reset Orientation">
+                                    <button 
+                                        onClick={() => { onChange('textRotation', 0); onChange('verticalText', false); }}
+                                        className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all hover:bg-slate-200"
+                                    >
+                                        <RotateCw size={18} />
+                                    </button>
+                                </Tooltip>
                             </div>
                         </div>
                     </div>

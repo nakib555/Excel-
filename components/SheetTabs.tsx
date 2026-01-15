@@ -4,6 +4,7 @@ import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Sheet } from '../types';
 import SheetTabItem from './SheetTabItem';
 import { cn } from '../utils';
+import { Tooltip } from './shared';
 
 interface SheetTabsProps {
   sheets: Sheet[];
@@ -94,22 +95,24 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
       
       {/* Scroll Controls (Persistent on Left like Excel, but with our logic) */}
       <div className="flex items-center gap-0.5 mr-1 flex-shrink-0">
-           <button 
-                onClick={() => scrollTabs('left')}
-                className="p-1 text-slate-500 hover:bg-slate-200 rounded disabled:opacity-30 transition-colors"
-                disabled={!showLeftArrow}
-                title="Scroll Left"
-           >
-               <ChevronLeft size={14} />
-           </button>
-           <button 
-                onClick={() => scrollTabs('right')}
-                className="p-1 text-slate-500 hover:bg-slate-200 rounded disabled:opacity-30 transition-colors"
-                disabled={!showRightArrow}
-                title="Scroll Right"
-           >
-               <ChevronRight size={14} />
-           </button>
+           <Tooltip content="Scroll Left">
+               <button 
+                    onClick={() => scrollTabs('left')}
+                    className="p-1 text-slate-500 hover:bg-slate-200 rounded disabled:opacity-30 transition-colors"
+                    disabled={!showLeftArrow}
+               >
+                   <ChevronLeft size={14} />
+               </button>
+           </Tooltip>
+           <Tooltip content="Scroll Right">
+               <button 
+                    onClick={() => scrollTabs('right')}
+                    className="p-1 text-slate-500 hover:bg-slate-200 rounded disabled:opacity-30 transition-colors"
+                    disabled={!showRightArrow}
+               >
+                   <ChevronRight size={14} />
+               </button>
+           </Tooltip>
       </div>
 
       {/* Tabs Container */}
@@ -158,13 +161,14 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
 
       {/* Add Button */}
       <div className="flex items-center pl-1 flex-shrink-0 border-l border-slate-300 ml-1 h-3/5 bg-slate-100 z-30">
-        <button 
-          onClick={onAdd}
-          className="p-1.5 ml-1 bg-transparent hover:bg-slate-200 text-slate-600 hover:text-emerald-600 rounded-full transition-all"
-          title="New Sheet"
-        >
-          <Plus size={18} />
-        </button>
+        <Tooltip content="New Sheet">
+            <button 
+              onClick={onAdd}
+              className="p-1.5 ml-1 bg-transparent hover:bg-slate-200 text-slate-600 hover:text-emerald-600 rounded-full transition-all"
+            >
+              <Plus size={18} />
+            </button>
+        </Tooltip>
       </div>
     </div>
   );

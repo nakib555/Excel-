@@ -6,6 +6,7 @@ import ModernSelect from './ModernSelect';
 import GroupBox from './GroupBox';
 import { COLORS } from './constants';
 import { Ban, Square } from 'lucide-react';
+import { Tooltip } from '../../shared';
 
 interface BorderTabProps {
     style: CellStyle;
@@ -148,76 +149,82 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
                         <div className="w-32 h-32 md:w-44 md:h-44 relative flex items-center justify-center">
                             
                             {/* Top Toggle Button */}
-                            <button 
-                                onClick={() => toggleBorder('top')}
-                                className={cn(
-                                    "absolute -top-8 left-1/2 -translate-x-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
-                                    isBorderActive('top') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
-                                )}
-                                title="Top Border"
-                            >
-                                <div className="w-4 h-[2px] bg-current" />
-                            </button>
+                            <Tooltip content="Top Border">
+                                <button 
+                                    onClick={() => toggleBorder('top')}
+                                    className={cn(
+                                        "absolute -top-8 left-1/2 -translate-x-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                        isBorderActive('top') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
+                                    )}
+                                >
+                                    <div className="w-4 h-[2px] bg-current" />
+                                </button>
+                            </Tooltip>
 
                             {/* Bottom Toggle Button */}
-                            <button 
-                                onClick={() => toggleBorder('bottom')}
-                                className={cn(
-                                    "absolute -bottom-8 left-1/2 -translate-x-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
-                                    isBorderActive('bottom') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
-                                )}
-                                title="Bottom Border"
-                            >
-                                <div className="w-4 h-[2px] bg-current" />
-                            </button>
+                            <Tooltip content="Bottom Border">
+                                <button 
+                                    onClick={() => toggleBorder('bottom')}
+                                    className={cn(
+                                        "absolute -bottom-8 left-1/2 -translate-x-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                        isBorderActive('bottom') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
+                                    )}
+                                >
+                                    <div className="w-4 h-[2px] bg-current" />
+                                </button>
+                            </Tooltip>
 
                             {/* Left Toggle Button */}
-                            <button 
-                                onClick={() => toggleBorder('left')}
-                                className={cn(
-                                    "absolute top-1/2 -left-8 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
-                                    isBorderActive('left') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
-                                )}
-                                title="Left Border"
-                            >
-                                <div className="h-4 w-[2px] bg-current" />
-                            </button>
+                            <Tooltip content="Left Border">
+                                <button 
+                                    onClick={() => toggleBorder('left')}
+                                    className={cn(
+                                        "absolute top-1/2 -left-8 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                        isBorderActive('left') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
+                                    )}
+                                >
+                                    <div className="h-4 w-[2px] bg-current" />
+                                </button>
+                            </Tooltip>
 
                             {/* Right Toggle Button */}
-                            <button 
-                                onClick={() => toggleBorder('right')}
-                                className={cn(
-                                    "absolute top-1/2 -right-8 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
-                                    isBorderActive('right') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
-                                )}
-                                title="Right Border"
-                            >
-                                <div className="h-4 w-[2px] bg-current" />
-                            </button>
+                            <Tooltip content="Right Border">
+                                <button 
+                                    onClick={() => toggleBorder('right')}
+                                    className={cn(
+                                        "absolute top-1/2 -right-8 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                        isBorderActive('right') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
+                                    )}
+                                >
+                                    <div className="h-4 w-[2px] bg-current" />
+                                </button>
+                            </Tooltip>
 
                             {/* Diagonal Up Toggle (Corner) */}
-                            <button
-                                onClick={() => toggleBorder('diagonalUp')}
-                                className={cn(
-                                    "absolute -bottom-8 -left-8 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
-                                    isBorderActive('diagonalUp') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
-                                )}
-                                title="Diagonal Up"
-                            >
-                                <div className="w-4 h-[2px] bg-current -rotate-45" />
-                            </button>
+                            <Tooltip content="Diagonal Up">
+                                <button
+                                    onClick={() => toggleBorder('diagonalUp')}
+                                    className={cn(
+                                        "absolute -bottom-8 -left-8 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                        isBorderActive('diagonalUp') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
+                                    )}
+                                >
+                                    <div className="w-4 h-[2px] bg-current -rotate-45" />
+                                </button>
+                            </Tooltip>
 
                             {/* Diagonal Down Toggle (Corner) */}
-                            <button
-                                onClick={() => toggleBorder('diagonalDown')}
-                                className={cn(
-                                    "absolute -bottom-8 -right-8 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
-                                    isBorderActive('diagonalDown') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
-                                )}
-                                title="Diagonal Down"
-                            >
-                                <div className="w-4 h-[2px] bg-current rotate-45" />
-                            </button>
+                            <Tooltip content="Diagonal Down">
+                                <button
+                                    onClick={() => toggleBorder('diagonalDown')}
+                                    className={cn(
+                                        "absolute -bottom-8 -right-8 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                        isBorderActive('diagonalDown') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
+                                    )}
+                                >
+                                    <div className="w-4 h-[2px] bg-current rotate-45" />
+                                </button>
+                            </Tooltip>
 
 
                             {/* The Actual Box Render */}
