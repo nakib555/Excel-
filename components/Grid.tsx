@@ -2,7 +2,7 @@
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { DataGrid, Column, RenderCellProps } from 'react-data-grid';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
-import { numToChar, getCellId, formatCellValue } from '../utils';
+import { numToChar, getCellId, formatCellValue, parseCellId, cn } from '../utils';
 import { NavigationDirection } from './Cell';
 import { ExternalLink } from 'lucide-react';
 
@@ -163,6 +163,7 @@ const Grid: React.FC<GridProps> = ({
 
   // Convert selection range to Set for O(1) lookup
   const selectionSet = useMemo(() => new Set(selectionRange || []), [selectionRange]);
+  const activeCoords = useMemo(() => parseCellId(activeCell || ''), [activeCell]);
 
   // Handle Drag Selection
   const handleMouseDown = useCallback((id: string, shift: boolean) => {
@@ -200,15 +201,12 @@ const Grid: React.FC<GridProps> = ({
          frozen: true,
          resizable: false,
          renderCell: (props) => {
-            // Check if this row is selected (part of range) to highlight row header
-            const rowSelected = selectionRange?.some(id => {
-                const { row } = getCellId(0, props.row.id) as any; // Pseudo logic, better to parse range
-                // Just highlight if active cell row
-                return false; 
-            });
-            // Better logic: pass active row index to grid and check here
+            const isRowActive = activeCoords?.row === props.row.id;
             return (
-                <div className="flex items-center justify-center w-full h-full font-semibold select-none text-[11px] bg-[#e6e6e6] text-[#444]">
+                <div className={cn(
+                    "flex items-center justify-center w-full h-full font-semibold select-none text-[11px] border-r border-b border-[#bfbfbf]",
+                    isRowActive ? "bg-[#d3f0e0] text-[#107c41]" : "bg-[#e6e6e6] text-[#444]"
+                )}>
                     {props.row.id + 1}
                 </div>
             );
@@ -235,11 +233,17 @@ const Grid: React.FC<GridProps> = ({
                     onMouseEnter={handleMouseEnter}
                 />
             ),
-            renderHeaderCell: (props) => (
-                <div className="flex items-center justify-center w-full h-full font-semibold text-[#444] bg-[#e6e6e6] text-[12px]">
-                    {props.column.name}
-                </div>
-            ),
+            renderHeaderCell: (props) => {
+                const isColActive = activeCoords?.col === i;
+                return (
+                    <div className={cn(
+                        "flex items-center justify-center w-full h-full font-semibold text-[12px] border-r border-b border-[#bfbfbf]",
+                        isColActive ? "bg-[#d3f0e0] text-[#107c41] border-b-2 border-b-[#107c41]" : "bg-[#e6e6e6] text-[#444]"
+                    )}>
+                        {props.column.name}
+                    </div>
+                );
+            },
             editor: ({ row, column, onRowChange, onClose }) => {
                 const id = getCellId(parseInt(column.key), row.id);
                 return (
@@ -268,7 +272,7 @@ const Grid: React.FC<GridProps> = ({
        })
     ];
     return cols;
-  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, handleMouseDown, handleMouseEnter, onCellChange]);
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, handleMouseDown, handleMouseEnter, onCellChange, activeCoords]);
 
   // 2. Generate Rows
   const rows = useMemo(() => {

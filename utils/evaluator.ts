@@ -100,7 +100,8 @@ export const updateCellInHF = (id: string, raw: string, sheetName: string) => {
         return;
     }
 
-    hfInstance.setCellContents({ sheetId, col: coords.col, row: coords.row }, [[val]]);
+    // Fix: HF expects 'sheet' property, not 'sheetId'
+    hfInstance.setCellContents({ sheet: sheetId, col: coords.col, row: coords.row }, [[val]]);
   } catch (e) {
     console.error("HF Update Error", e);
   }
@@ -114,7 +115,8 @@ export const getCellValueFromHF = (id: string, sheetName: string): string => {
   try {
     if (sheetId === undefined) return "#ERR";
 
-    const val = hfInstance.getCellValue({ sheetId, col: coords.col, row: coords.row });
+    // Fix: HF expects 'sheet' property
+    const val = hfInstance.getCellValue({ sheet: sheetId, col: coords.col, row: coords.row });
     if (val instanceof Error) return val.message; // HF Error object
     if (val === undefined || val === null) return "";
     return String(val);
