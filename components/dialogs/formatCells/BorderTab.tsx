@@ -270,13 +270,21 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
                                 {/* Clickable Hotspots for Direct Interaction with visual feedback */}
                                 <div className="absolute inset-0 z-20">
                                     {/* Top Area */}
-                                    <div className="absolute top-0 left-0 right-0 h-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('top')} title="Toggle Top Border" />
+                                    <Tooltip content="Toggle Top Border">
+                                        <div className="absolute top-0 left-0 right-0 h-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('top')} />
+                                    </Tooltip>
                                     {/* Bottom Area */}
-                                    <div className="absolute bottom-0 left-0 right-0 h-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('bottom')} title="Toggle Bottom Border" />
+                                    <Tooltip content="Toggle Bottom Border">
+                                        <div className="absolute bottom-0 left-0 right-0 h-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('bottom')} />
+                                    </Tooltip>
                                     {/* Left Area */}
-                                    <div className="absolute top-0 bottom-0 left-0 w-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('left')} title="Toggle Left Border" />
+                                    <Tooltip content="Toggle Left Border">
+                                        <div className="absolute top-0 bottom-0 left-0 w-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('left')} />
+                                    </Tooltip>
                                     {/* Right Area */}
-                                    <div className="absolute top-0 bottom-0 right-0 w-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('right')} title="Toggle Right Border" />
+                                    <Tooltip content="Toggle Right Border">
+                                        <div className="absolute top-0 bottom-0 right-0 w-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('right')} />
+                                    </Tooltip>
                                 </div>
                             </div>
 

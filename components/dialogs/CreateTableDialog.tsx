@@ -76,9 +76,11 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
                                     className="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[14px] font-mono font-medium text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all uppercase shadow-sm"
                                     placeholder="A1:C5"
                                 />
-                                <button className="absolute right-1 top-1 bottom-1 w-7 bg-white border border-slate-200 rounded-lg flex items-center justify-center hover:bg-slate-50 hover:border-emerald-300 transition-colors group-focus-within:border-emerald-200 shadow-sm">
-                                    <ArrowUp size={14} className="text-slate-500" />
-                                </button>
+                                <Tooltip content="Select Range">
+                                    <button className="absolute right-1 top-1 bottom-1 w-7 bg-white border border-slate-200 rounded-lg flex items-center justify-center hover:bg-slate-50 hover:border-emerald-300 transition-colors group-focus-within:border-emerald-200 shadow-sm">
+                                        <ArrowUp size={14} className="text-slate-500" />
+                                    </button>
+                                </Tooltip>
                             </div>
                         </div>
                         

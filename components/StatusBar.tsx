@@ -84,10 +84,12 @@ const StatusBar: React.FC<StatusBarProps> = ({
             </StatusBarIconBtn>
         </div>
 
-        <div className="hidden lg:flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 cursor-pointer transition-colors text-slate-400 hover:text-slate-200 group/status" title="Accessibility Check">
-          <CheckCircle2 size={14} className="text-emerald-500/80 group-hover/status:text-emerald-400 transition-colors" />
-          <span className="font-medium tracking-tight">Ready</span>
-        </div>
+        <Tooltip content="Accessibility Check">
+            <div className="hidden lg:flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 cursor-pointer transition-colors text-slate-400 hover:text-slate-200 group/status">
+              <CheckCircle2 size={14} className="text-emerald-500/80 group-hover/status:text-emerald-400 transition-colors" />
+              <span className="font-medium tracking-tight">Ready</span>
+            </div>
+        </Tooltip>
       </div>
 
       {/* Center/Right Section - Stats & Tools */}

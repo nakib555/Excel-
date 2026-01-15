@@ -1,10 +1,13 @@
 
-import React, { useRef, useState, useEffect, useLayoutEffect, memo, useCallback } from 'react';
+import React, { useRef, useState, useEffect, memo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, SquareArrowOutDownRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CellStyle, Table } from '../../types';
 import { cn, useSmartPosition } from '../../utils';
-import * as TooltipPrimitive from '@radix-ui/react-tooltip';
+import { Tooltip, TooltipProps } from './Tooltip';
+
+export { Tooltip };
+export type { TooltipProps };
 
 export interface TabProps {
   currentStyle: CellStyle;
@@ -74,40 +77,6 @@ export interface TabProps {
   activeTable?: Table | null;
   onTableOptionChange?: (tableId: string, key: keyof Table, value: any) => void;
 }
-
-// --- Radix UI Tooltip Wrapper ---
-export interface TooltipProps {
-    children?: React.ReactNode;
-    content?: string | React.ReactNode;
-    side?: 'top' | 'bottom' | 'left' | 'right';
-    align?: 'start' | 'center' | 'end';
-    delayDuration?: number;
-}
-
-export const Tooltip: React.FC<TooltipProps> = ({ children, content, side = 'top', align = 'center', delayDuration = 300 }) => {
-    if (!content) return <>{children}</>;
-    
-    return (
-        <TooltipPrimitive.Provider delayDuration={delayDuration}>
-            <TooltipPrimitive.Root>
-                <TooltipPrimitive.Trigger asChild onClick={(e) => e.stopPropagation()}>
-                    {children}
-                </TooltipPrimitive.Trigger>
-                <TooltipPrimitive.Portal>
-                    <TooltipPrimitive.Content
-                        side={side}
-                        align={align}
-                        sideOffset={5}
-                        className="z-[9999] px-2.5 py-1.5 bg-slate-900/95 backdrop-blur-md text-white text-[11px] font-medium rounded-md shadow-xl border border-white/10 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 select-none max-w-[250px] leading-tight"
-                    >
-                        {content}
-                        <TooltipPrimitive.Arrow className="fill-slate-900/95" />
-                    </TooltipPrimitive.Content>
-                </TooltipPrimitive.Portal>
-            </TooltipPrimitive.Root>
-        </TooltipPrimitive.Provider>
-    );
-};
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -206,14 +175,12 @@ export const DraggableScrollContainer = memo(({ children, className = "" }: { ch
             "absolute left-0 top-0 bottom-0 z-20 flex items-center pr-4 bg-gradient-to-r from-[#f8fafc] to-transparent transition-opacity duration-300 pointer-events-none",
             showLeftArrow ? 'opacity-100' : 'opacity-0'
         )}>
-            <Tooltip content="Scroll Left">
-                <button 
-                    onClick={() => scrollManual('left')}
-                    className="pointer-events-auto p-0.5 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 shadow-sm border border-slate-300/50 backdrop-blur-sm ml-1"
-                >
-                    <ChevronLeft size={12} />
-                </button>
-            </Tooltip>
+            <button 
+                onClick={() => scrollManual('left')}
+                className="pointer-events-auto p-0.5 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 shadow-sm border border-slate-300/50 backdrop-blur-sm ml-1"
+            >
+                <ChevronLeft size={12} />
+            </button>
         </div>
 
         <div
@@ -235,14 +202,12 @@ export const DraggableScrollContainer = memo(({ children, className = "" }: { ch
             "absolute right-0 top-0 bottom-0 z-20 flex items-center pl-4 bg-gradient-to-l from-[#f8fafc] to-transparent transition-opacity duration-300 pointer-events-none",
             showRightArrow ? 'opacity-100' : 'opacity-0'
         )}>
-            <Tooltip content="Scroll Right">
-                <button 
-                    onClick={() => scrollManual('right')}
-                    className="pointer-events-auto p-0.5 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 shadow-sm border border-slate-300/50 backdrop-blur-sm mr-1"
-                >
-                    <ChevronRight size={12} />
-                </button>
-            </Tooltip>
+            <button 
+                onClick={() => scrollManual('right')}
+                className="pointer-events-auto p-0.5 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 shadow-sm border border-slate-300/50 backdrop-blur-sm mr-1"
+            >
+                <ChevronRight size={12} />
+            </button>
         </div>
     </div>
   );
@@ -310,45 +275,46 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
     ? React.cloneElement(icon as React.ReactElement<any>, iconConfig) 
     : icon;
 
-  const ButtonContent = (
-    <>
-      {variant === 'large' ? (
-          <>
-            <div className="p-1">{styledIcon}</div>
-            <div className="text-[11px] font-medium leading-[1.1] text-center flex flex-col items-center text-slate-700">
-                {label}
-                {subLabel && <span>{subLabel}</span>}
-                {hasDropdown && <ChevronDown size={10} className="mt-0.5 opacity-50 stroke-[3]" />}
-            </div>
-          </>
-      ) : variant === 'small' ? (
-          <>
-            <div className="transform flex-shrink-0 text-slate-700 flex items-center">{styledIcon}</div>
-            {label && <span className="text-[12px] text-slate-700 font-medium whitespace-nowrap leading-none pt-0.5">{label}</span>}
-            {hasDropdown && <ChevronDown size={10} className="ml-auto opacity-50 stroke-[3]" />}
-          </>
-      ) : (
-          <>
-            {styledIcon}
-            {hasDropdown && (
-                <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="8" 
-                    height="8" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    className="lucide lucide-chevron-down absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]"
-                >
-                    <path d="m6 9 6 6 6-6"/>
-                </svg>
-            )}
-          </>
-      )}
-    </>
+  // Render the button itself
+  const renderButton = (
+      <>
+        {variant === 'large' ? (
+            <>
+              <div className="p-1">{styledIcon}</div>
+              <div className="text-[11px] font-medium leading-[1.1] text-center flex flex-col items-center text-slate-700">
+                  {label}
+                  {subLabel && <span>{subLabel}</span>}
+                  {hasDropdown && <ChevronDown size={10} className="mt-0.5 opacity-50 stroke-[3]" />}
+              </div>
+            </>
+        ) : variant === 'small' ? (
+            <>
+              <div className="transform flex-shrink-0 text-slate-700 flex items-center">{styledIcon}</div>
+              {label && <span className="text-[12px] text-slate-700 font-medium whitespace-nowrap leading-none pt-0.5">{label}</span>}
+              {hasDropdown && <ChevronDown size={10} className="ml-auto opacity-50 stroke-[3]" />}
+            </>
+        ) : (
+            <>
+              {styledIcon}
+              {hasDropdown && (
+                  <svg 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      width="8" 
+                      height="8" 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      strokeWidth="2" 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      className="lucide lucide-chevron-down absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]"
+                  >
+                      <path d="m6 9 6 6 6-6"/>
+                  </svg>
+              )}
+            </>
+        )}
+      </>
   );
 
   const buttonClass = variant === 'large' 
@@ -366,7 +332,7 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
         disabled={disabled} 
         className={buttonClass}
       >
-        {ButtonContent}
+        {renderButton}
       </button>
   );
 

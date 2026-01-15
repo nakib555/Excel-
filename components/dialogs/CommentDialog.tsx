@@ -79,13 +79,14 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
 
                     {/* Footer */}
                     <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-100">
-                        <button 
-                            onClick={() => { onDelete(); onClose(); }}
-                            className="text-[11px] font-semibold text-red-500 hover:text-red-700 hover:underline px-1 transition-colors"
-                            title="Delete this comment"
-                        >
-                            Delete
-                        </button>
+                        <Tooltip content="Delete this comment">
+                            <button 
+                                onClick={() => { onDelete(); onClose(); }}
+                                className="text-[11px] font-semibold text-red-500 hover:text-red-700 hover:underline px-1 transition-colors"
+                            >
+                                Delete
+                            </button>
+                        </Tooltip>
                         <div className="flex gap-2">
                             <button 
                                 onClick={onClose}
