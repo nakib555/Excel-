@@ -5,6 +5,7 @@ import { CellStyle } from '../../types';
 import { cn } from '../../utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DropdownGridSkeleton } from '../Skeletons';
+import { Tooltip } from '../shared';
 
 // Import modular tabs
 import NumberTab from './formatCells/NumberTab';
@@ -118,9 +119,11 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.15em]">Properties</span>
                              </div>
                         </div>
-                        <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
-                            <X size={20} />
-                        </button>
+                        <Tooltip content="Close">
+                            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-all">
+                                <X size={20} />
+                            </button>
+                        </Tooltip>
                     </div>
 
                     <div className="px-6 md:px-8 py-3 flex-shrink-0 z-40 bg-white">
@@ -129,24 +132,25 @@ const FormatCellsDialog: React.FC<FormatCellsDialogProps> = ({ isOpen, onClose, 
                                 const active = activeTab === tab.id;
                                 const Icon = tab.icon;
                                 return (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={cn(
-                                            "pl-2.5 pr-3 py-1.5 text-[12px] font-bold rounded-[12px] transition-all whitespace-nowrap flex-shrink-0 snap-center min-w-max flex items-center gap-2 group",
-                                            active 
-                                                ? "bg-white text-slate-800 shadow-sm ring-1 ring-black/5" 
-                                                : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
-                                        )}
-                                    >
-                                        <div className={cn(
-                                            "w-6 h-6 rounded-full flex items-center justify-center transition-all",
-                                            active ? tab.bg : "bg-white/50 group-hover:bg-white"
-                                        )}>
-                                            <Icon size={13} className={cn(active ? tab.color : "text-slate-400 group-hover:text-slate-500", "stroke-[2.5]")} />
-                                        </div>
-                                        {tab.label}
-                                    </button>
+                                    <Tooltip key={tab.id} content={tab.label} delayDuration={500}>
+                                        <button
+                                            onClick={() => setActiveTab(tab.id)}
+                                            className={cn(
+                                                "pl-2.5 pr-3 py-1.5 text-[12px] font-bold rounded-[12px] transition-all whitespace-nowrap flex-shrink-0 snap-center min-w-max flex items-center gap-2 group",
+                                                active 
+                                                    ? "bg-white text-slate-800 shadow-sm ring-1 ring-black/5" 
+                                                    : "text-slate-500 hover:text-slate-700 hover:bg-white/50"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "w-6 h-6 rounded-full flex items-center justify-center transition-all",
+                                                active ? tab.bg : "bg-white/50 group-hover:bg-white"
+                                            )}>
+                                                <Icon size={13} className={cn(active ? tab.color : "text-slate-400 group-hover:text-slate-500", "stroke-[2.5]")} />
+                                            </div>
+                                            {tab.label}
+                                        </button>
+                                    </Tooltip>
                                 );
                             })}
                         </div>

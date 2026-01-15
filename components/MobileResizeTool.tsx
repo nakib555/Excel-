@@ -36,13 +36,15 @@ const MobileResizeTool: React.FC<MobileResizeToolProps> = ({
       <div className="h-14 bg-white/95 backdrop-blur-xl border border-slate-200/60 shadow-2xl rounded-full flex items-center px-1.5 gap-1.5 ring-1 ring-black/5 overflow-hidden mx-auto">
         
         {/* Close Button */}
-        <button 
-            type="button"
-            onClick={onClose}
-            className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-        >
-            <X size={18} />
-        </button>
+        <Tooltip content="Close">
+            <button 
+                type="button"
+                onClick={onClose}
+                className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+            >
+                <X size={18} />
+            </button>
+        </Tooltip>
 
         {/* Vertical Divider */}
         <div className="w-[1px] h-5 bg-slate-200 flex-shrink-0" />

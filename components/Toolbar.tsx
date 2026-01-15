@@ -11,13 +11,13 @@ import {
   Database, 
   CheckSquare, 
   Eye, 
-  Workflow,
+  Workflow, 
   TableProperties,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
-import { DraggableScrollContainer, TabProps } from './tabs/shared';
+import { DraggableScrollContainer, TabProps, Tooltip } from './shared';
 import { cn } from '../utils';
 import { RibbonSkeleton } from './Skeletons';
 
@@ -147,12 +147,14 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
                     showLeftArrow ? 'opacity-100' : 'opacity-0'
                 )}
             >
-                <button 
-                    onClick={() => scrollTabs('left')}
-                    className="pointer-events-auto w-6 h-6 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 shadow-md border border-slate-700 backdrop-blur-sm transition-all active:scale-95 ml-0.5"
-                >
-                    <ChevronLeft size={14} strokeWidth={2.5} />
-                </button>
+                <Tooltip content="Scroll Left">
+                    <button 
+                        onClick={() => scrollTabs('left')}
+                        className="pointer-events-auto w-6 h-6 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 shadow-md border border-slate-700 backdrop-blur-sm transition-all active:scale-95 ml-0.5"
+                    >
+                        <ChevronLeft size={14} strokeWidth={2.5} />
+                    </button>
+                </Tooltip>
             </div>
 
             {/* Scrollable List */}
@@ -211,12 +213,14 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
                     showRightArrow ? 'opacity-100' : 'opacity-0'
                 )}
             >
-                <button 
-                    onClick={() => scrollTabs('right')}
-                    className="pointer-events-auto w-6 h-6 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 shadow-md border border-slate-700 backdrop-blur-sm transition-all active:scale-95 mr-0.5"
-                >
-                    <ChevronRight size={14} strokeWidth={2.5} />
-                </button>
+                <Tooltip content="Scroll Right">
+                    <button 
+                        onClick={() => scrollTabs('right')}
+                        className="pointer-events-auto w-6 h-6 flex items-center justify-center rounded-full bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 shadow-md border border-slate-700 backdrop-blur-sm transition-all active:scale-95 mr-0.5"
+                    >
+                        <ChevronRight size={14} strokeWidth={2.5} />
+                    </button>
+                </Tooltip>
             </div>
         </div>
       </div>

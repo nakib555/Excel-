@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { X, Search, Replace, ArrowRight, Check, MapPin, List, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils';
+import { Tooltip } from '../shared';
 
 interface SearchResult {
     id: string;
@@ -124,12 +125,14 @@ const FindReplaceDialog: React.FC<FindReplaceDialogProps> = ({
                     {/* Header */}
                     <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-white/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
                         <span className="text-lg font-bold text-slate-800 tracking-tight">Find & Select</span>
-                        <button 
-                            onClick={onClose}
-                            className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                        >
-                            <X size={18} />
-                        </button>
+                        <Tooltip content="Close">
+                            <button 
+                                onClick={onClose}
+                                className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </Tooltip>
                     </div>
 
                     {/* Segmented Control */}
@@ -139,17 +142,18 @@ const FindReplaceDialog: React.FC<FindReplaceDialogProps> = ({
                                 const isActive = activeTab === tab.id;
                                 const Icon = tab.icon;
                                 return (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id as any)}
-                                        className={cn(
-                                            "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-semibold transition-all relative z-10",
-                                            isActive ? "text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
-                                        )}
-                                    >
-                                        <Icon size={14} className={isActive ? "text-primary-600" : "opacity-50"} />
-                                        {tab.label}
-                                    </button>
+                                    <Tooltip key={tab.id} content={tab.label} delayDuration={500}>
+                                        <button
+                                            onClick={() => setActiveTab(tab.id as any)}
+                                            className={cn(
+                                                "flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[13px] font-semibold transition-all relative z-10",
+                                                isActive ? "text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                                            )}
+                                        >
+                                            <Icon size={14} className={isActive ? "text-primary-600" : "opacity-50"} />
+                                            {tab.label}
+                                        </button>
+                                    </Tooltip>
                                 );
                             })}
                             <motion.div 
@@ -296,9 +300,11 @@ const FindReplaceDialog: React.FC<FindReplaceDialogProps> = ({
                                                                 <span className="text-sm text-slate-700 truncate flex-1">
                                                                     {highlightMatch(res.content, findText)}
                                                                 </span>
-                                                                <button className="opacity-0 group-hover:opacity-100 p-1 text-primary-500 hover:bg-white rounded transition-all">
-                                                                    <Eye size={14} />
-                                                                </button>
+                                                                <Tooltip content="Highlight">
+                                                                    <button className="opacity-0 group-hover:opacity-100 p-1 text-primary-500 hover:bg-white rounded transition-all">
+                                                                        <Eye size={14} />
+                                                                    </button>
+                                                                </Tooltip>
                                                             </div>
                                                         ))}
                                                         {results.length === 50 && (

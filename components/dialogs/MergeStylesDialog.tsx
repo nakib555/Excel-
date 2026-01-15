@@ -2,6 +2,7 @@
 import React from 'react';
 import { X, Copy, AlertCircle, BookOpen } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Tooltip } from '../shared';
 
 interface MergeStylesDialogProps {
   isOpen: boolean;
@@ -30,12 +31,14 @@ const MergeStylesDialog: React.FC<MergeStylesDialogProps> = ({ isOpen, onClose }
                             </div>
                             <span className="text-[15px] font-bold text-slate-800 tracking-tight">Merge Styles</span>
                         </div>
-                        <button 
-                            onClick={onClose}
-                            className="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                        >
-                            <X size={16} />
-                        </button>
+                        <Tooltip content="Close">
+                            <button 
+                                onClick={onClose}
+                                className="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
+                        </Tooltip>
                     </div>
 
                     {/* Content */}

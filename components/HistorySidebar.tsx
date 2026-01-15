@@ -4,6 +4,7 @@ import { X, Clock, Plus, RotateCcw, Trash2, CalendarDays, Save, RefreshCw, Eye, 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Revision } from '../types';
 import { cn } from '../utils';
+import { Tooltip } from './shared';
 
 interface HistorySidebarProps {
   isOpen: boolean;
@@ -120,25 +121,28 @@ const RevisionItem = memo(({
                             "flex gap-1 transition-all duration-200",
                             isPreviewing ? "opacity-100" : "opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0"
                         )}>
-                            <button 
-                                type="button"
-                                onClick={handleDelete}
-                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white hover:shadow-sm rounded-md transition-all"
-                                title="Delete Version"
-                            >
-                                <Trash2 size={13} />
-                            </button>
-                            <button 
-                                type="button"
-                                onClick={handleRestore}
-                                className={cn(
-                                    "flex items-center gap-1.5 px-2.5 py-1.5 text-white text-[10px] font-bold rounded-md shadow-sm active:scale-95 transition-all",
-                                    isPreviewing ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-900 hover:bg-slate-800"
-                                )}
-                            >
-                                <RotateCcw size={11} />
-                                Restore
-                            </button>
+                            <Tooltip content="Delete Version">
+                                <button 
+                                    type="button"
+                                    onClick={handleDelete}
+                                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white hover:shadow-sm rounded-md transition-all"
+                                >
+                                    <Trash2 size={13} />
+                                </button>
+                            </Tooltip>
+                            <Tooltip content="Restore Version">
+                                <button 
+                                    type="button"
+                                    onClick={handleRestore}
+                                    className={cn(
+                                        "flex items-center gap-1.5 px-2.5 py-1.5 text-white text-[10px] font-bold rounded-md shadow-sm active:scale-95 transition-all",
+                                        isPreviewing ? "bg-indigo-600 hover:bg-indigo-700" : "bg-slate-900 hover:bg-slate-800"
+                                    )}
+                                >
+                                    <RotateCcw size={11} />
+                                    Restore
+                                </button>
+                            </Tooltip>
                         </div>
                     </div>
                 </div>
@@ -199,9 +203,11 @@ const HistorySidebar: React.FC<HistorySidebarProps> = ({
                         <span className="text-[10px] text-slate-400 font-medium">Manage snapshots</span>
                     </div>
                 </div>
-                <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
-                    <X size={16} />
-                </button>
+                <Tooltip content="Close">
+                    <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
+                        <X size={16} />
+                    </button>
+                </Tooltip>
             </div>
 
             {/* Current Status Banner */}

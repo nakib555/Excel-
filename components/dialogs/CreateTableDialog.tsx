@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Table, ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../utils';
+import { Tooltip } from '../shared';
 
 interface CreateTableDialogProps {
   isOpen: boolean;
@@ -50,12 +51,14 @@ const CreateTableDialog: React.FC<CreateTableDialogProps> = ({
                             </div>
                             <span className="text-[15px] font-bold text-slate-800 tracking-tight">Create Table</span>
                         </div>
-                        <button 
-                            onClick={onClose}
-                            className="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                        >
-                            <X size={16} />
-                        </button>
+                        <Tooltip content="Close">
+                            <button 
+                                onClick={onClose}
+                                className="w-7 h-7 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                            >
+                                <X size={16} />
+                            </button>
+                        </Tooltip>
                     </div>
 
                     {/* Content */}

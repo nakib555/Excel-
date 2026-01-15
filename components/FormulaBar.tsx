@@ -312,10 +312,12 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
       </div>
       
       {/* Expand button */}
-      <button className="p-1 hover:bg-slate-100 rounded text-slate-400 md:block hidden">
-          <div className="w-4 h-1 bg-slate-300 rounded-full mb-0.5"></div>
-          <div className="w-4 h-1 bg-slate-300 rounded-full"></div>
-      </button>
+      <Tooltip content="Expand Formula Bar">
+          <button className="p-1 hover:bg-slate-100 rounded text-slate-400 md:block hidden">
+              <div className="w-4 h-1 bg-slate-300 rounded-full mb-0.5"></div>
+              <div className="w-4 h-1 bg-slate-300 rounded-full"></div>
+          </button>
+      </Tooltip>
     </div>
   );
 };

@@ -103,20 +103,26 @@ const StatusBar: React.FC<StatusBarProps> = ({
 
               <div className="hidden md:flex items-center gap-3 text-slate-300">
                   {stats.hasNumeric && (
-                      <div className="flex items-center gap-2 hover:bg-white/5 px-2 py-1 rounded-md cursor-pointer transition-colors border border-transparent hover:border-slate-700/50">
-                          <span className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">Avg</span>
-                          <span className="font-mono font-medium tracking-tight text-emerald-400">{stats.average.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                      </div>
+                      <Tooltip content="Average of selected cells">
+                          <div className="flex items-center gap-2 hover:bg-white/5 px-2 py-1 rounded-md cursor-pointer transition-colors border border-transparent hover:border-slate-700/50">
+                              <span className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">Avg</span>
+                              <span className="font-mono font-medium tracking-tight text-emerald-400">{stats.average.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          </div>
+                      </Tooltip>
                   )}
-                  <div className="flex items-center gap-2 hover:bg-white/5 px-2 py-1 rounded-md cursor-pointer transition-colors border border-transparent hover:border-slate-700/50">
-                      <span className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">Count</span>
-                      <span className="font-mono font-medium tracking-tight text-blue-400">{stats.count}</span>
-                  </div>
-                  {stats.hasNumeric && (
+                  <Tooltip content="Count of selected cells">
                       <div className="flex items-center gap-2 hover:bg-white/5 px-2 py-1 rounded-md cursor-pointer transition-colors border border-transparent hover:border-slate-700/50">
-                          <span className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">Sum</span>
-                          <span className="font-mono font-medium tracking-tight text-white">{stats.sum.toLocaleString()}</span>
+                          <span className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">Count</span>
+                          <span className="font-mono font-medium tracking-tight text-blue-400">{stats.count}</span>
                       </div>
+                  </Tooltip>
+                  {stats.hasNumeric && (
+                      <Tooltip content="Sum of selected cells">
+                          <div className="flex items-center gap-2 hover:bg-white/5 px-2 py-1 rounded-md cursor-pointer transition-colors border border-transparent hover:border-slate-700/50">
+                              <span className="text-slate-500 uppercase text-[10px] font-bold tracking-wider">Sum</span>
+                              <span className="font-mono font-medium tracking-tight text-white">{stats.sum.toLocaleString()}</span>
+                          </div>
+                      </Tooltip>
                   )}
               </div>
            </div>
@@ -174,10 +180,12 @@ const StatusBar: React.FC<StatusBarProps> = ({
                       onChange={(e) => onZoomChange(Number(e.target.value) / 100)}
                       className="w-full h-4 opacity-0 cursor-pointer z-10"
                    />
-                   <div 
-                        className="absolute h-3 w-3 bg-slate-300 rounded-full shadow-md top-1/2 -translate-y-1/2 pointer-events-none transition-transform group-hover:scale-110 group-active:scale-125"
-                        style={{ left: `calc(${((displayZoom - 25) / 375) * 100}% - 6px)` }}
-                   />
+                   <Tooltip content={`Zoom: ${displayZoom}%`}>
+                       <div 
+                            className="absolute h-3 w-3 bg-slate-300 rounded-full shadow-md top-1/2 -translate-y-1/2 pointer-events-none transition-transform group-hover:scale-110 group-active:scale-125"
+                            style={{ left: `calc(${((displayZoom - 25) / 375) * 100}% - 6px)` }}
+                       />
+                   </Tooltip>
             </div>
             
             <StatusBarIconBtn 

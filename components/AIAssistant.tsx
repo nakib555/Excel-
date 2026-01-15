@@ -1,5 +1,7 @@
+
 import React, { useState } from 'react';
 import { X, Sparkles, Send, Loader2 } from 'lucide-react';
+import { Tooltip } from './shared';
 
 interface AIAssistantProps {
   isOpen: boolean;
@@ -90,9 +92,11 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, onApply, api
                 <Sparkles size={18} />
                 <span>AI Copilot</span>
             </div>
-            <button onClick={onClose} className="p-1 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
-                <X size={16} />
-            </button>
+            <Tooltip content="Close">
+                <button onClick={onClose} className="p-1 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
+                    <X size={16} />
+                </button>
+            </Tooltip>
         </div>
 
         {/* Content */}
@@ -122,13 +126,15 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, onApply, api
                     autoFocus
                     disabled={loading}
                 />
-                <button 
-                    onClick={handleGenerate}
-                    disabled={loading || !prompt.trim()}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-colors"
-                >
-                    {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                </button>
+                <Tooltip content="Send">
+                    <button 
+                        onClick={handleGenerate}
+                        disabled={loading || !prompt.trim()}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-colors"
+                    >
+                        {loading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                    </button>
+                </Tooltip>
             </div>
         </div>
       </div>

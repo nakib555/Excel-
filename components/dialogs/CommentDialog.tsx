@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Tooltip } from '../shared';
 
 interface CommentDialogProps {
   isOpen: boolean;
@@ -55,12 +56,14 @@ const CommentDialog: React.FC<CommentDialogProps> = ({
                                 <span className="text-[10px] text-slate-400 font-medium">{cellId || 'Cell'}</span>
                             </div>
                         </div>
-                        <button 
-                            onClick={onClose}
-                            className="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-                        >
-                            <X size={14} />
-                        </button>
+                        <Tooltip content="Close">
+                            <button 
+                                onClick={onClose}
+                                className="w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                            >
+                                <X size={14} />
+                            </button>
+                        </Tooltip>
                     </div>
 
                     {/* Content */}
