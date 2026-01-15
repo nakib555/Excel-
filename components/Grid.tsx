@@ -111,6 +111,7 @@ const CustomCellRenderer = memo(({
     fillBounds,
     isFilling,
     isTouch,
+    scale,
     onMouseDown, 
     onMouseEnter,
     onFillHandleDown,
@@ -125,6 +126,7 @@ const CustomCellRenderer = memo(({
     fillBounds: { minRow: number, maxRow: number, minCol: number, maxCol: number } | null,
     isFilling: boolean,
     isTouch: boolean,
+    scale: number,
     onMouseDown: (id: string, shift: boolean) => void,
     onMouseEnter: (id: string) => void,
     onFillHandleDown: (e: React.MouseEvent, id: string) => void,
@@ -149,9 +151,9 @@ const CustomCellRenderer = memo(({
   const hasRotation = rotation !== 0;
   
   const indent = style.indent || 0;
-  const indentPx = indent * 10;
-  const paddingLeft = style.align === 'right' ? 4 : 4 + indentPx;
-  const paddingRight = style.align === 'right' ? 4 + indentPx : 4;
+  const indentPx = indent * 10 * scale;
+  const paddingLeft = style.align === 'right' ? 4 * scale : (4 * scale) + indentPx;
+  const paddingRight = style.align === 'right' ? (4 * scale) + indentPx : 4 * scale;
 
   const baseStyle: React.CSSProperties = {
       width: '100%',
@@ -165,7 +167,7 @@ const CustomCellRenderer = memo(({
       position: 'relative',
       cursor: 'cell',
       fontFamily: style.fontFamily || 'Calibri, "Segoe UI", sans-serif',
-      fontSize: style.fontSize ? `${style.fontSize}px` : '11pt',
+      fontSize: `${(style.fontSize || 13) * scale}px`,
       fontWeight: style.bold ? '700' : '400',
       fontStyle: style.italic ? 'italic' : 'normal',
       textDecoration: style.underline ? 'underline' : 'none',
@@ -175,7 +177,7 @@ const CustomCellRenderer = memo(({
       ...(verticalText ? { 
           writingMode: 'vertical-rl', 
           textOrientation: 'upright', 
-          letterSpacing: '1px'
+          letterSpacing: `${1 * scale}px`
       } : {}),
       ...(hasRotation ? {
           transform: `rotate(${cssRotation}deg)`,
@@ -189,11 +191,16 @@ const CustomCellRenderer = memo(({
       baseStyle.textDecoration = `${baseStyle.textDecoration} line-through`;
   }
 
+  // Adjust border thickness based on scale (optional, but looks better)
+  const borderThickness = Math.max(1, 1 * scale);
+  const thickBorderThickness = Math.max(2, 2 * scale);
+
   if (style.borders) {
-      if (style.borders.bottom) baseStyle.borderBottom = `${style.borders.bottom.style === 'thick' ? '2px' : '1px'} solid ${style.borders.bottom.color}`;
-      if (style.borders.top) baseStyle.borderTop = `${style.borders.top.style === 'thick' ? '2px' : '1px'} solid ${style.borders.top.color}`;
-      if (style.borders.left) baseStyle.borderLeft = `${style.borders.left.style === 'thick' ? '2px' : '1px'} solid ${style.borders.left.color}`;
-      if (style.borders.right) baseStyle.borderRight = `${style.borders.right.style === 'thick' ? '2px' : '1px'} solid ${style.borders.right.color}`;
+      const getBWidth = (s?: string) => s === 'thick' ? `${thickBorderThickness}px` : `${borderThickness}px`;
+      if (style.borders.bottom) baseStyle.borderBottom = `${getBWidth(style.borders.bottom.style)} solid ${style.borders.bottom.color}`;
+      if (style.borders.top) baseStyle.borderTop = `${getBWidth(style.borders.top.style)} solid ${style.borders.top.color}`;
+      if (style.borders.left) baseStyle.borderLeft = `${getBWidth(style.borders.left.style)} solid ${style.borders.left.color}`;
+      if (style.borders.right) baseStyle.borderRight = `${getBWidth(style.borders.right.style)} solid ${style.borders.right.color}`;
   }
 
   const r = row.id;
@@ -237,6 +244,11 @@ const CustomCellRenderer = memo(({
       }
   }, [isTopLeft, isBottomRight, isTouch, isFilling]);
 
+  // Scaled handle sizes
+  const handleSize = Math.max(16, 20 * scale);
+  const dragHandleSize = Math.max(6, 7 * scale);
+  const selectionBorderThickness = Math.max(2, 2 * scale);
+
   return (
     <div 
         ref={cellRef}
@@ -259,49 +271,57 @@ const CustomCellRenderer = memo(({
           {displayValue}
       </div>
       
-      {cellData?.link && <ExternalLink size={10} className="absolute top-1 right-1 text-blue-500 opacity-50" />}
+      {cellData?.link && <ExternalLink size={10 * scale} className="absolute top-1 right-1 text-blue-500 opacity-50" />}
 
       {cellData?.comment && (
           <>
-            <div className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-600 z-[20]" />
+            <div 
+                className="absolute top-0 right-0 w-0 h-0 border-l-transparent border-t-red-600 z-[20]" 
+                style={{
+                    borderLeftWidth: `${6 * scale}px`,
+                    borderTopWidth: `${6 * scale}px`
+                }}
+            />
             {isHovered && cellRef.current && (
                 <CommentTooltip text={cellData.comment} rect={cellRef.current.getBoundingClientRect()} />
             )}
           </>
       )}
 
-      <Border type="top" visible={sTop} color="#107c41" />
-      <Border type="bottom" visible={sBottom} color="#107c41" />
-      <Border type="left" visible={sLeft} color="#107c41" />
-      <Border type="right" visible={sRight} color="#107c41" />
+      <Border type="top" visible={sTop} color="#107c41" thickness={selectionBorderThickness} />
+      <Border type="bottom" visible={sBottom} color="#107c41" thickness={selectionBorderThickness} />
+      <Border type="left" visible={sLeft} color="#107c41" thickness={selectionBorderThickness} />
+      <Border type="right" visible={sRight} color="#107c41" thickness={selectionBorderThickness} />
 
       {isFilling && (
           <>
-            <Border type="top" visible={fTop && !sTop} style="dashed" color="#64748b" />
-            <Border type="bottom" visible={fBottom && !sBottom} style="dashed" color="#64748b" />
-            <Border type="left" visible={fLeft && !sLeft} style="dashed" color="#64748b" />
-            <Border type="right" visible={fRight && !sRight} style="dashed" color="#64748b" />
+            <Border type="top" visible={fTop && !sTop} style="dashed" color="#64748b" thickness={selectionBorderThickness} />
+            <Border type="bottom" visible={fBottom && !sBottom} style="dashed" color="#64748b" thickness={selectionBorderThickness} />
+            <Border type="left" visible={fLeft && !sLeft} style="dashed" color="#64748b" thickness={selectionBorderThickness} />
+            <Border type="right" visible={fRight && !sRight} style="dashed" color="#64748b" thickness={selectionBorderThickness} />
           </>
       )}
 
       {isTopLeft && isTouch && !isFilling && (
         <div 
-            className="absolute -top-[1px] -left-[1px] w-[20px] h-[20px] bg-white border-[3px] border-[#107c41] rounded-full z-[70] shadow-[0_2px_4px_rgba(0,0,0,0.2)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto touch-none"
+            className="absolute -top-[1px] -left-[1px] bg-white border-[3px] border-[#107c41] rounded-full z-[70] shadow-[0_2px_4px_rgba(0,0,0,0.2)] -translate-x-1/2 -translate-y-1/2 pointer-events-auto touch-none"
+            style={{ width: handleSize, height: handleSize }}
             onTouchStart={(e) => onMobileHandleDown(e, cellId, 'start')}
         />
       )}
 
       {isBottomRight && isTouch && !isFilling && (
         <div 
-            className="absolute -bottom-[1px] -right-[1px] w-[20px] h-[20px] bg-white border-[3px] border-[#107c41] rounded-full z-[70] shadow-[0_2px_4px_rgba(0,0,0,0.2)] translate-x-1/2 translate-y-1/2 pointer-events-auto touch-none"
+            className="absolute -bottom-[1px] -right-[1px] bg-white border-[3px] border-[#107c41] rounded-full z-[70] shadow-[0_2px_4px_rgba(0,0,0,0.2)] translate-x-1/2 translate-y-1/2 pointer-events-auto touch-none"
+            style={{ width: handleSize, height: handleSize }}
             onTouchStart={(e) => onMobileHandleDown(e, cellId, 'end')}
         />
       )}
 
       {isBottomRight && !isTouch && !isFilling && (
         <div 
-            className="absolute -bottom-[3px] -right-[3px] w-[7px] h-[7px] bg-[#107c41] border border-white z-[60] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform"
-            style={{ boxSizing: 'content-box' }}
+            className="absolute -bottom-[3px] -right-[3px] bg-[#107c41] border border-white z-[60] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform"
+            style={{ width: dragHandleSize, height: dragHandleSize, boxSizing: 'content-box' }}
             onMouseDown={(e) => onFillHandleDown(e, cellId)}
         />
       )}
@@ -312,6 +332,7 @@ const CustomCellRenderer = memo(({
     const rowId = next.row.id;
     const cellId = getCellId(colKey, rowId);
     
+    if (prev.scale !== next.scale) return false;
     if (prev.cells[cellId] !== next.cells[cellId]) return false;
     if (prev.styles !== next.styles) return false;
 
@@ -344,6 +365,7 @@ const Grid: React.FC<GridProps> = ({
   columnWidths,
   rowHeights,
   centerActiveCell,
+  scale = 1,
   onCellClick,
   onCellChange,
   onColumnResize,
@@ -553,18 +575,20 @@ const Grid: React.FC<GridProps> = ({
        { 
          key: 'row-header', 
          name: '', 
-         width: 46, 
+         width: 46 * scale, 
          frozen: true, 
          resizable: false,
          renderCell: (props) => {
             const isRowActive = activeCoords?.row === props.row.id;
             return (
                 <div className={cn(
-                    "flex items-center justify-center w-full h-full font-semibold select-none text-[11px]",
+                    "flex items-center justify-center w-full h-full font-semibold select-none",
                     isRowActive 
                         ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
                         : "bg-[#f8f9fa] text-[#444]"
-                )}>
+                )}
+                style={{ fontSize: `${11 * scale}px` }}
+                >
                     {props.row.id + 1}
                 </div>
             );
@@ -577,7 +601,7 @@ const Grid: React.FC<GridProps> = ({
             key: i.toString(),
             name: colChar,
             resizable: true,
-            width: columnWidths[colChar] || 100,
+            width: (columnWidths[colChar] || 100) * scale,
             renderCell: (props) => (
                 <CustomCellRenderer 
                     {...props} 
@@ -590,6 +614,7 @@ const Grid: React.FC<GridProps> = ({
                     fillBounds={fillBounds}
                     isFilling={isFilling}
                     isTouch={isTouch}
+                    scale={scale}
                     onMouseDown={handleMouseDown}
                     onMouseEnter={handleMouseEnter}
                     onFillHandleDown={handleFillHandleDown}
@@ -600,11 +625,13 @@ const Grid: React.FC<GridProps> = ({
                 const isColActive = activeCoords?.col === i;
                 return (
                     <div className={cn(
-                        "flex items-center justify-center w-full h-full font-semibold text-[12px]",
+                        "flex items-center justify-center w-full h-full font-semibold",
                         isColActive 
                             ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
                             : "bg-[#f8f9fa] text-[#444]"
-                    )}>
+                    )}
+                    style={{ fontSize: `${12 * scale}px` }}
+                    >
                         {props.column.name}
                     </div>
                 );
@@ -615,7 +642,8 @@ const Grid: React.FC<GridProps> = ({
                     <div className="w-full h-full relative z-[100]">
                         <input 
                             autoFocus
-                            className="w-full h-full px-1 outline-none bg-white text-slate-900 font-[Calibri] text-[11pt] border-2 border-[#107c41] shadow-lg"
+                            className="w-full h-full px-1 outline-none bg-white text-slate-900 font-[Calibri] border-2 border-[#107c41] shadow-lg"
+                            style={{ fontSize: `${11 * scale}pt` }}
                             onBlur={(e) => { onCellChange(id, e.target.value); onClose(true); }}
                             onKeyDown={(e) => { if(e.key === 'Enter') { onCellChange(id, (e.target as HTMLInputElement).value); onClose(true); } }}
                             defaultValue={cells[id]?.raw || ''}
@@ -626,7 +654,7 @@ const Grid: React.FC<GridProps> = ({
           };
        })
     ];
-  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, activeCoords, handleMouseDown, handleMouseEnter, handleFillHandleDown, handleMobileHandleDown, onCellChange]);
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, scale, activeCoords, handleMouseDown, handleMouseEnter, handleFillHandleDown, handleMobileHandleDown, onCellChange]);
 
   const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
 
@@ -636,10 +664,10 @@ const Grid: React.FC<GridProps> = ({
             ref={gridRef}
             columns={columns} 
             rows={rows} 
-            rowHeight={(row) => rowHeights[row.id] || 24}
+            rowHeight={(row) => (rowHeights[row.id] || 24) * scale}
             onColumnResize={(idx, width) => {
                 const col = columns[idx];
-                if (col && col.name) onColumnResize(col.name, width);
+                if (col && col.name) onColumnResize(col.name, Math.round(width / scale));
             }}
             className="rdg-light fill-grid h-full"
             style={{ blockSize: '100%', border: 'none' }}
