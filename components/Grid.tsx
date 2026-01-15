@@ -113,7 +113,7 @@ const CustomCellRenderer = ({
             style={{ ...cssStyle, justifyContent: 'center' }}
             onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
             onMouseEnter={() => onMouseEnter(cellId)}
-            className={isActive ? "ring-2 ring-[#217346] z-10" : ""}
+            className={isActive ? "ring-2 ring-inset ring-[#217346] z-10" : ""}
           >
               <input type="checkbox" checked={isChecked} readOnly className="w-4 h-4 accent-[#217346] pointer-events-none" />
           </div>
@@ -125,7 +125,7 @@ const CustomCellRenderer = ({
         style={cssStyle}
         onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
         onMouseEnter={() => onMouseEnter(cellId)}
-        className={isActive ? "ring-2 ring-[#217346] z-10 bg-white" : ""}
+        className={isActive ? "ring-2 ring-inset ring-[#217346] z-10 bg-white" : ""}
     >
       {displayValue}
       
@@ -247,25 +247,27 @@ const Grid: React.FC<GridProps> = ({
             editor: ({ row, column, onRowChange, onClose }) => {
                 const id = getCellId(parseInt(column.key), row.id);
                 return (
-                    <input 
-                        autoFocus
-                        className="w-full h-full px-1 outline-none bg-white text-slate-900 font-[Calibri] text-[11pt]"
-                        value={row[column.key]?.raw || ''}
-                        onChange={(e) => {
-                            // Local state handled by DataGrid via onRowChange if we were using it for data
-                        }}
-                        onBlur={(e) => {
-                            onCellChange(id, e.target.value);
-                            onClose(true);
-                        }}
-                        onKeyDown={(e) => {
-                            if(e.key === 'Enter') {
-                                onCellChange(id, (e.target as HTMLInputElement).value);
+                    <div className="w-full h-full relative z-[100]">
+                        <input 
+                            autoFocus
+                            className="w-full h-full px-1 outline-none bg-white text-slate-900 font-[Calibri] text-[11pt] border-2 border-[#217346]"
+                            value={row[column.key]?.raw || ''}
+                            onChange={(e) => {
+                                // Local state handled by DataGrid via onRowChange if we were using it for data
+                            }}
+                            onBlur={(e) => {
+                                onCellChange(id, e.target.value);
                                 onClose(true);
-                            }
-                        }}
-                        defaultValue={cells[id]?.raw || ''}
-                    />
+                            }}
+                            onKeyDown={(e) => {
+                                if(e.key === 'Enter') {
+                                    onCellChange(id, (e.target as HTMLInputElement).value);
+                                    onClose(true);
+                                }
+                            }}
+                            defaultValue={cells[id]?.raw || ''}
+                        />
+                    </div>
                 );
             }
           };

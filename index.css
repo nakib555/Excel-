@@ -159,9 +159,9 @@ html, body, #root {
   box-shadow: 0 0 0 1px #217346;
 }
 
-/* Editor Input Override */
+/* Editor Input Override - Ensure it sits above cell content */
 .rdg-editor-container {
-  z-index: 3;
+  z-index: 50 !important;
 }
 
 /* Skeleton Animation */
