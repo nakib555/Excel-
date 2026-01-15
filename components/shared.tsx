@@ -1,16 +1,17 @@
 
-import React, { useRef, useState, useEffect, useLayoutEffect, memo } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, memo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, SquareArrowOutDownRight } from 'lucide-react';
-import { CellStyle, Table } from '../types';
-import { cn, useSmartPosition } from '../utils';
+import { ChevronDown, SquareArrowOutDownRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CellStyle, Table } from '../../types';
+import { cn, useSmartPosition } from '../../utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export interface TabProps {
   currentStyle: CellStyle;
   onToggleStyle: (key: keyof CellStyle, value?: any) => void;
   onApplyStyle?: (style: CellStyle) => void; 
   onExport: () => void;
-  onClear: () => void;
+  onClear: (type?: 'all' | 'formats' | 'contents') => void;
   onResetLayout: () => void;
   onCopy?: () => void;
   onCut?: () => void;
@@ -29,10 +30,16 @@ export interface TabProps {
   onDeleteSheet?: () => void;
 
   onSort?: (direction: 'asc' | 'desc') => void;
-  onMergeCenter?: () => void;
+  onMerge?: (type: 'center' | 'across' | 'cells' | 'unmerge') => void;
   onDataValidation?: () => void;
   onOpenFormatDialog?: (tab?: string) => void;
   onToggleAI?: () => void;
+  onToggleHistory?: () => void;
+  
+  // Save Props
+  onSave?: () => void;
+  onToggleAutoSave?: () => void;
+  isAutoSave?: boolean;
   
   // Format Menu Props
   onFormatRowHeight?: () => void;
@@ -47,6 +54,7 @@ export interface TabProps {
   onMoveCopySheet?: () => void;
   onProtectSheet?: () => void;
   onLockCell?: () => void;
+  onResetSize?: () => void;
 
   // Insert Tab Features
   onInsertTable?: () => void;
@@ -67,29 +75,80 @@ export interface TabProps {
   onTableOptionChange?: (tableId: string, key: keyof Table, value: any) => void;
 }
 
+// --- Styled Tooltip Component ---
+export const Tooltip = ({ text, rect, isOpen }: { text: string | undefined, rect: DOMRect | null, isOpen: boolean }) => {
+    if (!text) return null;
+    
+    return createPortal(
+        <AnimatePresence>
+            {isOpen && rect && (
+                <motion.div
+                    initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="fixed z-[9999] px-2.5 py-1.5 bg-slate-900/95 backdrop-blur-md text-white text-[11px] font-medium rounded-md shadow-xl pointer-events-none whitespace-nowrap border border-white/10"
+                    style={{ 
+                        top: rect.bottom + 6, 
+                        left: rect.left + (rect.width / 2),
+                        x: "-50%" 
+                    }}
+                >
+                    {text}
+                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900/95 rotate-45 border-l border-t border-white/10" />
+                </motion.div>
+            )}
+        </AnimatePresence>,
+        document.body
+    );
+};
+
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [isDown, setIsDown] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  // Check scroll visibility
+  const checkScroll = useCallback(() => {
+    if (ref.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = ref.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(Math.ceil(scrollLeft + clientWidth) < scrollWidth);
+    }
+  }, []);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
 
     const onWheel = (e: WheelEvent) => {
+      // Horizontal scroll if no vertical
       if (e.deltaY === 0) return;
-      e.preventDefault();
-      el.scrollLeft += e.deltaY;
+      
+      // Hijack vertical scroll for horizontal movement if content overflows
+      if (el.scrollWidth > el.clientWidth) {
+          e.preventDefault();
+          el.scrollLeft += e.deltaY;
+      }
     };
 
     el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('scroll', checkScroll);
+    window.addEventListener('resize', checkScroll);
+    
+    // Initial check after mount/paint
+    requestAnimationFrame(checkScroll);
 
     return () => {
       el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('scroll', checkScroll);
+      window.removeEventListener('resize', checkScroll);
     };
-  }, []);
+  }, [checkScroll, children]); // Check when children update
 
   const onMouseDown = (e: React.MouseEvent) => {
     if (!ref.current) return;
@@ -120,6 +179,13 @@ export const DraggableScrollContainer = memo(({ children, className = "" }: { ch
     ref.current.scrollLeft = scrollLeft - walk;
   };
 
+  const scrollManual = (dir: 'left' | 'right') => {
+      if (ref.current) {
+          const amount = 200;
+          ref.current.scrollBy({ left: dir === 'left' ? -amount : amount, behavior: 'smooth' });
+      }
+  };
+
   const onClickCapture = (e: React.MouseEvent) => {
       if (isDragging) {
           e.preventDefault();
@@ -128,16 +194,46 @@ export const DraggableScrollContainer = memo(({ children, className = "" }: { ch
   };
 
   return (
-    <div
-      ref={ref}
-      className={`overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing ${className}`}
-      onMouseDown={onMouseDown}
-      onMouseLeave={onMouseLeave}
-      onMouseUp={onMouseUp}
-      onMouseMove={onMouseMove}
-      onClickCapture={onClickCapture}
-    >
-      {children}
+    <div className="relative group w-full h-full flex overflow-hidden">
+        {/* Left Fade Button */}
+        <div className={cn(
+            "absolute left-0 top-0 bottom-0 z-20 flex items-center pr-4 bg-gradient-to-r from-[#f8fafc] to-transparent transition-opacity duration-300 pointer-events-none",
+            showLeftArrow ? 'opacity-100' : 'opacity-0'
+        )}>
+            <button 
+                onClick={() => scrollManual('left')}
+                className="pointer-events-auto p-0.5 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 shadow-sm border border-slate-300/50 backdrop-blur-sm ml-1"
+            >
+                <ChevronLeft size={12} />
+            </button>
+        </div>
+
+        <div
+            ref={ref}
+            className={cn("overflow-x-auto overflow-y-hidden no-scrollbar cursor-grab active:cursor-grabbing w-full", className)}
+            onMouseDown={onMouseDown}
+            onMouseLeave={onMouseLeave}
+            onMouseUp={onMouseUp}
+            onMouseMove={onMouseMove}
+            onClickCapture={onClickCapture}
+        >
+            {children}
+            {/* End spacer for right arrow clearance */}
+            <div className="w-4 inline-block h-full" />
+        </div>
+
+        {/* Right Fade Button */}
+        <div className={cn(
+            "absolute right-0 top-0 bottom-0 z-20 flex items-center pl-4 bg-gradient-to-l from-[#f8fafc] to-transparent transition-opacity duration-300 pointer-events-none",
+            showRightArrow ? 'opacity-100' : 'opacity-0'
+        )}>
+            <button 
+                onClick={() => scrollManual('right')}
+                className="pointer-events-auto p-0.5 rounded-full bg-slate-200/80 hover:bg-slate-300 text-slate-600 shadow-sm border border-slate-300/50 backdrop-blur-sm mr-1"
+            >
+                <ChevronRight size={12} />
+            </button>
+        </div>
     </div>
   );
 });
@@ -148,29 +244,46 @@ export const RibbonGroup: React.FC<{
     className?: string; 
     showLauncher?: boolean; 
     onLaunch?: () => void;
-}> = memo(({ label, children, className = "", showLauncher, onLaunch }) => (
-  <div className={`flex flex-col h-full px-1.5 border-r border-slate-200 last:border-r-0 flex-shrink-0 relative group/ribbon ${className}`}>
-    <div className="flex-1 flex gap-1 items-center justify-center min-h-0 pt-2 pb-0.5">
-       {children}
+}> = memo(({ label, children, className = "", showLauncher, onLaunch }) => {
+  const [hovered, setHovered] = useState(false);
+  const launchRef = useRef<HTMLButtonElement>(null);
+  const [launchRect, setLaunchRect] = useState<DOMRect | null>(null);
+
+  const handleLaunchEnter = () => {
+      if (launchRef.current) setLaunchRect(launchRef.current.getBoundingClientRect());
+      setHovered(true);
+  };
+
+  return (
+    <div className={`flex flex-col h-full px-1.5 border-r border-slate-200 last:border-r-0 flex-shrink-0 relative group/ribbon ${className}`}>
+        <div className="flex-1 flex gap-1 items-center justify-center min-h-0 pt-2 pb-0.5">
+        {children}
+        </div>
+        <div className="h-[18px] flex items-center justify-center text-[10px] text-slate-400 font-medium whitespace-nowrap pb-1 cursor-default">{label}</div>
+        {showLauncher && (
+            <>
+                <button 
+                    ref={launchRef}
+                    onClick={onLaunch}
+                    onMouseEnter={handleLaunchEnter}
+                    onMouseLeave={() => setHovered(false)}
+                    className="absolute bottom-0.5 right-0.5 p-[0.3rem] text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-sm transition-colors"
+                >
+                    <SquareArrowOutDownRight size={10} />
+                </button>
+                <Tooltip text={`See more ${label} options`} rect={launchRect} isOpen={hovered} />
+            </>
+        )}
     </div>
-    <div className="h-[18px] flex items-center justify-center text-[10px] text-slate-400 font-medium whitespace-nowrap pb-1 cursor-default">{label}</div>
-    {showLauncher && (
-        <button 
-            onClick={onLaunch}
-            className="absolute bottom-0.5 right-0.5 p-[0.3rem] text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-sm transition-colors"
-            title="See more options"
-        >
-            <SquareArrowOutDownRight size={10} />
-        </button>
-    )}
-  </div>
-));
+  );
+});
 
 interface RibbonButtonProps {
   icon: React.ReactNode;
   label?: string;
   subLabel?: string;
   onClick: () => void;
+  onDoubleClick?: () => void;
   active?: boolean;
   variant?: 'large' | 'small' | 'icon-only';
   hasDropdown?: boolean;
@@ -180,8 +293,17 @@ interface RibbonButtonProps {
 }
 
 export const RibbonButton: React.FC<RibbonButtonProps> = memo(({ 
-  icon, label, subLabel, onClick, active, variant = 'small', hasDropdown, className = "", title, disabled 
+  icon, label, subLabel, onClick, onDoubleClick, active, variant = 'small', hasDropdown, className = "", title, disabled 
 }) => {
+  const [hovered, setHovered] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [rect, setRect] = useState<DOMRect | null>(null);
+
+  const handleMouseEnter = () => {
+      if (btnRef.current) setRect(btnRef.current.getBoundingClientRect());
+      setHovered(true);
+  };
+
   const baseClass = `flex items-center justify-center rounded-md transition-all duration-150 select-none ${
     active 
       ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-200' 
@@ -204,47 +326,80 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
 
   if (variant === 'large') {
     return (
-      <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} flex-col px-1 py-1 h-full min-w-[52px] md:min-w-[60px] gap-0.5 justify-center`, className)}>
-        <div className="p-1">{styledIcon}</div>
-        <div className="text-[11px] font-medium leading-[1.1] text-center flex flex-col items-center text-slate-700">
-            {label}
-            {subLabel && <span>{subLabel}</span>}
-            {hasDropdown && <ChevronDown size={10} className="mt-0.5 opacity-50 stroke-[3]" />}
-        </div>
-      </button>
+      <>
+        <button 
+            ref={btnRef}
+            onClick={onClick} 
+            onDoubleClick={onDoubleClick}
+            disabled={disabled} 
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={() => setHovered(false)}
+            className={cn(`${baseClass} flex-col px-1 py-1 h-full min-w-[52px] md:min-w-[60px] gap-0.5 justify-center`, className)}
+        >
+            <div className="p-1">{styledIcon}</div>
+            <div className="text-[11px] font-medium leading-[1.1] text-center flex flex-col items-center text-slate-700">
+                {label}
+                {subLabel && <span>{subLabel}</span>}
+                {hasDropdown && <ChevronDown size={10} className="mt-0.5 opacity-50 stroke-[3]" />}
+            </div>
+        </button>
+        <Tooltip text={title || (label && `${label} ${subLabel || ''}`)} rect={rect} isOpen={hovered} />
+      </>
     );
   }
 
   if (variant === 'small') {
     return (
-      <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`, className)}>
-        <div className="transform flex-shrink-0 text-slate-700 flex items-center">{styledIcon}</div>
-        {label && <span className="text-[12px] text-slate-700 font-medium whitespace-nowrap leading-none pt-0.5">{label}</span>}
-        {hasDropdown && <ChevronDown size={10} className="ml-auto opacity-50 stroke-[3]" />}
-      </button>
+      <>
+        <button 
+            ref={btnRef}
+            onClick={onClick} 
+            onDoubleClick={onDoubleClick}
+            disabled={disabled} 
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={() => setHovered(false)}
+            className={cn(`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`, className)}
+        >
+            <div className="transform flex-shrink-0 text-slate-700 flex items-center">{styledIcon}</div>
+            {label && <span className="text-[12px] text-slate-700 font-medium whitespace-nowrap leading-none pt-0.5">{label}</span>}
+            {hasDropdown && <ChevronDown size={10} className="ml-auto opacity-50 stroke-[3]" />}
+        </button>
+        <Tooltip text={title || label} rect={rect} isOpen={hovered} />
+      </>
     );
   }
 
   return (
-    <button onClick={onClick} title={title} disabled={disabled} className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}>
-      {styledIcon}
-      {hasDropdown && (
-        <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width="8" 
-            height="8" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            className="lucide lucide-chevron-down absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]"
+    <>
+        <button 
+            ref={btnRef}
+            onClick={onClick} 
+            onDoubleClick={onDoubleClick}
+            disabled={disabled} 
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={() => setHovered(false)}
+            className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}
         >
-            <path d="m6 9 6 6 6-6"/>
-        </svg>
-      )}
-    </button>
+        {styledIcon}
+        {hasDropdown && (
+            <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="8" 
+                height="8" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="lucide lucide-chevron-down absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]"
+            >
+                <path d="m6 9 6 6 6-6"/>
+            </svg>
+        )}
+        </button>
+        <Tooltip text={title || label} rect={rect} isOpen={hovered} />
+    </>
   );
 });
 

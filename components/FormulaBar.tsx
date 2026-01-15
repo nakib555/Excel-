@@ -4,6 +4,7 @@ import { FunctionSquare, X, Check, ChevronDown, ListFilter, ChevronRight, Search
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { useSmartPosition, cn } from '../utils';
+import { Tooltip } from './shared';
 
 interface FormulaBarProps {
   value: string;
@@ -21,6 +22,33 @@ const FUNCTION_CATEGORIES = {
   "Date": { icon: Calendar, fns: ['TODAY', 'NOW', 'DATE', 'YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND'] },
   "Lookup": { icon: Database, fns: ['VLOOKUP', 'HLOOKUP', 'MATCH', 'INDEX', 'ROW', 'COLUMN'] }
 };
+
+const TooltipBtn = ({ onClick, children, title, className, ...props }: any) => {
+    const [hovered, setHovered] = useState(false);
+    const ref = useRef<HTMLButtonElement>(null);
+    const [rect, setRect] = useState<DOMRect | null>(null);
+
+    const handleEnter = () => {
+        if (ref.current) setRect(ref.current.getBoundingClientRect());
+        setHovered(true);
+    };
+
+    return (
+        <>
+            <button 
+                ref={ref}
+                onClick={onClick}
+                onMouseEnter={handleEnter}
+                onMouseLeave={() => setHovered(false)}
+                className={className}
+                {...props}
+            >
+                {children}
+            </button>
+            <Tooltip text={title} rect={rect} isOpen={hovered} />
+        </>
+    );
+}
 
 const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, selectedCell, onNameBoxSubmit }) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -140,34 +168,34 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
             placeholder={selectedCell || "A1"}
             title="Name Box: Enter cell (e.g. A500) and press Enter to jump"
         />
-        <button
+        <TooltipBtn
             onClick={submitNameBox}
             className="absolute right-1 top-1 bottom-1 w-6 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors z-10"
             title="Go to Cell"
         >
             <ChevronRight size={14} strokeWidth={2.5} />
-        </button>
+        </TooltipBtn>
         <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-[1px] h-5 bg-slate-300 hidden md:block"></div>
       </div>
 
       {/* Function Icons & Controls */}
       <div className="flex items-center gap-1 text-slate-400 pl-1 md:pl-2 flex-shrink-0">
         <div className="hidden md:flex items-center gap-1">
-            <button className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors" title="Cancel">
+            <TooltipBtn className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-red-500 transition-colors" title="Cancel">
                 <X size={14} />
-            </button>
-            <button 
+            </TooltipBtn>
+            <TooltipBtn 
                 className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-green-600 transition-colors" 
                 title="Enter"
                 onClick={onSubmit}
             >
                 <Check size={14} />
-            </button>
+            </TooltipBtn>
         </div>
         
         {/* Function Dropdown */}
         <div className="relative">
-            <button 
+            <TooltipBtn 
                 ref={functionButtonRef}
                 onClick={toggleMenu}
                 className={cn(
@@ -178,7 +206,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
             >
                 <span className="font-serif italic font-bold text-sm px-0.5">fx</span>
                 <ChevronDown size={10} className="opacity-50 hidden md:block" />
-            </button>
+            </TooltipBtn>
 
             {/* Portal for menu */}
             {showFunctionMenu && menuPosition && createPortal(
@@ -196,7 +224,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
                             left: menuPosition.left,
                             maxHeight: 400,
                             transformOrigin: menuPosition.transformOrigin,
-                            width: menuPosition.width // Dynamically set by useSmartPosition logic
+                            width: menuPosition.width 
                         }}
                     >
                         {/* Search Bar */}

@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React, { memo, useRef, useState } from 'react';
 import {
   CheckCircle2,
   Grid3X3,
@@ -11,6 +11,7 @@ import {
   Undo2,
   Redo2
 } from 'lucide-react';
+import { Tooltip } from './shared';
 
 interface StatusBarProps {
   selectionCount: number;
@@ -22,6 +23,33 @@ interface StatusBarProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+}
+
+const StatusBarIconBtn = ({ onClick, disabled, children, title, className }: any) => {
+    const [hovered, setHovered] = useState(false);
+    const ref = useRef<HTMLButtonElement>(null);
+    const [rect, setRect] = useState<DOMRect | null>(null);
+
+    const handleEnter = () => {
+        if (ref.current) setRect(ref.current.getBoundingClientRect());
+        setHovered(true);
+    }
+
+    return (
+        <>
+            <button 
+                ref={ref}
+                onClick={onClick}
+                disabled={disabled}
+                onMouseEnter={handleEnter}
+                onMouseLeave={() => setHovered(false)}
+                className={className}
+            >
+                {children}
+            </button>
+            <Tooltip text={title} rect={rect} isOpen={hovered} />
+        </>
+    )
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({ 
@@ -52,23 +80,23 @@ const StatusBar: React.FC<StatusBarProps> = ({
         
         {/* Undo/Redo Controls - Styled Pill */}
         <div className="flex items-center bg-slate-900/50 rounded-full p-0.5 border border-slate-700/50 shadow-sm group">
-            <button 
+            <StatusBarIconBtn 
                 onClick={onUndo}
                 disabled={!canUndo}
                 className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400 active:scale-95"
                 title="Undo (Ctrl+Z)"
             >
                 <Undo2 size={15} strokeWidth={2} className="relative -ml-0.5" />
-            </button>
+            </StatusBarIconBtn>
             <div className="w-[1px] h-3 bg-slate-700/30 mx-0.5 group-hover:bg-slate-700/50 transition-colors"></div>
-            <button 
+            <StatusBarIconBtn 
                 onClick={onRedo}
                 disabled={!canRedo}
                 className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400 active:scale-95"
                 title="Redo (Ctrl+Y)"
             >
                 <Redo2 size={15} strokeWidth={2} className="relative -mr-0.5" />
-            </button>
+            </StatusBarIconBtn>
         </div>
 
         <div className="hidden lg:flex items-center gap-2 px-2 py-1 rounded-md hover:bg-white/5 cursor-pointer transition-colors text-slate-400 hover:text-slate-200 group/status" title="Accessibility Check">
@@ -111,38 +139,38 @@ const StatusBar: React.FC<StatusBarProps> = ({
 
         {/* Mobile Resize Toggle */}
         <div className="lg:hidden flex items-center border-l border-slate-700 pl-3">
-            <button 
+            <StatusBarIconBtn 
                 onClick={onToggleMobileResize}
                 className="p-1.5 text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20 border border-emerald-400/20 rounded-md transition-all active:scale-95"
                 title="Resize Cells"
             >
                 <Scaling size={16} />
-            </button>
+            </StatusBarIconBtn>
         </div>
 
         {/* View Controls - Desktop Only */}
         <div className="hidden lg:flex items-center gap-1 mr-2 pl-4 border-l border-slate-800">
-            <button className="p-1.5 hover:bg-white/10 rounded transition-colors text-white bg-white/10 shadow-sm" title="Normal View">
+            <StatusBarIconBtn className="p-1.5 hover:bg-white/10 rounded transition-colors text-white bg-white/10 shadow-sm" title="Normal View">
               <Grid3X3 size={14} />
-            </button>
-            <button className="p-1.5 hover:bg-white/10 rounded transition-colors text-slate-500 hover:text-white" title="Page Layout">
+            </StatusBarIconBtn>
+            <StatusBarIconBtn className="p-1.5 hover:bg-white/10 rounded transition-colors text-slate-500 hover:text-white" title="Page Layout">
               <Layout size={14} />
-            </button>
-            <button className="p-1.5 hover:bg-white/10 rounded transition-colors text-slate-500 hover:text-white" title="Page Break Preview">
+            </StatusBarIconBtn>
+            <StatusBarIconBtn className="p-1.5 hover:bg-white/10 rounded transition-colors text-slate-500 hover:text-white" title="Page Break Preview">
               <FileSpreadsheet size={14} />
-            </button>
+            </StatusBarIconBtn>
         </div>
         
         {/* Zoom Controls */}
         <div className="flex items-center gap-2 pl-2 border-l border-slate-800 h-6">
-             <button
+             <StatusBarIconBtn
                 onClick={handleZoomOut}
                 className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors active:scale-90 disabled:opacity-30 cursor-pointer"
                 title="Zoom Out"
                 disabled={zoom <= 0.25}
             >
                 <Minus size={14} strokeWidth={2.5} />
-            </button>
+            </StatusBarIconBtn>
 
              {/* Slider */}
             <div className="hidden sm:flex items-center w-24 md:w-28 group relative py-2 cursor-pointer">
@@ -167,22 +195,22 @@ const StatusBar: React.FC<StatusBarProps> = ({
                    />
             </div>
             
-            <button 
+            <StatusBarIconBtn 
                 onClick={() => onZoomChange(1)}
                 className="min-w-[3rem] text-center font-bold text-slate-300 tabular-nums text-xs hover:bg-white/10 hover:text-white rounded py-0.5 transition-colors select-none"
                 title="Reset to 100%"
             >
                 {displayZoom}%
-            </button>
+            </StatusBarIconBtn>
 
-            <button
+            <StatusBarIconBtn
                 onClick={handleZoomIn}
                 className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors active:scale-90 disabled:opacity-30 cursor-pointer"
                 title="Zoom In"
                 disabled={zoom >= 4}
             >
                 <Plus size={14} strokeWidth={2.5} />
-            </button>
+            </StatusBarIconBtn>
         </div>
       </div>
     </div>

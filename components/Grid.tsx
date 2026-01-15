@@ -457,27 +457,17 @@ const Grid: React.FC<GridProps> = ({
           const { row: hRow, col: hCol } = hoverCoords;
           const { minRow, maxRow, minCol, maxCol } = selectionBounds;
 
-          // Excel-like Directional Lock Logic
-          const dDown = hRow - maxRow;
-          const dUp = minRow - hRow;
-          const dRight = hCol - maxCol;
-          const dLeft = minCol - hCol;
-          
-          const maxDelta = Math.max(dDown, dUp, dRight, dLeft);
+          // SMOOTH BOX FILL LOGIC (2D Expansion)
+          // Allows diagonal/rectangular expansion which prevents "locking" artifacts
+          // and ensures immediate feedback when moving to neighbor cells.
           
           let tMinR = minRow, tMaxR = maxRow, tMinC = minCol, tMaxC = maxCol;
 
-          // Only expand along the dominant axis to preserve the original shape's width/height
-          if (maxDelta > 0) {
-             if (maxDelta === dDown) tMaxR = hRow;
-             else if (maxDelta === dUp) tMinR = hRow;
-             else if (maxDelta === dRight) tMaxC = hCol;
-             else if (maxDelta === dLeft) tMinC = hCol;
-          } else {
-             // Inside bounds - snap to original selection
-             // (We can implement shrinking here later if needed)
-             return;
-          }
+          if (hRow > maxRow) tMaxR = hRow;
+          else if (hRow < minRow) tMinR = hRow;
+          
+          if (hCol > maxCol) tMaxC = hCol;
+          else if (hCol < minCol) tMinC = hCol;
 
           const startId = getCellId(tMinC, tMinR);
           const endId = getCellId(tMaxC, tMaxR);
