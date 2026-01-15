@@ -41,7 +41,8 @@ const CustomCellRenderer = ({
     cells, 
     styles, 
     activeCell, 
-    selectionSet, 
+    selectionSet,
+    selectionBounds,
     onMouseDown, 
     onMouseEnter 
 }: RenderCellProps<any> & { 
@@ -49,6 +50,7 @@ const CustomCellRenderer = ({
     styles: Record<string, CellStyle>,
     activeCell: string | null,
     selectionSet: Set<string>,
+    selectionBounds: { minRow: number, maxRow: number, minCol: number, maxCol: number } | null,
     onMouseDown: (id: string, shift: boolean) => void,
     onMouseEnter: (id: string) => void
 }) => {
@@ -82,7 +84,8 @@ const CustomCellRenderer = ({
       fontWeight: style.bold ? '700' : '400',
       fontStyle: style.italic ? 'italic' : 'normal',
       textDecoration: style.underline ? 'underline' : 'none',
-      // Excel selection: Active cell is white/transparent with border, Range is gray
+      // Excel selection: Active cell is white (or default), Range is gray
+      // We do NOT add border here for selection, we use overlays
       backgroundColor: style.bg || (isInRange && !isActive ? 'rgba(0, 0, 0, 0.05)' : undefined),
       color: style.color || 'inherit',
       textAlign: style.align || 'left',
@@ -105,6 +108,25 @@ const CustomCellRenderer = ({
       if (style.borders.right) cssStyle.borderRight = `${style.borders.right.style === 'thick' ? '2px' : '1px'} solid ${style.borders.right.color}`;
   }
 
+  // --- Selection Logic ---
+  let showSelectionBorder = false;
+  let isTop = false, isBottom = false, isLeft = false, isRight = false;
+  let isHandle = false;
+
+  if (isInRange && selectionBounds) {
+      showSelectionBorder = true;
+      const r = row.id;
+      const c = parseInt(column.key);
+      
+      if (r === selectionBounds.minRow) isTop = true;
+      if (r === selectionBounds.maxRow) isBottom = true;
+      if (c === selectionBounds.minCol) isLeft = true;
+      if (c === selectionBounds.maxCol) isRight = true;
+
+      // Handle appears on the bottom-right corner of the selection
+      if (isBottom && isRight) isHandle = true;
+  }
+
   // Checkbox Rendering
   if (cellData?.isCheckbox) {
       const isChecked = String(cellData.value).toUpperCase() === 'TRUE';
@@ -113,9 +135,20 @@ const CustomCellRenderer = ({
             style={{ ...cssStyle, justifyContent: 'center' }}
             onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
             onMouseEnter={() => onMouseEnter(cellId)}
-            className={isActive ? "ring-2 ring-inset ring-[#217346] z-10" : ""}
+            className="relative"
           >
               <input type="checkbox" checked={isChecked} readOnly className="w-4 h-4 accent-[#217346] pointer-events-none" />
+              {showSelectionBorder && (
+                  <>
+                    {isTop && <div className="absolute top-0 left-0 right-0 h-[2px] bg-[#217346] z-20 pointer-events-none" />}
+                    {isBottom && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#217346] z-20 pointer-events-none" />}
+                    {isLeft && <div className="absolute top-0 bottom-0 left-0 w-[2px] bg-[#217346] z-20 pointer-events-none" />}
+                    {isRight && <div className="absolute top-0 bottom-0 right-0 w-[2px] bg-[#217346] z-20 pointer-events-none" />}
+                    {isHandle && (
+                        <div className="absolute -bottom-[3px] -right-[3px] w-[7px] h-[7px] bg-[#217346] border border-white z-30 cursor-crosshair box-content" />
+                    )}
+                  </>
+              )}
           </div>
       );
   }
@@ -125,7 +158,8 @@ const CustomCellRenderer = ({
         style={cssStyle}
         onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
         onMouseEnter={() => onMouseEnter(cellId)}
-        className={isActive ? "ring-2 ring-inset ring-[#217346] z-10 bg-white" : ""}
+        // Remove ring-2, rely on overlays
+        className="relative"
     >
       {displayValue}
       
@@ -140,6 +174,24 @@ const CustomCellRenderer = ({
             className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-600" 
             title={cellData.comment}
           />
+      )}
+
+      {/* Selection Box Overlays */}
+      {showSelectionBorder && (
+          <>
+            {isTop && <div className="absolute top-0 left-0 right-0 h-[2px] bg-[#217346] z-20 pointer-events-none shadow-sm" />}
+            {isBottom && <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#217346] z-20 pointer-events-none shadow-sm" />}
+            {isLeft && <div className="absolute top-0 bottom-0 left-0 w-[2px] bg-[#217346] z-20 pointer-events-none shadow-sm" />}
+            {isRight && <div className="absolute top-0 bottom-0 right-0 w-[2px] bg-[#217346] z-20 pointer-events-none shadow-sm" />}
+            
+            {/* Handle - positioned slightly outside to overlap grid lines */}
+            {isHandle && (
+                <div 
+                    className="absolute -bottom-[3px] -right-[3px] w-[7px] h-[7px] bg-[#217346] border border-white z-30 cursor-crosshair box-content shadow-sm"
+                    onMouseDown={(e) => { e.stopPropagation(); /* Drag handle logic here */ }}
+                />
+            )}
+          </>
       )}
     </div>
   );
@@ -164,6 +216,23 @@ const Grid: React.FC<GridProps> = ({
   // Convert selection range to Set for O(1) lookup
   const selectionSet = useMemo(() => new Set(selectionRange || []), [selectionRange]);
   const activeCoords = useMemo(() => parseCellId(activeCell || ''), [activeCell]);
+
+  // Calculate Selection Bounds for border rendering
+  const selectionBounds = useMemo(() => {
+      if (!selectionRange || selectionRange.length === 0) return null;
+      
+      const pFirst = parseCellId(selectionRange[0]);
+      const pLast = parseCellId(selectionRange[selectionRange.length - 1]);
+      
+      if (!pFirst || !pLast) return null;
+      
+      return {
+          minRow: Math.min(pFirst.row, pLast.row),
+          maxRow: Math.max(pFirst.row, pLast.row),
+          minCol: Math.min(pFirst.col, pLast.col),
+          maxCol: Math.max(pFirst.col, pLast.col)
+      };
+  }, [selectionRange]);
 
   // Handle Drag Selection
   const handleMouseDown = useCallback((id: string, shift: boolean) => {
@@ -229,6 +298,7 @@ const Grid: React.FC<GridProps> = ({
                     styles={styles} 
                     activeCell={activeCell}
                     selectionSet={selectionSet}
+                    selectionBounds={selectionBounds}
                     onMouseDown={handleMouseDown}
                     onMouseEnter={handleMouseEnter}
                 />
@@ -250,7 +320,7 @@ const Grid: React.FC<GridProps> = ({
                     <div className="w-full h-full relative z-[100]">
                         <input 
                             autoFocus
-                            className="w-full h-full px-1 outline-none bg-white text-slate-900 font-[Calibri] text-[11pt] border-2 border-[#217346]"
+                            className="w-full h-full px-1 outline-none bg-white text-slate-900 font-[Calibri] text-[11pt] border-2 border-[#217346] shadow-lg"
                             value={row[column.key]?.raw || ''}
                             onChange={(e) => {
                                 // Local state handled by DataGrid via onRowChange if we were using it for data
@@ -274,7 +344,7 @@ const Grid: React.FC<GridProps> = ({
        })
     ];
     return cols;
-  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, handleMouseDown, handleMouseEnter, onCellChange, activeCoords]);
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, selectionBounds, handleMouseDown, handleMouseEnter, onCellChange, activeCoords]);
 
   // 2. Generate Rows
   const rows = useMemo(() => {
