@@ -1,7 +1,21 @@
 
 import { HyperFormula } from 'hyperformula';
+import * as formulajs from '@formulajs/formulajs';
 import { CellData, CellId } from '../types';
 import { parseCellId } from './helpers';
+
+// Register all Formula.js functions that don't exist in HyperFormula
+Object.keys(formulajs).forEach(key => {
+    try {
+        const fn = (formulajs as any)[key];
+        if (typeof fn === 'function') {
+            // HyperFormula.registerFunction throws if the function name is reserved or already registered
+            HyperFormula.registerFunction(key.toUpperCase(), fn);
+        }
+    } catch (e) {
+        // Ignore registration errors for existing/duplicate functions
+    }
+});
 
 // Initialize HyperFormula instance
 const hfInstance = HyperFormula.buildEmpty({

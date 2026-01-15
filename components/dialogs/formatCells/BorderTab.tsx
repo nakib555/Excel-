@@ -47,7 +47,7 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
         }
     };
 
-    const applyPreset = (type: 'none' | 'outline') => {
+    const applyPreset = (type: 'none' | 'outline' | 'inside') => {
         let next = { ...currentBorders };
         const b = { style: lineStyle, color: lineColor };
         
@@ -58,6 +58,9 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
             next.bottom = b;
             next.left = b;
             next.right = b;
+        } else if (type === 'inside') {
+            // "Inside" usually implies cross borders for single cell selection in this simplified UI
+            // Or clears inside borders if multi-select logic was present
         }
         onChange('borders', next);
     };
@@ -69,7 +72,9 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
         
         const width = b.style === 'thick' || b.style === 'double' ? '3px' : b.style === 'medium' ? '2px' : '1px';
         const s = b.style === 'double' ? 'double' : b.style === 'dashed' ? 'dashed' : b.style === 'dotted' ? 'dotted' : 'solid';
-        return `${width} ${s} ${b.color}`;
+        const c = b.color;
+        
+        return `${width} ${s} ${c}`;
     };
 
     // Helper to check if a specific border is active for UI highlighting
@@ -137,18 +142,19 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
                 </GroupBox>
 
                 {/* Interactive Diagram */}
-                <GroupBox label="Border" className="flex-1 flex flex-col justify-center items-center relative min-h-[220px]">
+                <GroupBox label="Border" className="flex-1 flex flex-col justify-center items-center relative min-h-[260px]">
                     <div className="relative p-8">
                         {/* Central Preview Box */}
-                        <div className="w-32 h-32 md:w-40 md:h-40 relative flex items-center justify-center">
+                        <div className="w-32 h-32 md:w-44 md:h-44 relative flex items-center justify-center">
                             
                             {/* Top Toggle Button */}
                             <button 
                                 onClick={() => toggleBorder('top')}
                                 className={cn(
-                                    "absolute -top-8 left-1/2 -translate-x-1/2 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
-                                    isBorderActive('top') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                    "absolute -top-8 left-1/2 -translate-x-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                    isBorderActive('top') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
                                 )}
+                                title="Top Border"
                             >
                                 <div className="w-4 h-[2px] bg-current" />
                             </button>
@@ -157,9 +163,10 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
                             <button 
                                 onClick={() => toggleBorder('bottom')}
                                 className={cn(
-                                    "absolute -bottom-8 left-1/2 -translate-x-1/2 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
-                                    isBorderActive('bottom') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                    "absolute -bottom-8 left-1/2 -translate-x-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                    isBorderActive('bottom') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
                                 )}
+                                title="Bottom Border"
                             >
                                 <div className="w-4 h-[2px] bg-current" />
                             </button>
@@ -168,9 +175,10 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
                             <button 
                                 onClick={() => toggleBorder('left')}
                                 className={cn(
-                                    "absolute top-1/2 -left-8 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
-                                    isBorderActive('left') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                    "absolute top-1/2 -left-8 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                    isBorderActive('left') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
                                 )}
+                                title="Left Border"
                             >
                                 <div className="h-4 w-[2px] bg-current" />
                             </button>
@@ -179,31 +187,34 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
                             <button 
                                 onClick={() => toggleBorder('right')}
                                 className={cn(
-                                    "absolute top-1/2 -right-8 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
-                                    isBorderActive('right') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                    "absolute top-1/2 -right-8 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                    isBorderActive('right') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
                                 )}
+                                title="Right Border"
                             >
                                 <div className="h-4 w-[2px] bg-current" />
                             </button>
 
-                            {/* Diagonal Up Toggle */}
+                            {/* Diagonal Up Toggle (Corner) */}
                             <button
                                 onClick={() => toggleBorder('diagonalUp')}
                                 className={cn(
-                                    "absolute -bottom-8 -left-8 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
-                                    isBorderActive('diagonalUp') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                    "absolute -bottom-8 -left-8 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                    isBorderActive('diagonalUp') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
                                 )}
+                                title="Diagonal Up"
                             >
                                 <div className="w-4 h-[2px] bg-current -rotate-45" />
                             </button>
 
-                            {/* Diagonal Down Toggle */}
+                            {/* Diagonal Down Toggle (Corner) */}
                             <button
                                 onClick={() => toggleBorder('diagonalDown')}
                                 className={cn(
-                                    "absolute -bottom-8 -right-8 w-6 h-6 rounded flex items-center justify-center transition-all hover:bg-slate-100",
-                                    isBorderActive('diagonalDown') ? "bg-primary-50 text-primary-600" : "text-slate-300"
+                                    "absolute -bottom-8 -right-8 w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-slate-100 border border-transparent",
+                                    isBorderActive('diagonalDown') ? "bg-primary-50 text-primary-600 border-primary-200" : "text-slate-300"
                                 )}
+                                title="Diagonal Down"
                             >
                                 <div className="w-4 h-[2px] bg-current rotate-45" />
                             </button>
@@ -211,7 +222,7 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
 
                             {/* The Actual Box Render */}
                             <div 
-                                className="w-full h-full bg-white relative flex items-center justify-center overflow-hidden"
+                                className="w-full h-full bg-white relative flex items-center justify-center overflow-hidden shadow-sm"
                                 style={{
                                     borderTop: getBorderStyle('top'),
                                     borderBottom: getBorderStyle('bottom'),
@@ -219,59 +230,59 @@ const BorderTab: React.FC<BorderTabProps> = ({ style, onChange, isMobile }) => {
                                     borderRight: getBorderStyle('right'),
                                 }}
                             >
-                                {/* Diagonals */}
+                                {/* Diagonals - Rendered inside to overlap content area correctly */}
                                 {isBorderActive('diagonalUp') && (
                                     <div 
-                                        className="absolute w-[142%] h-[1px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none origin-center -rotate-45"
+                                        className="absolute w-[142%] h-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none origin-center -rotate-45 border-t"
                                         style={{ 
                                             borderTop: getBorderStyle('diagonalUp'),
-                                            height: currentBorders.diagonalUp?.style === 'double' ? '4px' : '1px'
+                                            borderTopWidth: currentBorders.diagonalUp?.style === 'thick' ? '3px' : currentBorders.diagonalUp?.style === 'medium' ? '2px' : '1px'
                                         }} 
                                     />
                                 )}
                                 {isBorderActive('diagonalDown') && (
                                     <div 
-                                        className="absolute w-[142%] h-[1px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none origin-center rotate-45"
+                                        className="absolute w-[142%] h-0 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none origin-center rotate-45 border-t"
                                         style={{ 
                                             borderTop: getBorderStyle('diagonalDown'),
-                                            height: currentBorders.diagonalDown?.style === 'double' ? '4px' : '1px'
+                                            borderTopWidth: currentBorders.diagonalDown?.style === 'thick' ? '3px' : currentBorders.diagonalDown?.style === 'medium' ? '2px' : '1px'
                                         }} 
                                     />
                                 )}
 
-                                {/* Inner Cross Guides (Visual only, typical Excel dialog shows them as faint guidelines) */}
-                                <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none">
-                                    <div className="border-r border-b border-slate-100" />
-                                    <div className="border-b border-slate-100" />
-                                    <div className="border-r border-slate-100" />
+                                {/* Inner Cross Guides (Faint guides typical of Excel dialog) */}
+                                <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none opacity-50">
+                                    <div className="border-r border-b border-slate-200" />
+                                    <div className="border-b border-slate-200" />
+                                    <div className="border-r border-slate-200" />
                                     <div />
                                 </div>
 
                                 <span className="relative z-10 text-slate-400 font-medium text-sm select-none">Text</span>
                                 
-                                {/* Clickable Hotspots for Direct Interaction */}
+                                {/* Clickable Hotspots for Direct Interaction with visual feedback */}
                                 <div className="absolute inset-0 z-20">
-                                    {/* Top */}
-                                    <div className="absolute top-0 left-0 right-0 h-4 cursor-pointer hover:bg-primary-500/10 transition-colors" onClick={() => toggleBorder('top')} />
-                                    {/* Bottom */}
-                                    <div className="absolute bottom-0 left-0 right-0 h-4 cursor-pointer hover:bg-primary-500/10 transition-colors" onClick={() => toggleBorder('bottom')} />
-                                    {/* Left */}
-                                    <div className="absolute top-0 bottom-0 left-0 w-4 cursor-pointer hover:bg-primary-500/10 transition-colors" onClick={() => toggleBorder('left')} />
-                                    {/* Right */}
-                                    <div className="absolute top-0 bottom-0 right-0 w-4 cursor-pointer hover:bg-primary-500/10 transition-colors" onClick={() => toggleBorder('right')} />
+                                    {/* Top Area */}
+                                    <div className="absolute top-0 left-0 right-0 h-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('top')} title="Toggle Top Border" />
+                                    {/* Bottom Area */}
+                                    <div className="absolute bottom-0 left-0 right-0 h-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('bottom')} title="Toggle Bottom Border" />
+                                    {/* Left Area */}
+                                    <div className="absolute top-0 bottom-0 left-0 w-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('left')} title="Toggle Left Border" />
+                                    {/* Right Area */}
+                                    <div className="absolute top-0 bottom-0 right-0 w-6 cursor-pointer hover:bg-primary-500/5 transition-colors" onClick={() => toggleBorder('right')} title="Toggle Right Border" />
                                 </div>
                             </div>
 
-                            {/* Corner Guides */}
-                            <div className="absolute -top-[1px] -left-[1px] w-2 h-2 border-t border-l border-slate-300" />
-                            <div className="absolute -top-[1px] -right-[1px] w-2 h-2 border-t border-r border-slate-300" />
-                            <div className="absolute -bottom-[1px] -left-[1px] w-2 h-2 border-b border-l border-slate-300" />
-                            <div className="absolute -bottom-[1px] -right-[1px] w-2 h-2 border-b border-r border-slate-300" />
+                            {/* Corner Guides (Outer Reference Points) */}
+                            <div className="absolute -top-1 -left-1 w-2 h-2 border-t border-l border-slate-300" />
+                            <div className="absolute -top-1 -right-1 w-2 h-2 border-t border-r border-slate-300" />
+                            <div className="absolute -bottom-1 -left-1 w-2 h-2 border-b border-l border-slate-300" />
+                            <div className="absolute -bottom-1 -right-1 w-2 h-2 border-b border-r border-slate-300" />
                         </div>
                     </div>
                     
-                    <p className="text-[10px] text-slate-400 text-center max-w-[200px] mt-4">
-                        Click on the diagram or use the buttons to apply borders.
+                    <p className="text-[10px] text-slate-400 text-center max-w-[240px] mt-2">
+                        Click on diagram or use buttons to apply borders
                     </p>
                 </GroupBox>
             </div>
