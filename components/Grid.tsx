@@ -511,13 +511,13 @@ const Grid: React.FC<GridProps> = ({
                     "flex items-center justify-center w-full h-full font-semibold select-none text-[11px] border-r border-b border-[#bfbfbf]",
                     isRowActive 
                         ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
-                        : "bg-[#e6e6e6] text-[#444]"
+                        : "bg-[#f8f9fa] text-[#444]"
                 )}>
                     {props.row.id + 1}
                 </div>
             );
          },
-         renderHeaderCell: () => <div className="w-full h-full bg-[#e6e6e6] border-r border-b border-[#bfbfbf]" />
+         renderHeaderCell: () => <div className="w-full h-full bg-[#f8f9fa] border-r border-b border-[#bfbfbf]" />
        }, 
        ...Array.from({ length: size.cols }, (_, i) => {
           const colChar = numToChar(i);
@@ -551,7 +551,7 @@ const Grid: React.FC<GridProps> = ({
                         "flex items-center justify-center w-full h-full font-semibold text-[12px] border-r border-b border-[#bfbfbf]",
                         isColActive 
                             ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
-                            : "bg-[#e6e6e6] text-[#444]"
+                            : "bg-[#f8f9fa] text-[#444]"
                     )}>
                         {props.column.name}
                     </div>

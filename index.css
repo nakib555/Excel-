@@ -103,7 +103,7 @@ html, body, #root {
 
 /* Row Headers (1, 2, 3...) */
 .rdg-cell[aria-colindex="1"] {
-    background-color: #e6e6e6;
+    background-color: #f8f9fa;
     color: #444;
     border-right: 1px solid var(--excel-header-border);
     border-bottom: 1px solid var(--excel-header-border);
@@ -116,7 +116,7 @@ html, body, #root {
 
 /* Column Headers (A, B, C...) */
 .rdg-header-row {
-  background-color: #e6e6e6; 
+  background-color: #f8f9fa; 
   color: #444;
   font-weight: 600;
   text-align: center;
@@ -128,7 +128,7 @@ html, body, #root {
   justify-content: center;
   border-right: 1px solid var(--excel-header-border);
   border-bottom: 1px solid var(--excel-header-border);
-  background-color: #e6e6e6;
+  background-color: #f8f9fa;
 }
 
 .rdg-row {
