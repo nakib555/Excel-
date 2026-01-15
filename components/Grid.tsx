@@ -210,15 +210,19 @@ const CustomCellRenderer = memo(({
       if (c === fillBounds.maxCol) fRight = true;
   }
 
-  // Fix: Boost z-index of the parent cell container to prevent adjacent cells from covering the handles
+  // Fix: Boost z-index of the parent cell container AND row to prevent adjacent cells from covering the handles
   useEffect(() => {
-      const parent = cellRef.current?.parentElement;
-      if (parent) {
+      const cell = cellRef.current?.closest('.rdg-cell') as HTMLElement;
+      const row = cell?.closest('.rdg-row') as HTMLElement;
+
+      if (cell && row) {
           const hasHandle = (isTopLeft || isBottomRight) && isTouch && !isFilling;
           if (hasHandle) {
-              parent.style.zIndex = '100';
+              cell.style.zIndex = '100';
+              row.style.zIndex = '100';
           } else {
-              parent.style.zIndex = ''; // Reset to let CSS control it
+              cell.style.zIndex = ''; 
+              row.style.zIndex = '';
           }
       }
   }, [isTopLeft, isBottomRight, isTouch, isFilling]);
@@ -522,7 +526,7 @@ const Grid: React.FC<GridProps> = ({
             const isRowActive = activeCoords?.row === props.row.id;
             return (
                 <div className={cn(
-                    "flex items-center justify-center w-full h-full font-semibold select-none text-[11px] border-r border-b border-[#d4d4d4]",
+                    "flex items-center justify-center w-full h-full font-semibold select-none text-[11px]",
                     isRowActive 
                         ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
                         : "bg-[#f8f9fa] text-[#444]"
@@ -531,7 +535,7 @@ const Grid: React.FC<GridProps> = ({
                 </div>
             );
          },
-         renderHeaderCell: () => <div className="w-full h-full bg-[#f8f9fa] border-r border-b border-[#d4d4d4]" />
+         renderHeaderCell: () => <div className="w-full h-full bg-[#f8f9fa]" />
        }, 
        ...Array.from({ length: size.cols }, (_, i) => {
           const colChar = numToChar(i);
@@ -562,7 +566,7 @@ const Grid: React.FC<GridProps> = ({
                 const isColActive = activeCoords?.col === i;
                 return (
                     <div className={cn(
-                        "flex items-center justify-center w-full h-full font-semibold text-[12px] border-r border-b border-[#d4d4d4]",
+                        "flex items-center justify-center w-full h-full font-semibold text-[12px]",
                         isColActive 
                             ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
                             : "bg-[#f8f9fa] text-[#444]"
