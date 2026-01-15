@@ -1,6 +1,6 @@
 
 import React, { useCallback } from 'react';
-import { Sheet, CellId, CellData, CellStyle, ValidationRule } from '../../types';
+import { Sheet, CellData, CellStyle, ValidationRule, CellId } from '../../types';
 import { 
     validateCellValue, parseCellId, getCellId, adjustFormulaReferences, getRange, checkIntersect, getStyleId, calculateRotatedDimensions, numToChar,
     updateCellInHF, getCellValueFromHF, extractDependencies
@@ -167,8 +167,87 @@ export const useCellHandlers = ({
     }, [activeSheetId, setSheets]);
 
     const handleFill = useCallback((sourceRange: CellId[], targetRange: CellId[]) => {
-        // Fill logic placeholder
-    }, [activeSheetId, setSheets]);
+        if (!sourceRange.length || !targetRange.length) return;
+
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+
+            const nextCells = { ...sheet.cells };
+            // Note: sourceRange might not be sorted by ID, but selection usually is top-left to bottom-right order in logic
+            // We need source data in order.
+            
+            // Optimization: If target range is large, this is heavy. 
+            
+            // Simple Pattern: Copy first cell of source to all targets (MVP)
+            // Enhanced: Repeat source pattern.
+            
+            const sourceStart = parseCellId(sourceRange[0]);
+            if (!sourceStart) return sheet;
+
+            // We iterate target cells and map back to source cells
+            // This supports both "Drag Down" and "Drag Right" logic implicitly
+            
+            targetRange.forEach(targetId => {
+                // Skip if target is actually part of source (seed data)
+                if (sourceRange.includes(targetId)) return;
+
+                const targetPos = parseCellId(targetId);
+                if (!targetPos) return;
+
+                // Find corresponding source cell based on offset
+                // Calculate offset from start of source
+                const rowOffset = targetPos.row - sourceStart.row;
+                const colOffset = targetPos.col - sourceStart.col;
+                
+                // Map to source dimensions to cycle pattern
+                // We need dimensions of source range. 
+                // Assumes rectangular source.
+                const sourceRows = new Set(sourceRange.map(id => parseCellId(id)!.row)).size;
+                const sourceCols = new Set(sourceRange.map(id => parseCellId(id)!.col)).size;
+                
+                const srcRowIdx = sourceStart.row + (rowOffset % sourceRows);
+                const srcColIdx = sourceStart.col + (colOffset % sourceCols);
+                const sourceId = getCellId(srcColIdx, srcRowIdx);
+                
+                const sourceCell = sheet.cells[sourceId];
+
+                if (sourceCell) {
+                    let newRaw = sourceCell.raw;
+                    
+                    // Adjust formulas
+                    if (newRaw.startsWith('=')) {
+                         const rDelta = targetPos.row - srcRowIdx;
+                         const cDelta = targetPos.col - srcColIdx;
+                         newRaw = adjustFormulaReferences(newRaw, rDelta, cDelta);
+                    }
+
+                    nextCells[targetId] = {
+                        ...sourceCell,
+                        id: targetId,
+                        raw: newRaw,
+                        value: newRaw // Placeholder, updated via HF below
+                    };
+                    
+                    updateCellInHF(targetId, newRaw, activeSheetName);
+                } else {
+                    // Source was empty, clear target
+                    if (nextCells[targetId]) {
+                        delete nextCells[targetId];
+                        updateCellInHF(targetId, '', activeSheetName);
+                    }
+                }
+            });
+            
+            // Recalculate only the new formulas
+            targetRange.forEach(id => {
+                if (nextCells[id]?.raw.startsWith('=')) {
+                    nextCells[id].value = getCellValueFromHF(id, activeSheetName);
+                }
+            });
+
+            return { ...sheet, cells: nextCells };
+        }));
+    }, [activeSheetId, activeSheetName, setSheets]);
 
     const handleClear = useCallback(() => { 
         if (confirm("Clear all?")) setSheets(p => p.map(s => s.id===activeSheetId ? { ...s, cells: {}, tables: {} } : s)); 

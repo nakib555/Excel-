@@ -120,6 +120,15 @@ html, body, #root {
   display: flex;
   align-items: center;
   outline: none;
+  /* Critical: Allow overflow for selection borders to draw on top of adjacent cells */
+  overflow: visible !important;
+  contain: none !important;
+}
+
+/* Override active cell border default of RDG to remove it, we implement custom borders */
+.rdg-cell[aria-selected="true"] {
+  box-shadow: none !important;
+  border-color: var(--rdg-border-color);
 }
 
 /* Row Headers (1, 2, 3...) */
@@ -130,6 +139,8 @@ html, body, #root {
     border-bottom: 1px solid #bfbfbf;
     font-size: 11px;
     font-weight: 600;
+    /* Reset overflow for row headers to keep numbers neat */
+    overflow: hidden !important; 
 }
 
 /* Column Headers (A, B, C...) */
@@ -139,6 +150,7 @@ html, body, #root {
   font-weight: 600;
   text-align: center;
   border-bottom: 1px solid #bfbfbf;
+  z-index: 100; /* Ensure headers stay above cells */
 }
 
 .rdg-header-row .rdg-cell {
@@ -150,18 +162,18 @@ html, body, #root {
 
 .rdg-row {
   background-color: #fff;
+  contain: none !important; /* Allow cell overflow */
 }
 
-/* Selection Border - Thicker and Green */
+/* Selection Border - Thicker and Green (RDG Default Override) */
 .rdg-selected {
   border: 2px solid #217346 !important; /* Excel Green */
-  z-index: 2;
-  box-shadow: 0 0 0 1px #217346;
+  z-index: 50;
 }
 
 /* Editor Input Override - Ensure it sits above cell content */
 .rdg-editor-container {
-  z-index: 50 !important;
+  z-index: 100 !important;
 }
 
 /* Skeleton Animation */
