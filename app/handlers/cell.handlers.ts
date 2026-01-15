@@ -175,6 +175,34 @@ export const useCellHandlers = ({
             const sourceStart = parseCellId(sourceRange[0]);
             if (!sourceStart) return sheet;
 
+            // --- SMART FILL SERIES DETECTION ---
+            const sourceValues = sourceRange.map(id => sheet.cells[id]?.value);
+            const sourceRaw = sourceRange.map(id => sheet.cells[id]?.raw);
+            
+            // Check if we have a numeric series (at least 2 numbers)
+            let isSeries = false;
+            let seriesStep = 0;
+            let startValue = 0;
+            
+            // Filter out empty or non-numeric (and skip formulas for series logic)
+            const nums = sourceValues.map(v => (v !== undefined && v !== "" && !isNaN(Number(v))) ? Number(v) : null);
+            const validNums = nums.filter(n => n !== null) as number[];
+            
+            // Basic detection: If the range contains valid numbers and no formulas
+            const hasFormulas = sourceRaw.some(r => r && r.startsWith('='));
+            
+            if (!hasFormulas && validNums.length === sourceValues.length && validNums.length >= 2) {
+                // Check if linear
+                const d = validNums[1] - validNums[0];
+                const isLinear = validNums.every((n, i) => i === 0 || Math.abs(n - validNums[i-1] - d) < 1e-9);
+                if (isLinear) {
+                    isSeries = true;
+                    seriesStep = d;
+                    startValue = validNums[0];
+                }
+            }
+            // -----------------------------------
+
             // BATCH UPDATE START
             performBatchUpdate(() => {
                 targetRange.forEach(targetId => {
@@ -185,6 +213,23 @@ export const useCellHandlers = ({
 
                     const rowOffset = targetPos.row - sourceStart.row;
                     const colOffset = targetPos.col - sourceStart.col;
+
+                    // If Series, calculate value
+                    if (isSeries) {
+                        // Heuristic: Use the larger offset dimension to drive step
+                        const offset = Math.abs(rowOffset) > Math.abs(colOffset) ? rowOffset : colOffset;
+                        
+                        const projectedVal = startValue + (offset * seriesStep);
+                        const valStr = String(Number.isInteger(projectedVal) ? projectedVal : Math.round(projectedVal * 1e10) / 1e10);
+                        
+                        nextCells[targetId] = {
+                            id: targetId,
+                            raw: valStr,
+                            value: valStr
+                        };
+                        updateCellInHF(targetId, valStr, activeSheetName);
+                        return; // Skip standard copy
+                    }
                     
                     const sourceRows = new Set(sourceRange.map(id => parseCellId(id)!.row)).size;
                     const sourceCols = new Set(sourceRange.map(id => parseCellId(id)!.col)).size;

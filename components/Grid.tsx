@@ -1,7 +1,7 @@
 
 import React, { useMemo, useCallback, useState, useEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
-import DataGrid, { Column, RenderCellProps, DataGridHandle } from 'react-data-grid';
+import { DataGrid, type Column, type RenderCellProps, type DataGridHandle } from 'react-data-grid';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
 import { numToChar, getCellId, formatCellValue, parseCellId, cn, getRange } from '../utils';
 import { NavigationDirection } from './Cell';
