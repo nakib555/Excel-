@@ -1,6 +1,6 @@
 
 import React, { memo, useState } from 'react';
-import { TabProps, SmartDropdown } from '../../shared';
+import { TabProps, SmartDropdown, Tooltip } from '../../shared';
 
 const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48, 72];
 
@@ -18,9 +18,11 @@ const FontSizeSelector: React.FC<FontSizeSelectorProps> = ({ currentStyle, onTog
             className="max-h-64 overflow-y-auto"
             triggerClassName="h-auto"
             trigger={
-                <div className="w-12 h-7 bg-white border border-slate-300 hover:border-slate-400 rounded-md flex items-center justify-center text-xs text-slate-700 shadow-sm cursor-pointer group relative transition-colors">
-                    <span>{currentFontSize}</span>
-                </div>
+                <Tooltip content="Font Size">
+                    <div className="w-12 h-7 bg-white border border-slate-300 hover:border-slate-400 rounded-md flex items-center justify-center text-xs text-slate-700 shadow-sm cursor-pointer group relative transition-colors">
+                        <span>{currentFontSize}</span>
+                    </div>
+                </Tooltip>
             }
         >
             <div className="flex flex-col">

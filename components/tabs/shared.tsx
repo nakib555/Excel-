@@ -4,6 +4,9 @@ import { createPortal } from 'react-dom';
 import { ChevronDown, SquareArrowOutDownRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CellStyle, Table } from '../../types';
 import { cn, useSmartPosition } from '../../utils';
+import { Tooltip } from '../Tooltip';
+
+export { Tooltip };
 
 export interface TabProps {
   currentStyle: CellStyle;

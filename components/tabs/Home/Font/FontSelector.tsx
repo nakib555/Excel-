@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ChevronDown, Type } from 'lucide-react';
-import { SmartDropdown } from '../../shared';
+import { SmartDropdown, Tooltip } from '../../shared';
 
 const FONTS = ['Inter', 'Arial', 'Calibri', 'Times New Roman', 'Courier New', 'Verdana'];
 
@@ -16,10 +16,12 @@ const FontSelector = () => {
             contentWidth="w-48"
             triggerClassName="h-auto"
             trigger={
-                <div className="w-32 h-7 bg-white border border-slate-300 hover:border-slate-400 rounded-md flex items-center justify-between px-2 text-xs text-slate-700 shadow-sm cursor-pointer transition-colors">
-                    <span className="truncate">{selected}</span>
-                    <ChevronDown size={12} className="opacity-50 flex-shrink-0" />
-                </div>
+                <Tooltip content="Font Family">
+                    <div className="w-32 h-7 bg-white border border-slate-300 hover:border-slate-400 rounded-md flex items-center justify-between px-2 text-xs text-slate-700 shadow-sm cursor-pointer transition-colors">
+                        <span className="truncate">{selected}</span>
+                        <ChevronDown size={12} className="opacity-50 flex-shrink-0" />
+                    </div>
+                </Tooltip>
             }
         >
              <div className="flex flex-col p-1">

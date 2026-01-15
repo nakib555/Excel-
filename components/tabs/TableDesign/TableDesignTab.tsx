@@ -1,7 +1,7 @@
 
 import React, { memo, lazy, Suspense, useState } from 'react';
 import { motion } from 'framer-motion';
-import { TabProps, RibbonGroup, RibbonButton, DraggableScrollContainer, SmartDropdown } from '../shared';
+import { TabProps, RibbonGroup, RibbonButton, DraggableScrollContainer, SmartDropdown, Tooltip } from '../shared';
 import { GroupSkeleton, DropdownGridSkeleton } from '../../Skeletons';
 import { Settings, Table as TableIcon, Filter, X, RefreshCw, FileUp, Globe, Link2, Sliders, ChevronDown } from 'lucide-react';
 import TableStyleOptionsGroup from './TableStyleOptions/TableStyleOptionsGroup';
@@ -30,12 +30,14 @@ const TableDesignTab: React.FC<TabProps> = (props) => {
             <div className="flex flex-col h-full justify-between py-1 px-1 gap-1">
                 <div className="flex flex-col gap-0.5">
                     <label className="text-[10px] font-semibold text-slate-600 leading-none">Table Name:</label>
-                    <input 
-                        type="text" 
-                        value={activeTable.name} 
-                        onChange={(e) => onTableOptionChange && onTableOptionChange(activeTable.id, 'name', e.target.value)}
-                        className="border border-slate-300 rounded-[2px] px-1.5 py-0.5 text-[11px] w-28 font-medium text-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
-                    />
+                    <Tooltip content="Change the name of the table">
+                        <input 
+                            type="text" 
+                            value={activeTable.name} 
+                            onChange={(e) => onTableOptionChange && onTableOptionChange(activeTable.id, 'name', e.target.value)}
+                            className="border border-slate-300 rounded-[2px] px-1.5 py-0.5 text-[11px] w-28 font-medium text-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                        />
+                    </Tooltip>
                 </div>
                 <RibbonButton 
                     variant="small" 
@@ -98,12 +100,16 @@ const TableDesignTab: React.FC<TabProps> = (props) => {
                  
                  {/* Scroll/Dropdown Buttons */}
                  <div className="flex flex-col h-full border-l border-slate-200 bg-white z-10">
-                     <button className="flex-1 px-1 hover:bg-slate-100 flex items-center justify-center text-slate-500">
-                         <ChevronDown size={10} className="rotate-180" />
-                     </button>
-                     <button className="flex-1 px-1 hover:bg-slate-100 flex items-center justify-center text-slate-500">
-                         <ChevronDown size={10} />
-                     </button>
+                     <Tooltip content="More Styles">
+                         <button className="flex-1 px-1 hover:bg-slate-100 flex items-center justify-center text-slate-500">
+                             <ChevronDown size={10} className="rotate-180" />
+                         </button>
+                     </Tooltip>
+                     <Tooltip content="More Styles">
+                         <button className="flex-1 px-1 hover:bg-slate-100 flex items-center justify-center text-slate-500">
+                             <ChevronDown size={10} />
+                         </button>
+                     </Tooltip>
                      <SmartDropdown
                         open={isGalleryOpen}
                         onToggle={() => setIsGalleryOpen(!isGalleryOpen)}
