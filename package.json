@@ -21,7 +21,8 @@
     "@google/genai": "*",
     "react-data-grid": "^7.0.0-beta.59",
     "hyperformula": "^2.6.0",
-    "@formulajs/formulajs": "^4.4.4"
+    "@formulajs/formulajs": "^4.4.4",
+    "@radix-ui/react-tooltip": "^1.1.2"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",

@@ -379,6 +379,7 @@ export const AppRoot: React.FC = () => {
               onAutoFit={resizeHandlers.handleAutoFitColumn}
               onAutoFitRow={resizeHandlers.handleAutoFitRow}
               onScrollToActiveCell={() => setForceCenter(false)}
+              onMoveCells={cellHandlers.handleMoveCells}
             />
         </Suspense>
       </main>

@@ -312,6 +312,101 @@ export const useCellHandlers = ({
         handleSaveComment(activeCell, '');
     }, [activeCell, handleSaveComment]);
 
+    // Handle Drag and Drop Moving Cells
+    const handleMoveCells = useCallback((sourceRange: string[], targetStartId: string) => {
+        if (!sourceRange.length) return;
+
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+
+            const nextCells = { ...sheet.cells };
+            const nextValidations = { ...sheet.validations };
+            
+            const sourceStart = parseCellId(sourceRange[0]);
+            const targetStart = parseCellId(targetStartId);
+            
+            if (!sourceStart || !targetStart) return sheet;
+
+            const rowDelta = targetStart.row - sourceStart.row;
+            const colDelta = targetStart.col - sourceStart.col;
+
+            // 1. Copy data to temporary storage to handle overlapping ranges safely
+            const movedData: Array<{ id: string, cell: CellData, validation?: ValidationRule }> = [];
+            
+            sourceRange.forEach(srcId => {
+                const cell = nextCells[srcId];
+                const validation = nextValidations[srcId];
+                
+                const p = parseCellId(srcId);
+                if (p) {
+                    const newId = getCellId(p.col + colDelta, p.row + rowDelta);
+                    
+                    // Adjust formulas
+                    let finalCell = cell;
+                    if (cell && cell.raw && cell.raw.startsWith('=')) {
+                        // For moving, standard excel behavior is usually keeping references absolute 
+                        // unless specifically filling. However, adjusting relative refs 
+                        // is often expected in modern web grid moves to preserve relative logic.
+                        // We will keep raw as is for "Cut/Paste" behavior (Move), 
+                        // unlike Fill which increments.
+                        // Actually, Cut/Paste usually DOES NOT change formula refs inside the moved cell,
+                        // but DOES change refs pointing TO the moved cell (too complex for this MVP).
+                        // We will copy raw as is.
+                        finalCell = { ...cell };
+                    } else if (cell) {
+                        finalCell = { ...cell };
+                    }
+
+                    if (finalCell) {
+                        movedData.push({ id: newId, cell: { ...finalCell, id: newId }, validation });
+                    } else {
+                        // Mark as empty if source was empty (to overwrite target)
+                        movedData.push({ id: newId, cell: null as any, validation: undefined });
+                    }
+                }
+            });
+
+            // 2. Clear Source Range
+            sourceRange.forEach(srcId => {
+                delete nextCells[srcId];
+                delete nextValidations[srcId];
+                updateCellInHF(srcId, '', activeSheetName);
+            });
+
+            // 3. Write to Target
+            const newSelection: string[] = [];
+            movedData.forEach(({ id, cell, validation }) => {
+                newSelection.push(id);
+                if (cell) {
+                    nextCells[id] = cell;
+                    updateCellInHF(id, cell.raw, activeSheetName);
+                } else {
+                    delete nextCells[id];
+                    updateCellInHF(id, '', activeSheetName);
+                }
+
+                if (validation) nextValidations[id] = validation;
+                else delete nextValidations[id];
+            });
+
+            // Re-evaluate affected cells (simple approach: re-eval all formulas)
+            Object.values(nextCells).forEach((c: CellData) => {
+                if (c.raw && c.raw.startsWith('=')) {
+                    c.value = getCellValueFromHF(c.id, activeSheetName);
+                }
+            });
+
+            return { 
+                ...sheet, 
+                cells: nextCells, 
+                validations: nextValidations,
+                activeCell: newSelection[0],
+                selectionAnchor: newSelection[0],
+                selectionRange: newSelection
+            };
+        }));
+    }, [activeSheetId, activeSheetName, setSheets]);
+
     return {
         handleCellChange,
         handleCellClick,
@@ -325,6 +420,7 @@ export const useCellHandlers = ({
         handleAddSheet,
         handleDataValidationSave,
         handleSaveComment,
-        handleDeleteComment
+        handleDeleteComment,
+        handleMoveCells
     };
 };

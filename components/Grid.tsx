@@ -34,6 +34,7 @@ interface GridProps {
   onAutoFit?: (colIdx: number) => void;
   onAutoFitRow?: (rowIdx: number) => void;
   onScrollToActiveCell?: () => void;
+  onMoveCells?: (source: CellId[], targetStartId: CellId) => void;
 }
 
 const CommentTooltip = ({ text, rect }: { text: string, rect: DOMRect }) => {
@@ -115,7 +116,8 @@ const CustomCellRenderer = memo(({
     onMouseDown, 
     onMouseEnter,
     onFillHandleDown,
-    onMobileHandleDown
+    onMobileHandleDown,
+    onDragStart
 }: RenderCellProps<any> & { 
     cells: Record<string, CellData>, 
     styles: Record<string, CellStyle>,
@@ -130,7 +132,8 @@ const CustomCellRenderer = memo(({
     onMouseDown: (id: string, shift: boolean) => void,
     onMouseEnter: (id: string) => void,
     onFillHandleDown: (e: React.MouseEvent, id: string) => void,
-    onMobileHandleDown: (e: React.TouchEvent, id: string, type: 'start' | 'end') => void
+    onMobileHandleDown: (e: React.TouchEvent, id: string, type: 'start' | 'end') => void,
+    onDragStart: (e: React.MouseEvent, id: string) => void
 }) => {
   const cellId = getCellId(parseInt(column.key), row.id);
   const cellData = cells[cellId];
@@ -293,6 +296,16 @@ const CustomCellRenderer = memo(({
       <Border type="left" visible={sLeft} color="#107c41" thickness={selectionBorderThickness} />
       <Border type="right" visible={sRight} color="#107c41" thickness={selectionBorderThickness} />
 
+      {/* Drag Move Triggers (Invisible Hit Areas) */}
+      {!isFilling && isInSelection && (
+          <>
+            {sTop && <div className="absolute top-0 left-0 right-0 h-2 -mt-1 cursor-grab z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
+            {sBottom && <div className="absolute bottom-0 left-0 right-0 h-2 -mb-1 cursor-grab z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
+            {sLeft && <div className="absolute top-0 bottom-0 left-0 w-2 -ml-1 cursor-grab z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
+            {sRight && <div className="absolute top-0 bottom-0 right-0 w-2 -mr-1 cursor-grab z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
+          </>
+      )}
+
       {isFilling && (
           <>
             <Border type="top" visible={fTop && !sTop} style="dashed" color="#64748b" thickness={selectionBorderThickness} />
@@ -320,7 +333,7 @@ const CustomCellRenderer = memo(({
 
       {isBottomRight && !isTouch && !isFilling && (
         <div 
-            className="absolute -bottom-[3px] -right-[3px] bg-[#107c41] border border-white z-[60] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform"
+            className="absolute -bottom-[3px] -right-[3px] bg-[#107c41] border border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform"
             style={{ width: dragHandleSize, height: dragHandleSize, boxSizing: 'content-box' }}
             onMouseDown={(e) => onFillHandleDown(e, cellId)}
         />
@@ -372,7 +385,8 @@ const Grid: React.FC<GridProps> = ({
   onSelectionDrag,
   onExpandGrid,
   onFill,
-  onScrollToActiveCell
+  onScrollToActiveCell,
+  onMoveCells
 }) => {
   const [isTouch, setIsTouch] = useState(false);
   const gridRef = useRef<DataGridHandle>(null);
@@ -385,6 +399,14 @@ const Grid: React.FC<GridProps> = ({
   const [fillTargetRange, setFillTargetRange] = useState<string[] | null>(null);
 
   const [mobileDrag, setMobileDrag] = useState<{ active: boolean, anchor: string } | null>(null);
+
+  // Drag-Move State
+  const [isDraggingSelection, setIsDraggingSelection] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [dragGhostDims, setDragGhostDims] = useState({ w: 0, h: 0 });
+  const [dragPos, setDragPos] = useState({ x: 0, y: 0 });
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [dropTargetRect, setDropTargetRect] = useState<{ top: number, left: number, width: number, height: number } | null>(null);
 
   useEffect(() => {
       const checkTouch = () => setIsTouch(window.matchMedia('(pointer: coarse)').matches);
@@ -440,16 +462,96 @@ const Grid: React.FC<GridProps> = ({
   }, [fillTargetRange]);
 
   const handleMouseDown = useCallback((id: string, shift: boolean) => {
-      if (isFilling) return;
+      if (isFilling || isDraggingSelection) return;
 
       if (!shift) {
           setIsSelecting(true);
           setDragStartCell(id);
       }
       onCellClick(id, shift);
-  }, [onCellClick, isFilling]);
+  }, [onCellClick, isFilling, isDraggingSelection]);
+
+  const handleDragStart = useCallback((e: React.MouseEvent, id: string) => {
+        if (!selectionBounds || !selectionRange) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Calculate bounding box of selection
+        // We use a simplified approximation based on first/last cells in range to avoid heavy DOM reads
+        const firstEl = document.querySelector(`[data-cell-id="${selectionRange[0]}"]`);
+        const lastEl = document.querySelector(`[data-cell-id="${selectionRange[selectionRange.length-1]}"]`);
+        
+        if (firstEl && lastEl) {
+            const r1 = firstEl.getBoundingClientRect();
+            const r2 = lastEl.getBoundingClientRect();
+            
+            // Bounding Box
+            const top = Math.min(r1.top, r2.top);
+            const left = Math.min(r1.left, r2.left);
+            const bottom = Math.max(r1.bottom, r2.bottom);
+            const right = Math.max(r1.right, r2.right);
+            
+            setDragGhostDims({ w: right - left, h: bottom - top });
+            setDragOffset({ x: e.clientX - left, y: e.clientY - top });
+            setDragPos({ x: left, y: top }); // Initial visual pos
+            
+            setIsDraggingSelection(true);
+            document.body.style.cursor = 'grabbing';
+        }
+  }, [selectionBounds, selectionRange]);
+
+  useEffect(() => {
+      if (!isDraggingSelection) return;
+
+      const handleMove = (e: MouseEvent) => {
+          // Update ghost position
+          const ghostX = e.clientX - dragOffset.x;
+          const ghostY = e.clientY - dragOffset.y;
+          setDragPos({ x: ghostX, y: ghostY });
+
+          // Determine drop target (Snap)
+          // Hide ghost momentarily to check element underneath
+          const ghostEl = document.getElementById('drag-ghost');
+          if(ghostEl) ghostEl.style.display = 'none';
+          
+          const el = document.elementFromPoint(e.clientX, e.clientY);
+          const cellEl = el?.closest('[data-cell-id]');
+          
+          if(ghostEl) ghostEl.style.display = 'block';
+
+          if (cellEl) {
+              const id = cellEl.getAttribute('data-cell-id');
+              if (id && id !== dropTargetId) {
+                  setDropTargetId(id);
+                  const rect = cellEl.getBoundingClientRect();
+                  setDropTargetRect({ top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+              }
+          }
+      };
+
+      const handleUp = (e: MouseEvent) => {
+          if (dropTargetId && selectionRange && onMoveCells) {
+              onMoveCells(selectionRange, dropTargetId);
+          }
+          
+          setIsDraggingSelection(false);
+          setDropTargetId(null);
+          setDropTargetRect(null);
+          document.body.style.cursor = '';
+      };
+
+      window.addEventListener('mousemove', handleMove);
+      window.addEventListener('mouseup', handleUp);
+      
+      return () => {
+          window.removeEventListener('mousemove', handleMove);
+          window.removeEventListener('mouseup', handleUp);
+      };
+  }, [isDraggingSelection, dragOffset, dropTargetId, selectionRange, onMoveCells]);
 
   const handleMouseEnter = useCallback((id: string) => {
+      if (isDraggingSelection) return; // Logic handled in useEffect
+
       if (isFilling && fillStartRange && selectionBounds) {
           const hoverCoords = parseCellId(id);
           if (!hoverCoords) return;
@@ -457,10 +559,6 @@ const Grid: React.FC<GridProps> = ({
           const { row: hRow, col: hCol } = hoverCoords;
           const { minRow, maxRow, minCol, maxCol } = selectionBounds;
 
-          // SMOOTH BOX FILL LOGIC (2D Expansion)
-          // Allows diagonal/rectangular expansion which prevents "locking" artifacts
-          // and ensures immediate feedback when moving to neighbor cells.
-          
           let tMinR = minRow, tMaxR = maxRow, tMinC = minCol, tMaxC = maxCol;
 
           if (hRow > maxRow) tMaxR = hRow;
@@ -480,7 +578,7 @@ const Grid: React.FC<GridProps> = ({
       if (isSelecting && dragStartCell && onSelectionDrag) {
           onSelectionDrag(dragStartCell, id);
       }
-  }, [isFilling, fillStartRange, isSelecting, dragStartCell, onSelectionDrag, selectionBounds]);
+  }, [isFilling, fillStartRange, isSelecting, dragStartCell, onSelectionDrag, selectionBounds, isDraggingSelection]);
 
   const handleFillHandleDown = useCallback((e: React.MouseEvent, id: string) => {
       e.stopPropagation();
@@ -609,6 +707,7 @@ const Grid: React.FC<GridProps> = ({
                     onMouseEnter={handleMouseEnter}
                     onFillHandleDown={handleFillHandleDown}
                     onMobileHandleDown={handleMobileHandleDown}
+                    onDragStart={handleDragStart}
                 />
             ),
             renderHeaderCell: (props) => {
@@ -644,12 +743,12 @@ const Grid: React.FC<GridProps> = ({
           };
        })
     ];
-  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, scale, activeCoords, handleMouseDown, handleMouseEnter, handleFillHandleDown, handleMobileHandleDown, onCellChange]);
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, scale, activeCoords, handleMouseDown, handleMouseEnter, handleFillHandleDown, handleMobileHandleDown, handleDragStart, onCellChange]);
 
   const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
 
   return (
-    <div className="w-full h-full text-sm bg-white select-none">
+    <div className="w-full h-full text-sm bg-white select-none relative">
         <DataGrid 
             ref={gridRef}
             columns={columns} 
@@ -664,6 +763,44 @@ const Grid: React.FC<GridProps> = ({
             rowKeyGetter={(r) => r.id}
             onScroll={handleScroll}
         />
+
+        {/* Drag Ghost and Drop Preview */}
+        {isDraggingSelection && createPortal(
+            <>
+                {/* 1. Snap Preview (Where it will land) - Dashed Green Border */}
+                {dropTargetRect && (
+                    <div 
+                        className="fixed z-[9998] border-2 border-dashed border-emerald-600 bg-emerald-100/30 pointer-events-none transition-all duration-100 ease-out"
+                        style={{
+                            top: dropTargetRect.top,
+                            left: dropTargetRect.left,
+                            width: dragGhostDims.w, 
+                            height: dragGhostDims.h
+                        }}
+                    />
+                )}
+
+                {/* 2. Drag Ghost (Follows Mouse Smoothly) - Semi-transparent Green Block */}
+                <div 
+                    id="drag-ghost"
+                    className="fixed z-[9999] bg-[#107c41]/20 border border-[#107c41] pointer-events-none shadow-xl backdrop-blur-[1px] rounded-sm"
+                    style={{
+                        top: dragPos.y,
+                        left: dragPos.x,
+                        width: dragGhostDims.w,
+                        height: dragGhostDims.h,
+                        transform: 'translate(0, 0)', // Force GPU layer
+                        willChange: 'top, left'
+                    }}
+                >
+                    {/* Size indicator tooltip */}
+                    <div className="absolute -top-6 left-0 bg-slate-800 text-white text-[10px] px-1.5 py-0.5 rounded shadow-sm">
+                        Move
+                    </div>
+                </div>
+            </>,
+            document.body
+        )}
     </div>
   );
 };
