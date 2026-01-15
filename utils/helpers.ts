@@ -228,14 +228,21 @@ export const formatCellValue = (value: string, style: CellStyle = {}): string =>
  * MEMORY COMPRESSION HELPERS (Flyweight Pattern)
  */
 
+// Recursive deterministic stringify to handle nested objects (borders, protection)
+const deterministicStringify = (obj: any): string => {
+    if (obj === null || typeof obj !== 'object') {
+        return String(obj);
+    }
+    if (Array.isArray(obj)) {
+        return '[' + obj.map(deterministicStringify).join(',') + ']';
+    }
+    const keys = Object.keys(obj).sort();
+    return '{' + keys.map(k => `${k}:${deterministicStringify(obj[k])}`).join(',') + '}';
+};
+
 // Generate a deterministic hash for a style object
 export const hashStyle = (style: CellStyle): string => {
-    // Sort keys to ensure {a:1, b:2} === {b:2, a:1}
-    const keys = Object.keys(style).sort() as Array<keyof CellStyle>;
-    if (keys.length === 0) return "";
-    
-    // Create a compact string representation
-    return keys.map(k => `${k}:${style[k]}`).join('|');
+    return deterministicStringify(style);
 };
 
 // Find or Create a style in the registry

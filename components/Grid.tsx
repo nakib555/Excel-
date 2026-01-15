@@ -148,10 +148,22 @@ const CustomCellRenderer = memo(({
   const style = styleId ? styles[styleId] : {};
   const displayValue = formatCellValue(cellData?.value || '', style);
 
+  // Alignment Logic
+  const verticalText = style.verticalText;
+  const rotation = style.textRotation || 0;
+  const cssRotation = rotation ? -rotation : 0; 
+  const hasRotation = rotation !== 0;
+  
+  const indent = style.indent || 0;
+  const indentPx = indent * 10;
+  const paddingLeft = style.align === 'right' ? 4 : 4 + indentPx;
+  const paddingRight = style.align === 'right' ? 4 + indentPx : 4;
+
   const baseStyle: React.CSSProperties = {
       width: '100%',
       height: '100%',
-      padding: '0 4px',
+      paddingLeft: verticalText ? 0 : `${paddingLeft}px`,
+      paddingRight: verticalText ? 0 : `${paddingRight}px`,
       display: 'flex',
       alignItems: style.verticalAlign === 'middle' ? 'center' : style.verticalAlign === 'top' ? 'flex-start' : 'flex-end',
       justifyContent: style.align === 'center' ? 'center' : style.align === 'right' ? 'flex-end' : 'flex-start',
@@ -166,6 +178,18 @@ const CustomCellRenderer = memo(({
       backgroundColor: style.bg || 'transparent', 
       color: style.color || 'inherit',
       whiteSpace: style.wrapText ? 'pre-wrap' : 'nowrap',
+      // Text Rotation and Orientation
+      ...(verticalText ? { 
+          writingMode: 'vertical-rl', 
+          textOrientation: 'upright', 
+          letterSpacing: '1px'
+      } : {}),
+      ...(hasRotation ? {
+          transform: `rotate(${cssRotation}deg)`,
+          transformOrigin: 'center',
+          justifyContent: 'center', // Usually rotated text is centered in the transform box
+          alignItems: 'center'
+      } : {})
   };
 
   if (style.strikethrough) {
