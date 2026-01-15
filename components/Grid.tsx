@@ -155,9 +155,9 @@ const CustomCellRenderer = memo(({
         className="relative group select-none"
         data-cell-id={cellId}
     >
-      {/* Selection Overlay (Dim inactive cells in range) - with transition */}
+      {/* Selection Overlay (Dim inactive cells in range) - with smooth transmission animation */}
       {isInRange && !isActive && (
-          <div className="absolute inset-0 bg-[#107c41] bg-opacity-10 pointer-events-none z-[5] transition-colors duration-150 ease-in-out" />
+          <div className="absolute inset-0 bg-[#107c41] bg-opacity-10 pointer-events-none z-[5] transition-all duration-300 ease-out" />
       )}
 
       <div className="relative z-0 w-full h-full flex" style={{ alignItems: baseStyle.alignItems, justifyContent: baseStyle.justifyContent }}>
@@ -177,46 +177,44 @@ const CustomCellRenderer = memo(({
 
       {showSelectionBorder && (
           <>
-            {/* Main Selection Borders - Animated Transition */}
-            {/* We use specific class combinations to ensure borders connect cleanly without gaps during scale animation */}
-            
+            {/* Main Selection Borders - Animated Transmission */}
             <div 
                 className={cn(
-                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-100 ease-out origin-center",
+                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-200 ease-out origin-center",
                     isTop ? "h-[2px] top-[-1px] left-[-1px] right-[-1px] scale-x-100" : "h-[0px] top-[-1px] left-0 right-0 scale-x-0"
                 )}
             />
             <div 
                 className={cn(
-                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-100 ease-out origin-center",
+                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-200 ease-out origin-center",
                     isBottom ? "h-[2px] bottom-[-1px] left-[-1px] right-[-1px] scale-x-100" : "h-[0px] bottom-[-1px] left-0 right-0 scale-x-0"
                 )}
             />
             <div 
                 className={cn(
-                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-100 ease-out origin-center",
+                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-200 ease-out origin-center",
                     isLeft ? "w-[2px] left-[-1px] top-[-1px] bottom-[-1px] scale-y-100" : "w-[0px] left-[-1px] top-0 bottom-0 scale-y-0"
                 )}
             />
             <div 
                 className={cn(
-                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-100 ease-out origin-center",
+                    "absolute bg-[#107c41] z-[50] pointer-events-none transition-all duration-200 ease-out origin-center",
                     isRight ? "w-[2px] right-[-1px] top-[-1px] bottom-[-1px] scale-y-100" : "w-[0px] right-[-1px] top-0 bottom-0 scale-y-0"
                 )}
             />
             
-            {/* Top-Left Handle (Mobile Selection) */}
+            {/* Top-Left Handle (Mobile Selection) - Transparent Circle with Thick Green Border */}
             {isTopLeft && isTouch && (
                 <div 
-                    className="absolute -top-[9px] -left-[9px] w-[18px] h-[18px] rounded-full bg-white border-[3px] border-[#107c41] z-[70] pointer-events-auto shadow-lg touch-none active:scale-125 transition-transform"
+                    className="absolute -top-[12px] -left-[12px] w-[24px] h-[24px] rounded-full bg-transparent border-[5px] border-[#107c41] z-[70] pointer-events-auto touch-none active:scale-125 transition-transform duration-100 ease-out"
                     onTouchStart={(e) => onMobileHandleDown(e, cellId, 'start')}
                 />
             )}
 
-            {/* Bottom-Right Handle (Mobile Selection) */}
+            {/* Bottom-Right Handle (Mobile Selection) - Transparent Circle with Thick Green Border */}
             {isBottomRight && isTouch && (
                 <div 
-                    className="absolute -bottom-[9px] -right-[9px] w-[18px] h-[18px] rounded-full bg-white border-[3px] border-[#107c41] z-[70] pointer-events-auto shadow-lg touch-none active:scale-125 transition-transform"
+                    className="absolute -bottom-[12px] -right-[12px] w-[24px] h-[24px] rounded-full bg-transparent border-[5px] border-[#107c41] z-[70] pointer-events-auto touch-none active:scale-125 transition-transform duration-100 ease-out"
                     onTouchStart={(e) => onMobileHandleDown(e, cellId, 'end')}
                 />
             )}
@@ -356,8 +354,7 @@ const Grid: React.FC<GridProps> = ({
   }, [selectionRange]);
 
   const handleMobileHandleDown = useCallback((e: React.TouchEvent, handleCellId: string, type: 'start' | 'end') => {
-        // Prevent default to avoid scrolling while dragging handle
-        // e.preventDefault(); 
+        // e.preventDefault(); // allow some browser behavior but maybe not scrolling?
         if (!selectionBounds) return;
         
         // When dragging the 'start' (top-left) handle, the anchor is the BOTTOM-RIGHT.

@@ -24,6 +24,9 @@ body {
   user-select: none;
   touch-action: pan-x pan-y;
   font-size: 13px;
+  /* Prevent native mobile callouts */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }
 
 /* Selection Color */
