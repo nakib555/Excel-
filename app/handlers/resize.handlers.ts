@@ -2,7 +2,7 @@
 import React, { useCallback } from 'react';
 import { Sheet, CellData } from '../../types';
 import { parseCellId, numToChar, measureTextWidth, calculateCellHeight } from '../../utils';
-import { MIN_ROW_HEIGHT, MIN_COL_WIDTH, DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../../components/Grid';
+import { MIN_ROW_HEIGHT, MIN_COL_WIDTH, DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../constants/grid.constants';
 
 interface UseResizeHandlersProps {
     setSheets: React.Dispatch<React.SetStateAction<Sheet[]>>;

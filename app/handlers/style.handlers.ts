@@ -2,7 +2,7 @@
 import React, { useCallback } from 'react';
 import { Sheet, CellStyle, CellData } from '../../types';
 import { getStyleId, parseCellId, calculateRotatedDimensions, numToChar } from '../../utils';
-import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../../components/Grid';
+import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../constants/grid.constants';
 
 interface UseStyleHandlersProps {
     setSheets: React.Dispatch<React.SetStateAction<Sheet[]>>;

@@ -1,4 +1,6 @@
 
+@import 'react-data-grid/lib/styles.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -163,4 +165,54 @@ html, body, #root {
   100% {
     transform: translateX(100%);
   }
+}
+
+/* React Data Grid Overrides */
+.rdg {
+  border: none;
+  background-color: #ffffff;
+  --rdg-color: #0f172a;
+  --rdg-border-color: #e2e8f0;
+  --rdg-summary-border-color: #e2e8f0;
+  --rdg-background-color: #ffffff;
+  --rdg-header-background-color: #f8f9fa;
+  --rdg-row-hover-background-color: transparent;
+  --rdg-selection-color: #10b981;
+  --rdg-font-size: 13px;
+  block-size: 100%;
+}
+
+.rdg-cell {
+  border-right: 1px solid var(--rdg-border-color);
+  border-bottom: 1px solid var(--rdg-border-color);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  outline: none;
+}
+
+.rdg-header-row {
+  background-color: #f8f9fa;
+  color: #475569;
+  font-weight: 600;
+  text-align: center;
+}
+
+.rdg-header-row .rdg-cell {
+  justify-content: center;
+  border-right: 1px solid #cbd5e1;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.rdg-row {
+  background-color: #fff;
+}
+
+.rdg-selected {
+  border: 2px solid #10b981;
+  z-index: 2;
+}
+
+.rdg-editor-container {
+  z-index: 3;
 }
