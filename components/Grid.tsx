@@ -39,7 +39,7 @@ interface GridProps {
 const CommentTooltip = ({ text, rect }: { text: string, rect: DOMRect }) => {
     return createPortal(
         <div 
-            className="fixed z-[9999] bg-[#ffffe1] border border-slate-400 shadow-[2px_2px_5px_rgba(0,0,0,0.2)] p-2 text-xs text-slate-900 pointer-events-none max-w-[200px] break-words"
+            className="fixed z-[9999] bg-[#ffffe1] border border-slate-400 shadow-[2px_2px_5px_rgba(0,0,0,0.2)] p-2 text-xs text-slate-900 pointer-events-none max-w-[200px] break-words animate-in fade-in zoom-in-95 duration-100"
             style={{
                 top: rect.top,
                 left: rect.right + 5,
@@ -152,9 +152,9 @@ const CustomCellRenderer = memo(({
         onMouseLeave={() => setIsHovered(false)}
         className="relative group select-none"
     >
-      {/* Selection Overlay (Dim inactive cells in range) */}
+      {/* Selection Overlay (Dim inactive cells in range) - with transition */}
       {isInRange && !isActive && (
-          <div className="absolute inset-0 bg-[#107c41] bg-opacity-10 pointer-events-none z-[5]" />
+          <div className="absolute inset-0 bg-[#107c41] bg-opacity-10 pointer-events-none z-[5] transition-opacity duration-150 ease-in-out" />
       )}
 
       <div className="relative z-0 w-full h-full flex" style={{ alignItems: baseStyle.alignItems, justifyContent: baseStyle.justifyContent }}>
@@ -175,10 +175,11 @@ const CustomCellRenderer = memo(({
       {showSelectionBorder && (
           <>
             {/* Main Selection Borders - High Z-index to float over neighbors */}
-            {isTop && <div className="absolute top-[-2px] left-[-2px] right-[-2px] h-[2px] z-[50] pointer-events-none" style={{ backgroundColor: selectionColor }} />}
-            {isBottom && <div className="absolute bottom-[-2px] left-[-2px] right-[-2px] h-[2px] z-[50] pointer-events-none" style={{ backgroundColor: selectionColor }} />}
-            {isLeft && <div className="absolute top-[-2px] bottom-[-2px] left-[-2px] w-[2px] z-[50] pointer-events-none" style={{ backgroundColor: selectionColor }} />}
-            {isRight && <div className="absolute top-[-2px] bottom-[-2px] right-[-2px] w-[2px] z-[50] pointer-events-none" style={{ backgroundColor: selectionColor }} />}
+            {/* Using 2px border for bold visual style similar to reference */}
+            {isTop && <div className="absolute top-[-2px] left-[-2px] right-[-2px] h-[2px] z-[50] pointer-events-none transition-all duration-75" style={{ backgroundColor: selectionColor }} />}
+            {isBottom && <div className="absolute bottom-[-2px] left-[-2px] right-[-2px] h-[2px] z-[50] pointer-events-none transition-all duration-75" style={{ backgroundColor: selectionColor }} />}
+            {isLeft && <div className="absolute top-[-2px] bottom-[-2px] left-[-2px] w-[2px] z-[50] pointer-events-none transition-all duration-75" style={{ backgroundColor: selectionColor }} />}
+            {isRight && <div className="absolute top-[-2px] bottom-[-2px] right-[-2px] w-[2px] z-[50] pointer-events-none transition-all duration-75" style={{ backgroundColor: selectionColor }} />}
             
             {/* Top-Left Handle (Mobile) */}
             {isTopLeft && isTouch && (
@@ -187,10 +188,11 @@ const CustomCellRenderer = memo(({
                 />
             )}
 
-            {/* Bottom-Right Fill Handle */}
+            {/* Bottom-Right Fill Handle - Square style from reference image */}
             {isBottomRight && (
                 <div 
-                    className="absolute -bottom-[5px] -right-[5px] w-[9px] h-[9px] bg-[#107c41] border border-white cursor-crosshair z-[60] pointer-events-auto shadow-[0_0_2px_rgba(0,0,0,0.2)] hover:scale-125 transition-transform"
+                    className="absolute -bottom-[5px] -right-[5px] w-[8px] h-[8px] bg-[#107c41] border border-white z-[60] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform"
+                    style={{ boxSizing: 'content-box' }}
                     onMouseDown={(e) => onFillHandleDown(e, cellId)}
                 />
             )}
@@ -237,6 +239,11 @@ const Grid: React.FC<GridProps> = ({
 }) => {
   const [isTouch, setIsTouch] = useState(false);
   
+  // Selection Drag State
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [dragStartCell, setDragStartCell] = useState<string | null>(null);
+
+  // Fill Handle State
   const [isFilling, setIsFilling] = useState(false);
   const [fillStartRange, setFillStartRange] = useState<string[] | null>(null);
   const [fillTargetRange, setFillTargetRange] = useState<string[] | null>(null);
@@ -274,18 +281,29 @@ const Grid: React.FC<GridProps> = ({
   // --- Handlers ---
 
   const handleMouseDown = useCallback((id: string, shift: boolean) => {
-      // Just select the cell. Drag initiation removed.
+      if (!shift) {
+          // Start Selection Drag
+          setIsSelecting(true);
+          setDragStartCell(id);
+      }
       onCellClick(id, shift);
   }, [onCellClick]);
 
   const handleMouseEnter = useCallback((id: string) => {
-      // Only handle fill drag, regular selection drag removed.
+      // 1. Handle Fill Drag
       if (isFilling && fillStartRange) {
           const start = fillStartRange[0];
           const newRange = getRange(start, id); 
           setFillTargetRange(newRange);
+          return;
       }
-  }, [isFilling, fillStartRange]);
+
+      // 2. Handle Selection Drag
+      if (isSelecting && dragStartCell && onSelectionDrag) {
+          // If we are actively selecting, update range
+          onSelectionDrag(dragStartCell, id);
+      }
+  }, [isFilling, fillStartRange, isSelecting, dragStartCell, onSelectionDrag]);
 
   const handleFillHandleDown = useCallback((e: React.MouseEvent, id: string) => {
       e.stopPropagation();
@@ -299,12 +317,17 @@ const Grid: React.FC<GridProps> = ({
 
   useEffect(() => {
       const handleMouseUp = () => {
+          // End Fill
           if (isFilling && fillStartRange && fillTargetRange && onFill) {
               onFill(fillStartRange, fillTargetRange);
           }
           setIsFilling(false);
           setFillStartRange(null);
           setFillTargetRange(null);
+
+          // End Selection
+          setIsSelecting(false);
+          setDragStartCell(null);
       };
       window.addEventListener('mouseup', handleMouseUp);
       return () => window.removeEventListener('mouseup', handleMouseUp);
