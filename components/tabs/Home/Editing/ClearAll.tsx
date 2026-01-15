@@ -28,7 +28,7 @@ const ClearAll: React.FC<ClearAllProps> = ({ onClear }) => {
             <div className="flex flex-col py-1">
                 <button 
                     onClick={() => {
-                        if (onClear) onClear();
+                        if (onClear) onClear('all');
                         setOpen(false);
                     }}
                     className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
@@ -36,14 +36,26 @@ const ClearAll: React.FC<ClearAllProps> = ({ onClear }) => {
                     <Eraser size={16} className="text-fuchsia-600 group-hover:scale-110 transition-transform" />
                     <span>Clear All</span>
                 </button>
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                <button 
+                    onClick={() => {
+                        if (onClear) onClear('formats');
+                        setOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
+                >
                     <div className="relative">
                         <Eraser size={16} className="text-fuchsia-500" />
                         <span className="absolute -bottom-1 -right-1 text-[8px] font-bold text-fuchsia-700 bg-white rounded-full px-0.5">%</span>
                     </div>
                     <span>Clear Formats</span>
                 </button>
-                <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                <button 
+                    onClick={() => {
+                        if (onClear) onClear('contents');
+                        setOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
+                >
                     <div className="w-4 flex justify-center">
                         <span className="font-serif border-b border-transparent group-hover:border-slate-400 text-slate-600 underline decoration-slate-300 underline-offset-2">Abc</span>
                     </div>

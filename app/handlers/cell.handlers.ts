@@ -239,9 +239,45 @@ export const useCellHandlers = ({
         }));
     }, [activeSheetId, activeSheetName, setSheets]);
 
-    const handleClear = useCallback(() => { 
-        if (confirm("Clear all?")) setSheets(p => p.map(s => s.id===activeSheetId ? { ...s, cells: {}, tables: {} } : s)); 
-    }, [activeSheetId, setSheets]);
+    const handleClear = useCallback((type: 'all' | 'formats' | 'contents' = 'all') => {
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            
+            const targets = sheet.selectionRange && sheet.selectionRange.length > 0 
+                ? sheet.selectionRange 
+                : (sheet.activeCell ? [sheet.activeCell] : []);
+            
+            if (targets.length === 0) return sheet;
+
+            const nextCells = { ...sheet.cells };
+            
+            targets.forEach(id => {
+                const cell = nextCells[id];
+                if (!cell) return;
+
+                if (type === 'all') {
+                    delete nextCells[id];
+                    updateCellInHF(id, '', activeSheetName); 
+                } else if (type === 'contents') {
+                    // Keep style, remove value/raw
+                    nextCells[id] = { ...cell, value: '', raw: '' };
+                    updateCellInHF(id, '', activeSheetName);
+                } else if (type === 'formats') {
+                    // Remove styleId
+                    const { styleId, ...rest } = cell;
+                    nextCells[id] = rest;
+                    
+                    // Cleanup if empty
+                    const hasContent = rest.value || rest.raw || rest.comment || rest.link || rest.isCheckbox || rest.filterButton;
+                    if (!hasContent) {
+                        delete nextCells[id];
+                    }
+                }
+            });
+
+            return { ...sheet, cells: nextCells };
+        }));
+    }, [activeSheetId, activeSheetName, setSheets]);
 
     const handleAddSheet = useCallback(() => { 
         const id=`sheet${Date.now()}`; 

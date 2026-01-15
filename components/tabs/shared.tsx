@@ -10,7 +10,7 @@ export interface TabProps {
   onToggleStyle: (key: keyof CellStyle, value?: any) => void;
   onApplyStyle?: (style: CellStyle) => void; 
   onExport: () => void;
-  onClear: () => void;
+  onClear: (type?: 'all' | 'formats' | 'contents') => void;
   onResetLayout: () => void;
   onCopy?: () => void;
   onCut?: () => void;
