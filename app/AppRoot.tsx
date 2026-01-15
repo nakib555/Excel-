@@ -61,7 +61,16 @@ export const AppRoot: React.FC = () => {
   const dialogs = useDialogState();
 
   // 4. Handlers
-  const cellHandlers = useCellHandlers({ setSheets, activeSheetId, validations, activeCell, selectionRange, cells, setActiveSheetId });
+  const cellHandlers = useCellHandlers({ 
+      setSheets, 
+      activeSheetId, 
+      activeSheetName: activeSheet.name, 
+      validations, 
+      activeCell, 
+      selectionRange, 
+      cells, 
+      setActiveSheetId 
+  });
   const styleHandlers = useStyleHandlers({ setSheets, activeSheetId });
   const tableHandlers = useTableHandlers({ setSheets, activeSheetId, setCreateTableState: dialogs.setCreateTableState, selectionRange, createTableState: dialogs.createTableState });
   const clipboardHandlers = useClipboardHandlers({ setSheets, activeSheetId, activeCell, selectionRange, cells });

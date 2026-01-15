@@ -209,10 +209,12 @@ html, body, #root {
 }
 
 .rdg-selected {
-  border: 2px solid #10b981;
+  border: 2px solid #10b981 !important;
   z-index: 2;
+  box-shadow: 0 0 0 1px #10b981; /* Ensure sharp border visibility */
 }
 
+/* Editor Input Override */
 .rdg-editor-container {
   z-index: 3;
 }

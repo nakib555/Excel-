@@ -10,6 +10,7 @@ import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../constants/grid.constan
 interface UseCellHandlersProps {
     setSheets: React.Dispatch<React.SetStateAction<Sheet[]>>;
     activeSheetId: string;
+    activeSheetName: string; // Added sheet name
     validations: Record<CellId, ValidationRule>;
     activeCell: CellId | null;
     selectionRange: CellId[] | null;
@@ -18,7 +19,7 @@ interface UseCellHandlersProps {
 }
 
 export const useCellHandlers = ({ 
-    setSheets, activeSheetId, validations, activeCell, selectionRange, cells, setActiveSheetId 
+    setSheets, activeSheetId, activeSheetName, validations, activeCell, selectionRange, cells, setActiveSheetId 
 }: UseCellHandlersProps) => {
 
     const handleCellChange = useCallback((id: CellId, rawValue: string) => {
@@ -35,7 +36,7 @@ export const useCellHandlers = ({
         }
 
         // 1. Sync HyperFormula Engine First
-        updateCellInHF(id, rawValue);
+        updateCellInHF(id, rawValue, activeSheetName);
 
         setSheets(prevSheets => prevSheets.map(sheet => {
             if (sheet.id !== activeSheetId) return sheet;
@@ -46,7 +47,7 @@ export const useCellHandlers = ({
 
             // 2. Update Source Cell in React State
             // We get the calculated value from HF immediately
-            const calculatedValue = getCellValueFromHF(id);
+            const calculatedValue = getCellValueFromHF(id, activeSheetName);
             
             const oldCell = nextCells[id];
             const hasStyle = !!oldCell?.styleId;
@@ -63,15 +64,18 @@ export const useCellHandlers = ({
             }
 
             // 3. Update Dependencies
+            // For a robust implementation, we should ask HF which cells changed. 
+            // For MVP, we naively re-check visible cells or just rely on HF lazy eval if we were using it for rendering directly.
+            // Here we iterate known formula cells in the sheet.
             Object.keys(nextCells).forEach(cellId => {
                 if (nextCells[cellId].raw.startsWith('=')) {
-                    nextCells[cellId].value = getCellValueFromHF(cellId);
+                    nextCells[cellId].value = getCellValueFromHF(cellId, activeSheetName);
                 }
             });
 
             return { ...sheet, cells: nextCells, rowHeights: nextRowHeights, columnWidths: nextColWidths };
         }));
-    }, [activeSheetId, validations, setSheets]);
+    }, [activeSheetId, activeSheetName, validations, setSheets]);
 
     const handleCellClick = useCallback((id: CellId, isShift: boolean) => {
         setSheets(prevSheets => prevSheets.map(sheet => {
@@ -101,10 +105,8 @@ export const useCellHandlers = ({
             if (s.id !== activeSheetId) return s;
             
             // If dragging, we anchor at startId and extend to endId
-            // The active cell usually stays at the start anchor during drag select in Excel
             return { 
                 ...s, 
-                // activeCell: startId, // Keep active cell as the anchor
                 selectionAnchor: startId,
                 selectionRange: getRange(startId, endId) 
             };
@@ -174,7 +176,8 @@ export const useCellHandlers = ({
 
     const handleAddSheet = useCallback(() => { 
         const id=`sheet${Date.now()}`; 
-        setSheets(p => [...p, { id, name:`Sheet ${p.length+1}`, cells:{}, styles:{}, merges:[], tables:{}, validations:{}, dependentsMap:{}, activeCell:'A1', selectionAnchor:'A1', selectionRange:['A1'], columnWidths:{}, rowHeights:{} }]); 
+        const name = `Sheet ${Math.floor(Math.random() * 1000)}`;
+        setSheets(p => [...p, { id, name, cells:{}, styles:{}, merges:[], tables:{}, validations:{}, dependentsMap:{}, activeCell:'A1', selectionAnchor:'A1', selectionRange:['A1'], columnWidths:{}, rowHeights:{} }]); 
         setActiveSheetId(id); 
     }, [setSheets, setActiveSheetId]);
 

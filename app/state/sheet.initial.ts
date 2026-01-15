@@ -1,6 +1,6 @@
 
 import { CellId, CellData, CellStyle, Sheet } from '../../types';
-import { evaluateFormula, extractDependencies, getStyleId } from '../../utils';
+import { evaluateFormula, extractDependencies, getStyleId, updateCellInHF } from '../../utils';
 
 interface InitialData {
     id: string;
@@ -9,7 +9,7 @@ interface InitialData {
     filterButton?: boolean;
 }
 
-export const generateSparseData = (): { cells: Record<CellId, CellData>, dependentsMap: Record<CellId, CellId[]>, styles: Record<string, CellStyle> } => {
+export const generateSparseData = (sheetName: string): { cells: Record<CellId, CellData>, dependentsMap: Record<CellId, CellId[]>, styles: Record<string, CellStyle> } => {
     const cells: Record<CellId, CellData> = {};
     const dependentsMap: Record<CellId, CellId[]> = {};
     let styles: Record<string, CellStyle> = {};
@@ -61,14 +61,17 @@ export const generateSparseData = (): { cells: Record<CellId, CellData>, depende
     Object.keys(cells).forEach(key => {
         const cell = cells[key];
         if (cell.raw.startsWith('=')) {
-            // Pass key as currentId
-            cell.value = evaluateFormula(cell.raw, cells, key);
+            // Pass key as currentId and sheetName
+            cell.value = evaluateFormula(cell.raw, cells, key, sheetName);
             const deps = extractDependencies(cell.raw);
             deps.forEach(dep => {
                 if (!dependentsMap[dep]) dependentsMap[dep] = [];
                 if (!dependentsMap[dep].includes(key)) dependentsMap[dep] = [key];
                 else if (!dependentsMap[dep].includes(key)) dependentsMap[dep].push(key);
             });
+        } else {
+            // Also register non-formula values to HF
+            updateCellInHF(key, cell.raw, sheetName);
         }
     });
     
@@ -76,10 +79,11 @@ export const generateSparseData = (): { cells: Record<CellId, CellData>, depende
 };
 
 export const getInitialSheets = (): Sheet[] => {
-    const { cells, dependentsMap, styles } = generateSparseData();
+    const name = 'Budget 2024';
+    const { cells, dependentsMap, styles } = generateSparseData(name);
     return [{
       id: 'sheet1',
-      name: 'Budget 2024',
+      name: name,
       cells,
       styles,
       merges: [],

@@ -14,60 +14,56 @@ const sheetIdMap = new Map<string, number>();
 
 // --- HELPERS ---
 
-export const getSheetId = (sheetName: string = 'Sheet1'): number => {
+export const getSheetId = (sheetName: string): number => {
   // 1. Return cached ID if exists
   if (sheetIdMap.has(sheetName)) {
-      return sheetIdMap.get(sheetName)!;
+      const id = sheetIdMap.get(sheetName)!;
+      if (hfInstance.doesSheetExist(sheetName)) return id;
+      // If map has it but HF doesn't (reset?), fall through to create
   }
 
-  // 2. Try to get ID from HF (if it exists but not in our map)
-  let sheetId = hfInstance.getSheetId(sheetName);
-
-  // 3. If not in HF, create it
-  if (sheetId === undefined) {
-      try {
-          hfInstance.addSheet(sheetName);
-          sheetId = hfInstance.getSheetId(sheetName);
-      } catch (e) {
-          console.warn(`Failed to add sheet "${sheetName}" to HyperFormula:`, e);
-          // Fallback: If creation fails, maybe it already exists under a different internal state?
-          // Try to get default sheet if specific one fails
-          if (hfInstance.countSheets() > 0) {
-              const sheets = hfInstance.getSheetNames();
-              if (sheets.length > 0) {
-                  return hfInstance.getSheetId(sheets[0])!;
-              }
-          }
+  // 2. Check if HF already knows it by name
+  if (hfInstance.doesSheetExist(sheetName)) {
+      const id = hfInstance.getSheetId(sheetName);
+      if (id !== undefined) {
+          sheetIdMap.set(sheetName, id);
+          return id;
       }
   }
 
-  // 4. Cache and return (or default to 0 if catastrophic failure)
-  if (sheetId !== undefined) {
-      sheetIdMap.set(sheetName, sheetId);
-      return sheetId;
-  }
-  
-  // Last resort: ensure at least one sheet exists
-  if (hfInstance.countSheets() === 0) {
-      hfInstance.addSheet('Sheet1');
-      const newId = hfInstance.getSheetId('Sheet1');
+  // 3. Create it
+  try {
+      hfInstance.addSheet(sheetName);
+      const newId = hfInstance.getSheetId(sheetName);
       if (newId !== undefined) {
-          sheetIdMap.set('Sheet1', newId);
+          sheetIdMap.set(sheetName, newId);
           return newId;
       }
+  } catch (e) {
+      console.warn(`Failed to add sheet "${sheetName}" to HyperFormula:`, e);
   }
 
-  return 0; // Should rarely happen
+  // 4. Fallback (should rarely happen)
+  if (hfInstance.countSheets() > 0) {
+      const sheets = hfInstance.getSheetNames();
+      return hfInstance.getSheetId(sheets[0])!;
+  }
+
+  // 5. Total fallback
+  hfInstance.addSheet('Sheet1');
+  const fallbackId = hfInstance.getSheetId('Sheet1')!;
+  sheetIdMap.set('Sheet1', fallbackId);
+  return fallbackId;
 };
 
 // --- CORE EVALUATOR ---
 
-export const syncHyperFormula = (cells: Record<CellId, CellData>, sheetName: string = 'Sheet1') => {
-  const sheetId = getSheetId(sheetName);
-  // Optional: Full sync logic if needed
+export const syncHyperFormula = (cells: Record<CellId, CellData>, sheetName: string) => {
+  // Ensure sheet exists
+  getSheetId(sheetName);
 };
 
-export const updateCellInHF = (id: string, raw: string, sheetName: string = 'Sheet1') => {
+export const updateCellInHF = (id: string, raw: string, sheetName: string) => {
   const sheetId = getSheetId(sheetName);
   const coords = parseCellId(id);
   if (!coords) return;
@@ -80,7 +76,7 @@ export const updateCellInHF = (id: string, raw: string, sheetName: string = 'She
   }
 };
 
-export const getCellValueFromHF = (id: string, sheetName: string = 'Sheet1'): string => {
+export const getCellValueFromHF = (id: string, sheetName: string): string => {
   const sheetId = getSheetId(sheetName);
   const coords = parseCellId(id);
   if (!coords) return "";
@@ -99,14 +95,15 @@ export const getCellValueFromHF = (id: string, sheetName: string = 'Sheet1'): st
 export const evaluateFormula = (
   formula: string,
   cells: Record<CellId, CellData>,
-  currentCellId?: string
+  currentCellId?: string,
+  sheetName: string = 'Sheet1'
 ): string => {
   if (!formula.startsWith('=')) return formula;
 
   if (currentCellId) {
       // Ensure HF knows about this cell before querying
-      updateCellInHF(currentCellId, formula);
-      return getCellValueFromHF(currentCellId);
+      updateCellInHF(currentCellId, formula, sheetName);
+      return getCellValueFromHF(currentCellId, sheetName);
   }
 
   return "#ERR";
