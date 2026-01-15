@@ -5,8 +5,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Standard CSS Overrides */
-
+/* Excel Theme Variables */
 :root {
   --excel-green: #107c41;
   --excel-green-light: #e0f2f1;
@@ -33,10 +32,10 @@ body {
   color: #006100;
 }
 
-/* Modern Scrollbar */
+/* Scrollbar Styling to match Office UI */
 ::-webkit-scrollbar {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
 }
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
@@ -91,7 +90,7 @@ html, body, #root {
   contain: none !important;
 }
 
-/* Override active cell border default of RDG to remove it, we implement custom borders */
+/* Override active cell default styles */
 .rdg-cell[aria-selected="true"] {
   box-shadow: none !important;
   border-color: var(--rdg-border-color);
@@ -108,6 +107,7 @@ html, body, #root {
     font-weight: 600;
     overflow: hidden !important; 
     z-index: 10 !important;
+    text-align: center;
 }
 
 /* Column Headers (A, B, C...) */
@@ -137,7 +137,7 @@ html, body, #root {
   z-index: 1000 !important;
 }
 
-/* Skeleton Animation */
+/* Loading Shimmer */
 @layer components {
   .skeleton-shine {
     @apply relative overflow-hidden bg-slate-100;

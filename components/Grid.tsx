@@ -52,7 +52,7 @@ const CommentTooltip = ({ text, rect }: { text: string, rect: DOMRect }) => {
     );
 };
 
-// --- OPTIMIZED CELL RENDERER ---
+// --- EXCEL CELL RENDERER ---
 const CustomCellRenderer = memo(({ 
     row, 
     column, 

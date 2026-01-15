@@ -111,7 +111,8 @@ export const useCellHandlers = ({
             if (s.id !== activeSheetId) return s;
             
             // Dragging implies creating a range from an anchor (startId) to current target (endId)
-            // Active cell usually remains at the startId.
+            // In Excel, dragging usually starts from the active cell/anchor.
+            // Here, startId is likely the anchor if we started dragging from active cell.
             return { 
                 ...s, 
                 activeCell: startId,
