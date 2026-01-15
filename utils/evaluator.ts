@@ -7,7 +7,7 @@ import { parseCellId, getCellId } from './helpers';
 const hfInstance = HyperFormula.buildEmpty({
   licenseKey: 'gpl-v3',
   useArrayArithmetic: true,
-  useColumnIndex: false, // We handle addressing manually if needed, but HF supports A1 natively
+  useColumnIndex: false, 
 });
 
 const sheetIdMap = new Map<string, number>();
@@ -15,47 +15,56 @@ const sheetIdMap = new Map<string, number>();
 // --- HELPERS ---
 
 export const getSheetId = (sheetName: string = 'Sheet1'): number => {
-  if (!sheetIdMap.has(sheetName)) {
-    // If sheet doesn't exist in HF, add it
-    try {
-      const newSheetId = hfInstance.countSheets(); // simple incremental ID
-      hfInstance.addSheet(sheetName);
-      sheetIdMap.set(sheetName, hfInstance.getSheetId(sheetName) as number);
-    } catch (e) {
-      // Sheet might already exist if re-initializing or complex flow
-      const id = hfInstance.getSheetId(sheetName);
-      if (id !== undefined) sheetIdMap.set(sheetName, id);
-    }
+  // 1. Return cached ID if exists
+  if (sheetIdMap.has(sheetName)) {
+      return sheetIdMap.get(sheetName)!;
   }
-  return sheetIdMap.get(sheetName)!;
+
+  // 2. Try to get ID from HF (if it exists but not in our map)
+  let sheetId = hfInstance.getSheetId(sheetName);
+
+  // 3. If not in HF, create it
+  if (sheetId === undefined) {
+      try {
+          hfInstance.addSheet(sheetName);
+          sheetId = hfInstance.getSheetId(sheetName);
+      } catch (e) {
+          console.warn(`Failed to add sheet "${sheetName}" to HyperFormula:`, e);
+          // Fallback: If creation fails, maybe it already exists under a different internal state?
+          // Try to get default sheet if specific one fails
+          if (hfInstance.countSheets() > 0) {
+              const sheets = hfInstance.getSheetNames();
+              if (sheets.length > 0) {
+                  return hfInstance.getSheetId(sheets[0])!;
+              }
+          }
+      }
+  }
+
+  // 4. Cache and return (or default to 0 if catastrophic failure)
+  if (sheetId !== undefined) {
+      sheetIdMap.set(sheetName, sheetId);
+      return sheetId;
+  }
+  
+  // Last resort: ensure at least one sheet exists
+  if (hfInstance.countSheets() === 0) {
+      hfInstance.addSheet('Sheet1');
+      const newId = hfInstance.getSheetId('Sheet1');
+      if (newId !== undefined) {
+          sheetIdMap.set('Sheet1', newId);
+          return newId;
+      }
+  }
+
+  return 0; // Should rarely happen
 };
 
 // --- CORE EVALUATOR ---
 
-/**
- * Initializes or Updates the HyperFormula instance with the current cells.
- * This is efficient - HF handles diffs internally if we design it right, 
- * but for this integration we might batch update.
- */
 export const syncHyperFormula = (cells: Record<CellId, CellData>, sheetName: string = 'Sheet1') => {
   const sheetId = getSheetId(sheetName);
-  
-  // Clear sheet content first to ensure sync (naive approach, better is to diff)
-  // Optimization: In a real app, we would only update changed cells.
-  // For this integration, we'll try to bulk set if it's the first load, 
-  // or use setCellContents for individual updates in the handler.
-  
-  // For the evaluator.ts interface used by existing app, we primarily expose 
-  // `evaluateFormula`. But HF needs the whole world.
-  
-  // We'll assume the caller of evaluateFormula provides the context or we rely on
-  // the singleton state.
-  
-  // NOTE: This function mimics the previous evaluator's statelessness by 
-  // checking if we need to load data. In a perfect world, Redux/State triggers this.
-  
-  // Convert sparse cells to array for HF (Optional, HF takes array of arrays)
-  // Or we can set individual cells.
+  // Optional: Full sync logic if needed
 };
 
 export const updateCellInHF = (id: string, raw: string, sheetName: string = 'Sheet1') => {
@@ -92,33 +101,19 @@ export const evaluateFormula = (
   cells: Record<CellId, CellData>,
   currentCellId?: string
 ): string => {
-  // 1. If it's not a formula, return raw (HF handles this but we short circuit for speed)
   if (!formula.startsWith('=')) return formula;
 
-  // 2. Ensure HF has the current cell's latest formula
-  // The existing architecture passes `cells` map to evaluateFormula.
-  // We need to ensure HF is in sync. 
-  // CRITICAL: Doing a full sync on every cell eval is O(N^2) or worse.
-  // We will assume `updateCellInHF` is called by the handler BEFORE this is called,
-  // OR we lazily update here.
-  
   if (currentCellId) {
+      // Ensure HF knows about this cell before querying
       updateCellInHF(currentCellId, formula);
-      // We also need to ensure dependencies are up to date.
-      // This legacy `evaluateFormula` function assumes statelessness which mismatches HF's stateful nature.
-      // Solution: We'll rely on the handler calling `updateCellInHF`.
-      // Then we just ask HF for the value.
       return getCellValueFromHF(currentCellId);
   }
 
   return "#ERR";
 };
 
-// Dependency extraction (HF handles this internally, but UI might need it)
 export const extractDependencies = (formula: string): string[] => {
-  // Simple regex fallback for UI highlighting, or query HF graph
   if (!formula.startsWith('=')) return [];
-  const rangeRegex = /([A-Z]+[0-9]+):([A-Z]+[0-9]+)/g;
   const cellRegex = /\b([A-Z]+[0-9]+)\b/g;
   const deps = new Set<string>();
   
@@ -132,11 +127,8 @@ export const extractDependencies = (formula: string): string[] => {
 };
 
 export const adjustFormulaReferences = (formula: string, rDelta: number, cDelta: number): string => {
-    // HyperFormula doesn't expose a simple "adjust string" method easily without moving cells.
-    // We keep the regex-based implementation for copy/paste logic in React State.
     if (!formula.startsWith('=')) return formula;
     
-    // Import helper from previous file or duplicate logic
     const numToChar = (num: number): string => {
         let s = '';
         let t;

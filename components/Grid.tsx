@@ -1,6 +1,6 @@
 
 import React, { useMemo, useCallback, useState, useEffect } from 'react';
-import { DataGrid, Column, RenderCellProps, SelectColumn } from 'react-data-grid';
+import { DataGrid, Column, RenderCellProps } from 'react-data-grid';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
 import { numToChar, getCellId, formatCellValue } from '../utils';
 import { NavigationDirection } from './Cell';
@@ -181,7 +181,24 @@ const Grid: React.FC<GridProps> = ({
   // 1. Generate Columns
   const columns = useMemo((): Column<any>[] => {
     const cols: Column<any>[] = [
-       { ...SelectColumn, width: 40, frozen: true }, 
+       // Row Header Column
+       { 
+         key: 'row-header', 
+         name: '', 
+         width: 46, 
+         frozen: true,
+         resizable: false,
+         renderCell: (props) => {
+            return (
+                <div className="flex items-center justify-center w-full h-full bg-[#f8f9fa] border-r border-slate-300 font-semibold text-slate-500 select-none text-[11px]">
+                    {props.row.id + 1}
+                </div>
+            );
+         },
+         renderHeaderCell: () => (
+             <div className="w-full h-full bg-[#f8f9fa] border-r border-b border-slate-300" />
+         )
+       }, 
        ...Array.from({ length: size.cols }, (_, i) => {
           const colChar = numToChar(i);
           return {
@@ -201,7 +218,7 @@ const Grid: React.FC<GridProps> = ({
                 />
             ),
             renderHeaderCell: (props) => (
-                <div className="flex items-center justify-center w-full h-full font-semibold text-slate-500 bg-slate-50">
+                <div className="flex items-center justify-center w-full h-full font-semibold text-slate-600 bg-[#f8f9fa] text-[12px]">
                     {props.column.name}
                 </div>
             ),
@@ -257,7 +274,6 @@ const Grid: React.FC<GridProps> = ({
             onKeyDown={(e) => {
                 // Allow our global shortcut handler to process navigation if needed, 
                 // but DataGrid might consume arrows.
-                // Since we have a global hook, we rely on it.
             }}
         />
     </div>
