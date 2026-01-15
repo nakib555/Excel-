@@ -1,7 +1,7 @@
 
 import React, { useMemo, useCallback, useState, useEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
-import DataGrid, { Column, RenderCellProps, DataGridHandle } from 'react-data-grid';
+import { DataGrid, Column, RenderCellProps, DataGridHandle } from 'react-data-grid';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
 import { numToChar, getCellId, formatCellValue, parseCellId, cn, getRange } from '../utils';
 import { NavigationDirection } from './Cell';
@@ -677,15 +677,12 @@ const Grid: React.FC<GridProps> = ({
          frozen: true, 
          resizable: false,
          renderCell: (props) => {
-            const isRowInSelection = selectionBounds 
-                ? props.row.id >= selectionBounds.minRow && props.row.id <= selectionBounds.maxRow
-                : activeCoords?.row === props.row.id;
-
+            const isRowActive = activeCoords?.row === props.row.id;
             return (
                 <Tooltip content={`Row ${props.row.id + 1}`}>
                     <div className={cn(
                         "flex items-center justify-center w-full h-full font-semibold select-none",
-                        isRowInSelection 
+                        isRowActive 
                             ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
                             : "bg-[#f8f9fa] text-[#444]"
                     )}
@@ -726,15 +723,12 @@ const Grid: React.FC<GridProps> = ({
                 />
             ),
             renderHeaderCell: (props) => {
-                const isColInSelection = selectionBounds
-                    ? i >= selectionBounds.minCol && i <= selectionBounds.maxCol
-                    : activeCoords?.col === i;
-
+                const isColActive = activeCoords?.col === i;
                 return (
                     <Tooltip content={`Column ${props.column.name}`}>
                         <div className={cn(
                             "flex items-center justify-center w-full h-full font-semibold",
-                            isColInSelection 
+                            isColActive 
                                 ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
                                 : "bg-[#f8f9fa] text-[#444]"
                         )}
@@ -826,4 +820,4 @@ const Grid: React.FC<GridProps> = ({
   );
 };
 
-export default memo(Grid);
+export default Grid;
