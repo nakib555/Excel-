@@ -20,7 +20,8 @@
     "tailwind-merge": "^2.2.2",
     "@google/genai": "*",
     "react-data-grid": "^7.0.0-beta.59",
-    "hyperformula": "^2.6.0"
+    "hyperformula": "^2.6.0",
+    "@formulajs/formulajs": "^4.4.4"
   },
   "devDependencies": {
     "@types/react": "^18.3.3",
