@@ -1,6 +1,6 @@
 
-import React, { useMemo, useCallback } from 'react';
-import DataGrid, { Column, RenderCellProps, SelectColumn } from 'react-data-grid';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
+import { DataGrid, Column, RenderCellProps, SelectColumn } from 'react-data-grid';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
 import { numToChar, getCellId, formatCellValue } from '../utils';
 import { NavigationDirection } from './Cell';
@@ -35,10 +35,29 @@ interface GridProps {
   onScrollToActiveCell?: () => void;
 }
 
-const CustomCellRenderer = ({ row, column, cells, styles }: RenderCellProps<any> & { cells: Record<string, CellData>, styles: Record<string, CellStyle> }) => {
+const CustomCellRenderer = ({ 
+    row, 
+    column, 
+    cells, 
+    styles, 
+    activeCell, 
+    selectionSet, 
+    onMouseDown, 
+    onMouseEnter 
+}: RenderCellProps<any> & { 
+    cells: Record<string, CellData>, 
+    styles: Record<string, CellStyle>,
+    activeCell: string | null,
+    selectionSet: Set<string>,
+    onMouseDown: (id: string, shift: boolean) => void,
+    onMouseEnter: (id: string) => void
+}) => {
   const cellId = getCellId(parseInt(column.key), row.id);
   const cellData = cells[cellId];
   
+  const isActive = activeCell === cellId;
+  const isInRange = selectionSet.has(cellId);
+
   // Default Style
   const baseStyle: React.CSSProperties = {
       width: '100%',
@@ -47,26 +66,24 @@ const CustomCellRenderer = ({ row, column, cells, styles }: RenderCellProps<any>
       display: 'flex',
       alignItems: 'center', // Default vertical align
       overflow: 'hidden',
-      position: 'relative'
+      position: 'relative',
+      cursor: 'cell'
   };
 
-  if (!cellData) {
-      return <div style={baseStyle} />;
-  }
-
-  const styleId = cellData.styleId;
+  const styleId = cellData?.styleId;
   const style = styleId ? styles[styleId] : {};
-  const displayValue = formatCellValue(cellData.value, style);
+  const displayValue = formatCellValue(cellData?.value || '', style);
 
   // Map CellStyle to CSS
   const cssStyle: React.CSSProperties = {
       ...baseStyle,
-      fontWeight: style.bold ? 'bold' : 'normal',
+      fontWeight: style.bold ? '600' : '400',
       fontStyle: style.italic ? 'italic' : 'normal',
       textDecoration: style.underline ? 'underline' : 'none',
-      backgroundColor: style.bg || undefined,
+      backgroundColor: style.bg || (isInRange && !isActive ? 'rgba(16, 185, 129, 0.1)' : undefined),
       color: style.color || 'inherit',
       textAlign: style.align || 'left',
+      justifyContent: style.align === 'center' ? 'center' : style.align === 'right' ? 'flex-end' : 'flex-start',
       alignItems: style.verticalAlign === 'middle' ? 'center' : style.verticalAlign === 'top' ? 'flex-start' : 'flex-end',
       fontFamily: style.fontFamily,
       fontSize: style.fontSize ? `${style.fontSize}px` : undefined,
@@ -78,26 +95,36 @@ const CustomCellRenderer = ({ row, column, cells, styles }: RenderCellProps<any>
   }
 
   // Checkbox Rendering
-  if (cellData.isCheckbox) {
+  if (cellData?.isCheckbox) {
       const isChecked = String(cellData.value).toUpperCase() === 'TRUE';
       return (
-          <div style={{ ...cssStyle, justifyContent: 'center' }}>
+          <div 
+            style={{ ...cssStyle, justifyContent: 'center' }}
+            onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
+            onMouseEnter={() => onMouseEnter(cellId)}
+            className={isActive ? "ring-2 ring-emerald-600 z-10" : ""}
+          >
               <input type="checkbox" checked={isChecked} readOnly className="w-4 h-4 accent-emerald-600 pointer-events-none" />
           </div>
       );
   }
 
   return (
-    <div style={cssStyle}>
+    <div 
+        style={cssStyle}
+        onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
+        onMouseEnter={() => onMouseEnter(cellId)}
+        className={isActive ? "ring-2 ring-emerald-600 z-10 bg-white" : ""}
+    >
       {displayValue}
       
       {/* Hyperlink Icon */}
-      {cellData.link && (
+      {cellData?.link && (
           <ExternalLink size={10} className="ml-1 text-blue-500 opacity-50" />
       )}
 
       {/* Comment Indicator (Red Triangle) */}
-      {cellData.comment && (
+      {cellData?.comment && (
           <div 
             className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-600" 
             title={cellData.comment}
@@ -117,14 +144,44 @@ const Grid: React.FC<GridProps> = ({
   rowHeights,
   onCellClick,
   onCellChange,
-  onColumnResize
+  onColumnResize,
+  onSelectionDrag
 }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartCell, setDragStartCell] = useState<string | null>(null);
+
+  // Convert selection range to Set for O(1) lookup
+  const selectionSet = useMemo(() => new Set(selectionRange || []), [selectionRange]);
+
+  // Handle Drag Selection
+  const handleMouseDown = useCallback((id: string, shift: boolean) => {
+      onCellClick(id, shift);
+      if (!shift) {
+          setIsDragging(true);
+          setDragStartCell(id);
+      }
+  }, [onCellClick]);
+
+  const handleMouseEnter = useCallback((id: string) => {
+      if (isDragging && dragStartCell && onSelectionDrag) {
+          onSelectionDrag(dragStartCell, id);
+      }
+  }, [isDragging, dragStartCell, onSelectionDrag]);
+
+  // Global mouse up to stop dragging
+  useEffect(() => {
+      const handleMouseUp = () => {
+          setIsDragging(false);
+          setDragStartCell(null);
+      };
+      window.addEventListener('mouseup', handleMouseUp);
+      return () => window.removeEventListener('mouseup', handleMouseUp);
+  }, []);
 
   // 1. Generate Columns
   const columns = useMemo((): Column<any>[] => {
-    // Add Row Header Column
     const cols: Column<any>[] = [
-       SelectColumn, 
+       { ...SelectColumn, width: 40, frozen: true }, 
        ...Array.from({ length: size.cols }, (_, i) => {
           const colChar = numToChar(i);
           return {
@@ -132,9 +189,19 @@ const Grid: React.FC<GridProps> = ({
             name: colChar,
             resizable: true,
             width: columnWidths[colChar] || 100,
-            renderCell: (props) => <CustomCellRenderer {...props} cells={cells} styles={styles} />,
+            renderCell: (props) => (
+                <CustomCellRenderer 
+                    {...props} 
+                    cells={cells} 
+                    styles={styles} 
+                    activeCell={activeCell}
+                    selectionSet={selectionSet}
+                    onMouseDown={handleMouseDown}
+                    onMouseEnter={handleMouseEnter}
+                />
+            ),
             renderHeaderCell: (props) => (
-                <div className="flex items-center justify-center w-full h-full font-semibold text-slate-500">
+                <div className="flex items-center justify-center w-full h-full font-semibold text-slate-500 bg-slate-50">
                     {props.column.name}
                 </div>
             ),
@@ -146,9 +213,8 @@ const Grid: React.FC<GridProps> = ({
                         className="w-full h-full px-1 outline-none bg-white text-slate-900"
                         value={row[column.key]?.raw || ''}
                         onChange={(e) => {
-                            // Optimistic local update not strictly needed as onRowChange drives state in controlled mode, 
-                            // but here we are bridging controlled grid with external state.
-                            // We mainly want to capture the final value.
+                            // Local state handled by DataGrid via onRowChange if we were using it for data,
+                            // but here we just need to capture input for our external state.
                         }}
                         onBlur={(e) => {
                             onCellChange(id, e.target.value);
@@ -168,27 +234,15 @@ const Grid: React.FC<GridProps> = ({
        })
     ];
     return cols;
-  }, [size.cols, columnWidths, cells, styles, onCellChange]);
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, handleMouseDown, handleMouseEnter, onCellChange]);
 
   // 2. Generate Rows
-  // Since our data is sparse (Record<string, cell>), we create lightweight row objects 
-  // that serve as coordinate holders for the renderer.
   const rows = useMemo(() => {
     return Array.from({ length: size.rows }, (_, r) => ({ id: r }));
   }, [size.rows]);
 
-  // 3. Selection Sync
-  const onSelectedCellChange = useCallback((args: { idx: number; rowIdx: number }) => {
-      // idx 0 is SelectColumn, actual data starts at 1
-      if (args.idx === 0) return;
-      
-      const colKey = columns[args.idx].key;
-      const id = getCellId(parseInt(colKey), args.rowIdx);
-      onCellClick(id, false);
-  }, [columns, onCellClick]);
-
   return (
-    <div className="w-full h-full text-sm bg-white">
+    <div className="w-full h-full text-sm bg-white select-none">
         <DataGrid 
             columns={columns} 
             rows={rows} 
@@ -197,10 +251,14 @@ const Grid: React.FC<GridProps> = ({
                 const col = columns[idx];
                 if (col && col.name) onColumnResize(col.name, width);
             }}
-            onSelectedCellChange={onSelectedCellChange}
             className="rdg-light fill-grid h-full"
             style={{ blockSize: '100%' }}
             rowKeyGetter={(r) => r.id}
+            onKeyDown={(e) => {
+                // Allow our global shortcut handler to process navigation if needed, 
+                // but DataGrid might consume arrows.
+                // Since we have a global hook, we rely on it.
+            }}
         />
     </div>
   );

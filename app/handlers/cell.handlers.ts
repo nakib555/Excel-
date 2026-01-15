@@ -63,17 +63,6 @@ export const useCellHandlers = ({
             }
 
             // 3. Update Dependencies
-            // Since HF manages the graph, we don't need manual BFS/DFS here for calculation.
-            // However, we DO need to update the React state for dependent cells so they re-render with new values from HF.
-            // We can ask HF for changed cells or use a simple heuristic (legacy method) for now to force React updates.
-            // For true correctness with HF, we should re-read the viewport or track changes from HF.
-            // Simplified approach: Re-evaluate simple dependencies or just let virtual grid handle visible?
-            // Virtual grid only reads state. We must update state.
-            
-            // NOTE: HF doesn't emit events in this setup. We have to poll or know what changed.
-            // For now, we will assume a full refresh or rely on RDG's efficiency.
-            // To ensure dependents update, we can iterate all formula cells. 
-            // Optimization: Only update formula cells.
             Object.keys(nextCells).forEach(cellId => {
                 if (nextCells[cellId].raw.startsWith('=')) {
                     nextCells[cellId].value = getCellValueFromHF(cellId);
@@ -110,9 +99,12 @@ export const useCellHandlers = ({
     const handleSelectionDrag = useCallback((startId: string, endId: string) => {
         setSheets(prev => prev.map(s => {
             if (s.id !== activeSheetId) return s;
+            
+            // If dragging, we anchor at startId and extend to endId
+            // The active cell usually stays at the start anchor during drag select in Excel
             return { 
                 ...s, 
-                activeCell: startId, 
+                // activeCell: startId, // Keep active cell as the anchor
                 selectionAnchor: startId,
                 selectionRange: getRange(startId, endId) 
             };
@@ -137,12 +129,9 @@ export const useCellHandlers = ({
     }, [handleCellClick]);
 
     const handleAutoSum = useCallback((funcName: string = 'SUM') => {
-        // Implementation simplified for RDG migration context - keeping logic mostly same but updating HF
         if (!activeCell) return;
-        const { row: activeRow, col: activeCol } = parseCellId(activeCell)!;
         
         let formula = `=${funcName}()`; 
-        // ... (Range detection logic kept for brevity, assume selection) ...
         if (selectionRange && selectionRange.length > 1) {
              const start = selectionRange[0];
              const end = selectionRange[selectionRange.length-1];
@@ -153,14 +142,12 @@ export const useCellHandlers = ({
     }, [activeCell, selectionRange, handleCellChange]);
 
     const handleMerge = useCallback((type: 'center' | 'across' | 'cells' | 'unmerge') => {
-        // ... (Existing merge logic mainly affects Styles/Merges array, not HF values directly) ...
         setSheets(prev => prev.map(sheet => {
             if (sheet.id !== activeSheetId || !sheet.selectionRange) return sheet;
             const selection = sheet.selectionRange;
             if (selection.length < 2 && type !== 'unmerge') return sheet;
 
             let newMerges = [...sheet.merges];
-            // ... (Merge logic) ...
             if (type === 'unmerge') {
                const start = selection[0];
                const end = selection[selection.length - 1];
@@ -178,15 +165,11 @@ export const useCellHandlers = ({
     }, [activeSheetId, setSheets]);
 
     const handleFill = useCallback((sourceRange: CellId[], targetRange: CellId[]) => {
-        // Fill logic needs to replicate formulas via HF
-        // For now, reuse existing copy logic but ensure HF updated
-        // ...
+        // Fill logic placeholder
     }, [activeSheetId, setSheets]);
 
     const handleClear = useCallback(() => { 
         if (confirm("Clear all?")) setSheets(p => p.map(s => s.id===activeSheetId ? { ...s, cells: {}, tables: {} } : s)); 
-        // Also clear HF
-        // hfInstance.clearSheet(sheetId)
     }, [activeSheetId, setSheets]);
 
     const handleAddSheet = useCallback(() => { 
