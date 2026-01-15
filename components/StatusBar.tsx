@@ -1,5 +1,5 @@
 
-import React, { memo, useRef, useState } from 'react';
+import React, { memo } from 'react';
 import {
   CheckCircle2,
   Grid3X3,
@@ -25,32 +25,17 @@ interface StatusBarProps {
   canRedo?: boolean;
 }
 
-const StatusBarIconBtn = ({ onClick, disabled, children, title, className }: any) => {
-    const [hovered, setHovered] = useState(false);
-    const ref = useRef<HTMLButtonElement>(null);
-    const [rect, setRect] = useState<DOMRect | null>(null);
-
-    const handleEnter = () => {
-        if (ref.current) setRect(ref.current.getBoundingClientRect());
-        setHovered(true);
-    }
-
-    return (
-        <>
-            <button 
-                ref={ref}
-                onClick={onClick}
-                disabled={disabled}
-                onMouseEnter={handleEnter}
-                onMouseLeave={() => setHovered(false)}
-                className={className}
-            >
-                {children}
-            </button>
-            <Tooltip text={title} rect={rect} isOpen={hovered} />
-        </>
-    )
-}
+const StatusBarIconBtn = ({ onClick, disabled, children, title, className }: any) => (
+    <Tooltip content={title} side="top">
+        <button 
+            onClick={onClick}
+            disabled={disabled}
+            className={className}
+        >
+            {children}
+        </button>
+    </Tooltip>
+);
 
 const StatusBar: React.FC<StatusBarProps> = ({ 
   selectionCount, 

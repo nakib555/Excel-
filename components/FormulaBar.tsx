@@ -23,32 +23,17 @@ const FUNCTION_CATEGORIES = {
   "Lookup": { icon: Database, fns: ['VLOOKUP', 'HLOOKUP', 'MATCH', 'INDEX', 'ROW', 'COLUMN'] }
 };
 
-const TooltipBtn = ({ onClick, children, title, className, ...props }: any) => {
-    const [hovered, setHovered] = useState(false);
-    const ref = useRef<HTMLButtonElement>(null);
-    const [rect, setRect] = useState<DOMRect | null>(null);
-
-    const handleEnter = () => {
-        if (ref.current) setRect(ref.current.getBoundingClientRect());
-        setHovered(true);
-    };
-
-    return (
-        <>
-            <button 
-                ref={ref}
-                onClick={onClick}
-                onMouseEnter={handleEnter}
-                onMouseLeave={() => setHovered(false)}
-                className={className}
-                {...props}
-            >
-                {children}
-            </button>
-            <Tooltip text={title} rect={rect} isOpen={hovered} />
-        </>
-    );
-}
+const TooltipBtn = ({ onClick, children, title, className, ...props }: any) => (
+    <Tooltip content={title} delayDuration={500}>
+        <button 
+            onClick={onClick}
+            className={className}
+            {...props}
+        >
+            {children}
+        </button>
+    </Tooltip>
+);
 
 const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, selectedCell, onNameBoxSubmit }) => {
   const inputRef = useRef<HTMLInputElement>(null);

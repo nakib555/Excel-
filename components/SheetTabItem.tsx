@@ -1,5 +1,5 @@
 
-import React, { memo, useRef, useState } from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Tooltip } from './shared';
 
@@ -11,22 +11,10 @@ interface SheetTabItemProps {
 }
 
 const SheetTabItem = ({ id, name, isActive, onClick }: SheetTabItemProps) => {
-    const [hovered, setHovered] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
-    const [rect, setRect] = useState<DOMRect | null>(null);
-
-    const handleMouseEnter = () => {
-        if (ref.current) setRect(ref.current.getBoundingClientRect());
-        setHovered(true);
-    };
-
     return (
-        <>
+        <Tooltip content={name} side="top" delayDuration={500}>
             <motion.div
-              ref={ref}
               onClick={() => onClick(id)}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={() => setHovered(false)}
               className={`
                 group flex items-center px-4 py-1.5 text-xs font-medium transition-all flex-shrink-0
                 min-w-[100px] justify-center relative cursor-pointer
@@ -39,8 +27,7 @@ const SheetTabItem = ({ id, name, isActive, onClick }: SheetTabItemProps) => {
             >
               <span className="truncate max-w-[120px] pointer-events-none">{name}</span>
             </motion.div>
-            <Tooltip text={name} rect={rect} isOpen={hovered} />
-        </>
+        </Tooltip>
     );
 };
 

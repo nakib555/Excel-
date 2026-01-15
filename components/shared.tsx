@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { ChevronDown, SquareArrowOutDownRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CellStyle, Table } from '../../types';
 import { cn, useSmartPosition } from '../../utils';
-import { motion, AnimatePresence } from 'framer-motion';
+import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 
 export interface TabProps {
   currentStyle: CellStyle;
@@ -74,34 +74,6 @@ export interface TabProps {
   activeTable?: Table | null;
   onTableOptionChange?: (tableId: string, key: keyof Table, value: any) => void;
 }
-
-// --- Styled Tooltip Component ---
-export const Tooltip = ({ text, rect, isOpen }: { text: string | undefined, rect: DOMRect | null, isOpen: boolean }) => {
-    if (!text) return null;
-    
-    return createPortal(
-        <AnimatePresence>
-            {isOpen && rect && (
-                <motion.div
-                    initial={{ opacity: 0, y: -4, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.15, ease: "easeOut" }}
-                    className="fixed z-[9999] px-2.5 py-1.5 bg-slate-900/95 backdrop-blur-md text-white text-[11px] font-medium rounded-md shadow-xl pointer-events-none whitespace-nowrap border border-white/10"
-                    style={{ 
-                        top: rect.bottom + 6, 
-                        left: rect.left + (rect.width / 2),
-                        x: "-50%" 
-                    }}
-                >
-                    {text}
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900/95 rotate-45 border-l border-t border-white/10" />
-                </motion.div>
-            )}
-        </AnimatePresence>,
-        document.body
-    );
-};
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -238,45 +210,57 @@ export const DraggableScrollContainer = memo(({ children, className = "" }: { ch
   );
 });
 
+// --- Radix UI Tooltip Wrapper ---
+export const Tooltip = ({ children, content, side = 'top', align = 'center', delayDuration = 300 }: { children?: React.ReactNode, content?: string | React.ReactNode, side?: 'top'|'bottom'|'left'|'right', align?: 'start'|'center'|'end', delayDuration?: number }) => {
+    if (!content) return <>{children}</>;
+    
+    return (
+        <TooltipPrimitive.Provider delayDuration={delayDuration}>
+            <TooltipPrimitive.Root>
+                <TooltipPrimitive.Trigger asChild onClick={(e) => e.stopPropagation()}>
+                    {children}
+                </TooltipPrimitive.Trigger>
+                <TooltipPrimitive.Portal>
+                    <TooltipPrimitive.Content
+                        side={side}
+                        align={align}
+                        sideOffset={5}
+                        className="z-[9999] px-2.5 py-1.5 bg-slate-900/95 backdrop-blur-md text-white text-[11px] font-medium rounded-md shadow-xl border border-white/10 animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 select-none max-w-[250px] leading-tight"
+                    >
+                        {content}
+                        <TooltipPrimitive.Arrow className="fill-slate-900/95" />
+                    </TooltipPrimitive.Content>
+                </TooltipPrimitive.Portal>
+            </TooltipPrimitive.Root>
+        </TooltipPrimitive.Provider>
+    );
+};
+
 export const RibbonGroup: React.FC<{ 
     label: string; 
     children: React.ReactNode; 
     className?: string; 
     showLauncher?: boolean; 
     onLaunch?: () => void;
-}> = memo(({ label, children, className = "", showLauncher, onLaunch }) => {
-  const [hovered, setHovered] = useState(false);
-  const launchRef = useRef<HTMLButtonElement>(null);
-  const [launchRect, setLaunchRect] = useState<DOMRect | null>(null);
-
-  const handleLaunchEnter = () => {
-      if (launchRef.current) setLaunchRect(launchRef.current.getBoundingClientRect());
-      setHovered(true);
-  };
-
-  return (
-    <div className={`flex flex-col h-full px-1.5 border-r border-slate-200 last:border-r-0 flex-shrink-0 relative group/ribbon ${className}`}>
-        <div className="flex-1 flex gap-1 items-center justify-center min-h-0 pt-2 pb-0.5">
-        {children}
-        </div>
-        <div className="h-[18px] flex items-center justify-center text-[10px] text-slate-400 font-medium whitespace-nowrap pb-1 cursor-default">{label}</div>
-        {showLauncher && (
-            <>
-                <button 
-                    ref={launchRef}
-                    onClick={onLaunch}
-                    onMouseEnter={handleLaunchEnter}
-                    onMouseLeave={() => setHovered(false)}
-                    className="absolute bottom-0.5 right-0.5 p-[0.3rem] text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-sm transition-colors"
-                >
-                    <SquareArrowOutDownRight size={10} />
-                </button>
-                <Tooltip text={`See more ${label} options`} rect={launchRect} isOpen={hovered} />
-            </>
-        )}
+}> = memo(({ label, children, className = "", showLauncher, onLaunch }) => (
+  <div className={`flex flex-col h-full px-1.5 border-r border-slate-200 last:border-r-0 flex-shrink-0 relative group/ribbon ${className}`}>
+    <div className="flex-1 flex gap-1 items-center justify-center min-h-0 pt-2 pb-0.5">
+       {children}
     </div>
-  );
-});
+    <div className="h-[18px] flex items-center justify-center text-[10px] text-slate-400 font-medium whitespace-nowrap pb-1 cursor-default">{label}</div>
+    {showLauncher && (
+        <Tooltip content={`See more ${label} options`}>
+            <button 
+                onClick={onLaunch}
+                className="absolute bottom-0.5 right-0.5 p-[0.3rem] text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-sm transition-colors"
+                title="See more options"
+            >
+                <SquareArrowOutDownRight size={10} />
+            </button>
+        </Tooltip>
+    )}
+  </div>
+));
 
 interface RibbonButtonProps {
   icon: React.ReactNode;
@@ -295,15 +279,6 @@ interface RibbonButtonProps {
 export const RibbonButton: React.FC<RibbonButtonProps> = memo(({ 
   icon, label, subLabel, onClick, onDoubleClick, active, variant = 'small', hasDropdown, className = "", title, disabled 
 }) => {
-  const [hovered, setHovered] = useState(false);
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const [rect, setRect] = useState<DOMRect | null>(null);
-
-  const handleMouseEnter = () => {
-      if (btnRef.current) setRect(btnRef.current.getBoundingClientRect());
-      setHovered(true);
-  };
-
   const baseClass = `flex items-center justify-center rounded-md transition-all duration-150 select-none ${
     active 
       ? 'bg-primary-50 text-primary-700 shadow-sm ring-1 ring-primary-200' 
@@ -326,62 +301,51 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
 
   if (variant === 'large') {
     return (
-      <>
-        <button 
-            ref={btnRef}
+      <Tooltip content={title || (label ? `${label} ${subLabel || ''}` : undefined)}>
+          <button 
             onClick={onClick} 
             onDoubleClick={onDoubleClick}
             disabled={disabled} 
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={() => setHovered(false)}
             className={cn(`${baseClass} flex-col px-1 py-1 h-full min-w-[52px] md:min-w-[60px] gap-0.5 justify-center`, className)}
-        >
+          >
             <div className="p-1">{styledIcon}</div>
             <div className="text-[11px] font-medium leading-[1.1] text-center flex flex-col items-center text-slate-700">
                 {label}
                 {subLabel && <span>{subLabel}</span>}
                 {hasDropdown && <ChevronDown size={10} className="mt-0.5 opacity-50 stroke-[3]" />}
             </div>
-        </button>
-        <Tooltip text={title || (label && `${label} ${subLabel || ''}`)} rect={rect} isOpen={hovered} />
-      </>
+          </button>
+      </Tooltip>
     );
   }
 
   if (variant === 'small') {
     return (
-      <>
-        <button 
-            ref={btnRef}
+      <Tooltip content={title || (label ? `${label} ${subLabel || ''}` : undefined)}>
+          <button 
             onClick={onClick} 
             onDoubleClick={onDoubleClick}
             disabled={disabled} 
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={() => setHovered(false)}
             className={cn(`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`, className)}
-        >
+          >
             <div className="transform flex-shrink-0 text-slate-700 flex items-center">{styledIcon}</div>
             {label && <span className="text-[12px] text-slate-700 font-medium whitespace-nowrap leading-none pt-0.5">{label}</span>}
             {hasDropdown && <ChevronDown size={10} className="ml-auto opacity-50 stroke-[3]" />}
-        </button>
-        <Tooltip text={title || label} rect={rect} isOpen={hovered} />
-      </>
+          </button>
+      </Tooltip>
     );
   }
 
   return (
-    <>
+    <Tooltip content={title || (label ? `${label} ${subLabel || ''}` : undefined)}>
         <button 
-            ref={btnRef}
             onClick={onClick} 
             onDoubleClick={onDoubleClick}
             disabled={disabled} 
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={() => setHovered(false)}
             className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}
         >
-        {styledIcon}
-        {hasDropdown && (
+          {styledIcon}
+          {hasDropdown && (
             <svg 
                 xmlns="http://www.w3.org/2000/svg" 
                 width="8" 
@@ -396,10 +360,9 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
             >
                 <path d="m6 9 6 6 6-6"/>
             </svg>
-        )}
+          )}
         </button>
-        <Tooltip text={title || label} rect={rect} isOpen={hovered} />
-    </>
+    </Tooltip>
   );
 });
 
