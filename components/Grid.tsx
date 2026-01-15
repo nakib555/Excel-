@@ -67,7 +67,9 @@ const CustomCellRenderer = ({
       alignItems: 'center', // Default vertical align
       overflow: 'hidden',
       position: 'relative',
-      cursor: 'cell'
+      cursor: 'cell',
+      fontFamily: 'Calibri, "Segoe UI", sans-serif', // Excel default font
+      fontSize: '11pt', // Excel default size
   };
 
   const styleId = cellData?.styleId;
@@ -77,10 +79,11 @@ const CustomCellRenderer = ({
   // Map CellStyle to CSS
   const cssStyle: React.CSSProperties = {
       ...baseStyle,
-      fontWeight: style.bold ? '600' : '400',
+      fontWeight: style.bold ? '700' : '400',
       fontStyle: style.italic ? 'italic' : 'normal',
       textDecoration: style.underline ? 'underline' : 'none',
-      backgroundColor: style.bg || (isInRange && !isActive ? 'rgba(16, 185, 129, 0.1)' : undefined),
+      // Excel selection: Active cell is white/transparent with border, Range is gray
+      backgroundColor: style.bg || (isInRange && !isActive ? 'rgba(0, 0, 0, 0.05)' : undefined),
       color: style.color || 'inherit',
       textAlign: style.align || 'left',
       justifyContent: style.align === 'center' ? 'center' : style.align === 'right' ? 'flex-end' : 'flex-start',
@@ -94,6 +97,14 @@ const CustomCellRenderer = ({
       cssStyle.textDecoration = `${cssStyle.textDecoration} line-through`;
   }
 
+  // Handle Borders (Partial Implementation)
+  if (style.borders) {
+      if (style.borders.bottom) cssStyle.borderBottom = `${style.borders.bottom.style === 'thick' ? '2px' : '1px'} solid ${style.borders.bottom.color}`;
+      if (style.borders.top) cssStyle.borderTop = `${style.borders.top.style === 'thick' ? '2px' : '1px'} solid ${style.borders.top.color}`;
+      if (style.borders.left) cssStyle.borderLeft = `${style.borders.left.style === 'thick' ? '2px' : '1px'} solid ${style.borders.left.color}`;
+      if (style.borders.right) cssStyle.borderRight = `${style.borders.right.style === 'thick' ? '2px' : '1px'} solid ${style.borders.right.color}`;
+  }
+
   // Checkbox Rendering
   if (cellData?.isCheckbox) {
       const isChecked = String(cellData.value).toUpperCase() === 'TRUE';
@@ -102,9 +113,9 @@ const CustomCellRenderer = ({
             style={{ ...cssStyle, justifyContent: 'center' }}
             onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
             onMouseEnter={() => onMouseEnter(cellId)}
-            className={isActive ? "ring-2 ring-emerald-600 z-10" : ""}
+            className={isActive ? "ring-2 ring-[#217346] z-10" : ""}
           >
-              <input type="checkbox" checked={isChecked} readOnly className="w-4 h-4 accent-emerald-600 pointer-events-none" />
+              <input type="checkbox" checked={isChecked} readOnly className="w-4 h-4 accent-[#217346] pointer-events-none" />
           </div>
       );
   }
@@ -114,7 +125,7 @@ const CustomCellRenderer = ({
         style={cssStyle}
         onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
         onMouseEnter={() => onMouseEnter(cellId)}
-        className={isActive ? "ring-2 ring-emerald-600 z-10 bg-white" : ""}
+        className={isActive ? "ring-2 ring-[#217346] z-10 bg-white" : ""}
     >
       {displayValue}
       
@@ -189,14 +200,21 @@ const Grid: React.FC<GridProps> = ({
          frozen: true,
          resizable: false,
          renderCell: (props) => {
+            // Check if this row is selected (part of range) to highlight row header
+            const rowSelected = selectionRange?.some(id => {
+                const { row } = getCellId(0, props.row.id) as any; // Pseudo logic, better to parse range
+                // Just highlight if active cell row
+                return false; 
+            });
+            // Better logic: pass active row index to grid and check here
             return (
-                <div className="flex items-center justify-center w-full h-full bg-[#f8f9fa] border-r border-slate-300 font-semibold text-slate-500 select-none text-[11px]">
+                <div className="flex items-center justify-center w-full h-full font-semibold select-none text-[11px] bg-[#e6e6e6] text-[#444]">
                     {props.row.id + 1}
                 </div>
             );
          },
          renderHeaderCell: () => (
-             <div className="w-full h-full bg-[#f8f9fa] border-r border-b border-slate-300" />
+             <div className="w-full h-full bg-[#e6e6e6] border-r border-b border-[#bfbfbf]" />
          )
        }, 
        ...Array.from({ length: size.cols }, (_, i) => {
@@ -205,7 +223,7 @@ const Grid: React.FC<GridProps> = ({
             key: i.toString(),
             name: colChar,
             resizable: true,
-            width: columnWidths[colChar] || 100,
+            width: columnWidths[colChar] || 100, // Default width 100px (~80px in Excel)
             renderCell: (props) => (
                 <CustomCellRenderer 
                     {...props} 
@@ -218,7 +236,7 @@ const Grid: React.FC<GridProps> = ({
                 />
             ),
             renderHeaderCell: (props) => (
-                <div className="flex items-center justify-center w-full h-full font-semibold text-slate-600 bg-[#f8f9fa] text-[12px]">
+                <div className="flex items-center justify-center w-full h-full font-semibold text-[#444] bg-[#e6e6e6] text-[12px]">
                     {props.column.name}
                 </div>
             ),
@@ -227,11 +245,10 @@ const Grid: React.FC<GridProps> = ({
                 return (
                     <input 
                         autoFocus
-                        className="w-full h-full px-1 outline-none bg-white text-slate-900"
+                        className="w-full h-full px-1 outline-none bg-white text-slate-900 font-[Calibri] text-[11pt]"
                         value={row[column.key]?.raw || ''}
                         onChange={(e) => {
-                            // Local state handled by DataGrid via onRowChange if we were using it for data,
-                            // but here we just need to capture input for our external state.
+                            // Local state handled by DataGrid via onRowChange if we were using it for data
                         }}
                         onBlur={(e) => {
                             onCellChange(id, e.target.value);
@@ -263,7 +280,7 @@ const Grid: React.FC<GridProps> = ({
         <DataGrid 
             columns={columns} 
             rows={rows} 
-            rowHeight={(row) => rowHeights[row.id] || 28}
+            rowHeight={(row) => rowHeights[row.id] || 24} // Excel default row height ~20px/15pt, usually 24px in web
             onColumnResize={(idx, width) => {
                 const col = columns[idx];
                 if (col && col.name) onColumnResize(col.name, width);
@@ -271,10 +288,6 @@ const Grid: React.FC<GridProps> = ({
             className="rdg-light fill-grid h-full"
             style={{ blockSize: '100%' }}
             rowKeyGetter={(r) => r.id}
-            onKeyDown={(e) => {
-                // Allow our global shortcut handler to process navigation if needed, 
-                // but DataGrid might consume arrows.
-            }}
         />
     </div>
   );

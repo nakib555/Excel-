@@ -1,7 +1,7 @@
 
 import { HyperFormula } from 'hyperformula';
 import { CellData, CellId } from '../types';
-import { parseCellId, getCellId } from './helpers';
+import { parseCellId } from './helpers';
 
 // Initialize HyperFormula instance
 const hfInstance = HyperFormula.buildEmpty({
@@ -10,6 +10,7 @@ const hfInstance = HyperFormula.buildEmpty({
   useColumnIndex: false, 
 });
 
+// Cache sheet names to IDs to reduce HF lookups
 const sheetIdMap = new Map<string, number>();
 
 // --- HELPERS ---
@@ -17,18 +18,34 @@ const sheetIdMap = new Map<string, number>();
 export const getSheetId = (sheetName: string): number => {
   const name = sheetName || 'Sheet1';
 
-  // 1. Check HF directly first (Source of Truth)
-  if (hfInstance.doesSheetExist(name)) {
-      const id = hfInstance.getSheetId(name);
-      if (id !== undefined) {
-          sheetIdMap.set(name, id);
-          return id;
+  // 1. Check local cache first
+  if (sheetIdMap.has(name)) {
+      const cachedId = sheetIdMap.get(name);
+      if (cachedId !== undefined && hfInstance.doesSheetExist(name)) {
+          return cachedId;
+      } else {
+          sheetIdMap.delete(name); // Invalid cache
       }
   }
 
-  // 2. Create it if missing
+  // 2. Check HF directly (Source of Truth)
   try {
-      hfInstance.addSheet(name);
+      if (hfInstance.doesSheetExist(name)) {
+          const id = hfInstance.getSheetId(name);
+          if (id !== undefined) {
+              sheetIdMap.set(name, id);
+              return id;
+          }
+      }
+  } catch (e) {
+      console.warn(`HF: Error checking sheet existence for "${name}"`, e);
+  }
+
+  // 3. Create it if missing
+  try {
+      if (!hfInstance.doesSheetExist(name)) {
+          hfInstance.addSheet(name);
+      }
       const newId = hfInstance.getSheetId(name);
       if (newId !== undefined) {
           sheetIdMap.set(name, newId);
@@ -38,32 +55,34 @@ export const getSheetId = (sheetName: string): number => {
       console.warn(`HF: Failed to add sheet "${name}"`, e);
   }
 
-  // 3. Fallback: Return *any* valid sheet ID
+  // 4. Fallback: Return *any* valid sheet ID or create default
   const sheets = hfInstance.getSheetNames();
   if (sheets.length > 0) {
       const firstId = hfInstance.getSheetId(sheets[0]);
       if (firstId !== undefined) return firstId;
   }
 
-  // 4. Critical Fallback: Create a default sheet if absolutely nothing exists
+  // 5. Critical Fallback
   try {
-      if (!hfInstance.doesSheetExist('Sheet1')) {
-          hfInstance.addSheet('Sheet1');
+      const defaultName = 'Sheet1';
+      if (!hfInstance.doesSheetExist(defaultName)) {
+          hfInstance.addSheet(defaultName);
       }
-      const fallbackId = hfInstance.getSheetId('Sheet1');
-      if (fallbackId !== undefined) return fallbackId;
+      const fallbackId = hfInstance.getSheetId(defaultName);
+      if (fallbackId !== undefined) {
+          sheetIdMap.set(defaultName, fallbackId);
+          return fallbackId;
+      }
   } catch (e) {
       console.error("HF: Critical failure to create fallback sheet", e);
   }
 
-  // Should technically never reach here if HF is working
-  return 0;
+  return 0; // Last resort, though 0 might be invalid if not 'Sheet1' in strict mode
 };
 
 // --- CORE EVALUATOR ---
 
 export const syncHyperFormula = (cells: Record<CellId, CellData>, sheetName: string) => {
-  // Ensure sheet exists
   getSheetId(sheetName);
 };
 
@@ -74,12 +93,14 @@ export const updateCellInHF = (id: string, raw: string, sheetName: string) => {
   
   try {
     const val = raw.startsWith('=') ? raw : isNaN(Number(raw)) ? raw : Number(raw);
-    // Ensure sheetId is valid before calling setCellContents
-    if (sheetId !== undefined) {
-        hfInstance.setCellContents({ sheetId, col: coords.col, row: coords.row }, [[val]]);
-    } else {
+    
+    // Explicit check for undefined sheetId
+    if (sheetId === undefined || sheetId === null) {
         console.error(`HF: Invalid sheetId for ${sheetName}`);
+        return;
     }
+
+    hfInstance.setCellContents({ sheetId, col: coords.col, row: coords.row }, [[val]]);
   } catch (e) {
     console.error("HF Update Error", e);
   }
@@ -91,6 +112,8 @@ export const getCellValueFromHF = (id: string, sheetName: string): string => {
   if (!coords) return "";
   
   try {
+    if (sheetId === undefined) return "#ERR";
+
     const val = hfInstance.getCellValue({ sheetId, col: coords.col, row: coords.row });
     if (val instanceof Error) return val.message; // HF Error object
     if (val === undefined || val === null) return "";
@@ -110,7 +133,6 @@ export const evaluateFormula = (
   if (!formula.startsWith('=')) return formula;
 
   if (currentCellId) {
-      // Ensure HF knows about this cell before querying
       updateCellInHF(currentCellId, formula, sheetName);
       return getCellValueFromHF(currentCellId, sheetName);
   }
