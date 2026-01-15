@@ -57,7 +57,16 @@ export const generateSparseData = (sheetName: string): { cells: Record<CellId, C
       };
     });
     
-    // Initial calculation pass
+    // 1. First Pass: Register all non-formula values to HF
+    // This ensures dependencies (e.g. B2, C2) exist before formulas (D2) are calculated
+    Object.keys(cells).forEach(key => {
+        const cell = cells[key];
+        if (!cell.raw.startsWith('=')) {
+            updateCellInHF(key, cell.raw, sheetName);
+        }
+    });
+
+    // 2. Second Pass: Evaluate formulas
     Object.keys(cells).forEach(key => {
         const cell = cells[key];
         if (cell.raw.startsWith('=')) {
@@ -69,9 +78,6 @@ export const generateSparseData = (sheetName: string): { cells: Record<CellId, C
                 if (!dependentsMap[dep].includes(key)) dependentsMap[dep] = [key];
                 else if (!dependentsMap[dep].includes(key)) dependentsMap[dep].push(key);
             });
-        } else {
-            // Also register non-formula values to HF
-            updateCellInHF(key, cell.raw, sheetName);
         }
     });
     

@@ -15,45 +15,49 @@ const sheetIdMap = new Map<string, number>();
 // --- HELPERS ---
 
 export const getSheetId = (sheetName: string): number => {
-  // 1. Return cached ID if exists
-  if (sheetIdMap.has(sheetName)) {
-      const id = sheetIdMap.get(sheetName)!;
-      if (hfInstance.doesSheetExist(sheetName)) return id;
-      // If map has it but HF doesn't (reset?), fall through to create
-  }
+  const name = sheetName || 'Sheet1';
 
-  // 2. Check if HF already knows it by name
-  if (hfInstance.doesSheetExist(sheetName)) {
-      const id = hfInstance.getSheetId(sheetName);
+  // 1. Check HF directly first (Source of Truth)
+  if (hfInstance.doesSheetExist(name)) {
+      const id = hfInstance.getSheetId(name);
       if (id !== undefined) {
-          sheetIdMap.set(sheetName, id);
+          sheetIdMap.set(name, id);
           return id;
       }
   }
 
-  // 3. Create it
+  // 2. Create it if missing
   try {
-      hfInstance.addSheet(sheetName);
-      const newId = hfInstance.getSheetId(sheetName);
+      hfInstance.addSheet(name);
+      const newId = hfInstance.getSheetId(name);
       if (newId !== undefined) {
-          sheetIdMap.set(sheetName, newId);
+          sheetIdMap.set(name, newId);
           return newId;
       }
   } catch (e) {
-      console.warn(`Failed to add sheet "${sheetName}" to HyperFormula:`, e);
+      console.warn(`HF: Failed to add sheet "${name}"`, e);
   }
 
-  // 4. Fallback (should rarely happen)
-  if (hfInstance.countSheets() > 0) {
-      const sheets = hfInstance.getSheetNames();
-      return hfInstance.getSheetId(sheets[0])!;
+  // 3. Fallback: Return *any* valid sheet ID
+  const sheets = hfInstance.getSheetNames();
+  if (sheets.length > 0) {
+      const firstId = hfInstance.getSheetId(sheets[0]);
+      if (firstId !== undefined) return firstId;
   }
 
-  // 5. Total fallback
-  hfInstance.addSheet('Sheet1');
-  const fallbackId = hfInstance.getSheetId('Sheet1')!;
-  sheetIdMap.set('Sheet1', fallbackId);
-  return fallbackId;
+  // 4. Critical Fallback: Create a default sheet if absolutely nothing exists
+  try {
+      if (!hfInstance.doesSheetExist('Sheet1')) {
+          hfInstance.addSheet('Sheet1');
+      }
+      const fallbackId = hfInstance.getSheetId('Sheet1');
+      if (fallbackId !== undefined) return fallbackId;
+  } catch (e) {
+      console.error("HF: Critical failure to create fallback sheet", e);
+  }
+
+  // Should technically never reach here if HF is working
+  return 0;
 };
 
 // --- CORE EVALUATOR ---
@@ -70,7 +74,12 @@ export const updateCellInHF = (id: string, raw: string, sheetName: string) => {
   
   try {
     const val = raw.startsWith('=') ? raw : isNaN(Number(raw)) ? raw : Number(raw);
-    hfInstance.setCellContents({ sheetId, col: coords.col, row: coords.row }, [[val]]);
+    // Ensure sheetId is valid before calling setCellContents
+    if (sheetId !== undefined) {
+        hfInstance.setCellContents({ sheetId, col: coords.col, row: coords.row }, [[val]]);
+    } else {
+        console.error(`HF: Invalid sheetId for ${sheetName}`);
+    }
   } catch (e) {
     console.error("HF Update Error", e);
   }
