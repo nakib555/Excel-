@@ -2,7 +2,7 @@
 import React, { lazy, Suspense, useCallback, useState, useEffect } from 'react';
 import { MAX_ROWS, MAX_COLS } from './constants/grid.constants';
 import { getApiKey } from './utils/apiKey';
-import { parseCellId } from '../utils';
+import { parseCellId, generateCsv, downloadCsv } from '../utils';
 import { CellData } from '../types';
 import { Eye } from 'lucide-react';
 
@@ -128,6 +128,11 @@ export const AppRoot: React.FC = () => {
       const currentRule = validations[activeCell];
       dialogs.setDataValidationState({ isOpen: true, rule: currentRule || null, cellId: activeCell });
   }, [activeCell, validations, dialogs]);
+
+  const handleExport = useCallback(() => {
+      const csv = generateCsv(cells);
+      downloadCsv(csv, `${activeSheet.name}.csv`);
+  }, [cells, activeSheet.name]);
 
   // Force Center State for Search/Goto
   const [forceCenter, setForceCenter] = useState(false);
@@ -257,7 +262,7 @@ export const AppRoot: React.FC = () => {
             currentStyle={activeStyle}
             onToggleStyle={styleHandlers.handleStyleChange}
             onApplyStyle={styleHandlers.handleApplyFullStyle}
-            onExport={() => {}} // simplified
+            onExport={handleExport}
             onClear={cellHandlers.handleClear}
             onResetLayout={noOp}
             onCopy={clipboardHandlers.handleCopy}
