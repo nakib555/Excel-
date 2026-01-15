@@ -94,6 +94,13 @@ html, body, #root {
   z-index: 1;
 }
 
+/* Active Cell Z-Index Boost */
+.rdg-cell[aria-selected="true"] {
+  box-shadow: none !important;
+  border-color: var(--rdg-border-color);
+  z-index: 20 !important; 
+}
+
 /* Row Headers (1, 2, 3...) */
 .rdg-cell[aria-colindex="1"] {
     background-color: #f8f9fa;
@@ -132,48 +139,6 @@ html, body, #root {
 /* Editor Input Override */
 .rdg-editor-container {
   z-index: 1000 !important;
-}
-
-/* --- SELECTION OVERLAYS --- */
-
-.selection-border {
-  position: absolute;
-  border: 2px solid #107c41;
-  pointer-events: none;
-  z-index: 20;
-  transition: all 0.08s ease-out; /* The Smoothness Magic */
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5) inset;
-}
-
-.fill-handle {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: #107c41;
-  border: 1px solid white;
-  bottom: -5px;
-  right: -5px;
-  cursor: crosshair;
-  pointer-events: auto;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-  z-index: 21;
-}
-
-.selection-area {
-  position: absolute;
-  background-color: rgba(16, 124, 65, 0.1);
-  pointer-events: none;
-  z-index: 10;
-  transition: all 0.08s ease-out;
-  mix-blend-mode: multiply;
-}
-
-.active-cell-indicator {
-  position: absolute;
-  border: 2px solid transparent; /* Placeholder for perfect alignment */
-  pointer-events: none;
-  z-index: 15;
-  transition: all 0.08s ease-out;
 }
 
 /* Loading Shimmer */
