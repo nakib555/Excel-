@@ -6,6 +6,7 @@ import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types'
 import { numToChar, getCellId, formatCellValue, parseCellId, cn, getRange } from '../utils';
 import { NavigationDirection } from './Cell';
 import { ExternalLink } from 'lucide-react';
+import { Tooltip } from './shared';
 
 import 'react-data-grid/lib/styles.css';
 
@@ -669,16 +670,18 @@ const Grid: React.FC<GridProps> = ({
          renderCell: (props) => {
             const isRowActive = activeCoords?.row === props.row.id;
             return (
-                <div className={cn(
-                    "flex items-center justify-center w-full h-full font-semibold select-none",
-                    isRowActive 
-                        ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
-                        : "bg-[#f8f9fa] text-[#444]"
-                )}
-                style={{ fontSize: `${11 * scale}px` }}
-                >
-                    {props.row.id + 1}
-                </div>
+                <Tooltip content={`Row ${props.row.id + 1}`}>
+                    <div className={cn(
+                        "flex items-center justify-center w-full h-full font-semibold select-none",
+                        isRowActive 
+                            ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
+                            : "bg-[#f8f9fa] text-[#444]"
+                    )}
+                    style={{ fontSize: `${11 * scale}px` }}
+                    >
+                        {props.row.id + 1}
+                    </div>
+                </Tooltip>
             );
          },
          renderHeaderCell: () => <div className="w-full h-full bg-[#f8f9fa]" />
@@ -713,16 +716,18 @@ const Grid: React.FC<GridProps> = ({
             renderHeaderCell: (props) => {
                 const isColActive = activeCoords?.col === i;
                 return (
-                    <div className={cn(
-                        "flex items-center justify-center w-full h-full font-semibold",
-                        isColActive 
-                            ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
-                            : "bg-[#f8f9fa] text-[#444]"
-                    )}
-                    style={{ fontSize: `${12 * scale}px` }}
-                    >
-                        {props.column.name}
-                    </div>
+                    <Tooltip content={`Column ${props.column.name}`}>
+                        <div className={cn(
+                            "flex items-center justify-center w-full h-full font-semibold",
+                            isColActive 
+                                ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
+                                : "bg-[#f8f9fa] text-[#444]"
+                        )}
+                        style={{ fontSize: `${12 * scale}px` }}
+                        >
+                            {props.column.name}
+                        </div>
+                    </Tooltip>
                 );
             },
             editor: ({ row, column, onClose }) => {

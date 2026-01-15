@@ -141,27 +141,28 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
   return (
     <div className="flex items-center h-12 px-2 md:px-4 border-b border-slate-200 bg-white gap-2 md:gap-3 shadow-sm z-30">
       {/* Name Box (Interactive Cell Indicator) */}
-      <div className="relative group flex items-center">
-        <input 
-            ref={nameBoxRef}
-            type="text"
-            className="w-24 md:w-32 h-8 bg-white border border-slate-300 rounded-md text-base md:text-xs font-semibold text-slate-700 font-mono shadow-sm hover:border-slate-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all pl-2 pr-7 text-center uppercase placeholder:text-slate-300"
-            value={nameBoxValue}
-            onChange={(e) => setNameBoxValue(e.target.value)}
-            onKeyDown={handleNameBoxKeyDown}
-            onFocus={(e) => e.target.select()}
-            placeholder={selectedCell || "A1"}
-            title="Name Box: Enter cell (e.g. A500) and press Enter to jump"
-        />
-        <TooltipBtn
-            onClick={submitNameBox}
-            className="absolute right-1 top-1 bottom-1 w-6 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors z-10"
-            title="Go to Cell"
-        >
-            <ChevronRight size={14} strokeWidth={2.5} />
-        </TooltipBtn>
-        <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-[1px] h-5 bg-slate-300 hidden md:block"></div>
-      </div>
+      <Tooltip content="Name Box: Enter cell (e.g. A500) and press Enter to jump">
+          <div className="relative group flex items-center">
+            <input 
+                ref={nameBoxRef}
+                type="text"
+                className="w-24 md:w-32 h-8 bg-white border border-slate-300 rounded-md text-base md:text-xs font-semibold text-slate-700 font-mono shadow-sm hover:border-slate-400 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none transition-all pl-2 pr-7 text-center uppercase placeholder:text-slate-300"
+                value={nameBoxValue}
+                onChange={(e) => setNameBoxValue(e.target.value)}
+                onKeyDown={handleNameBoxKeyDown}
+                onFocus={(e) => e.target.select()}
+                placeholder={selectedCell || "A1"}
+            />
+            <TooltipBtn
+                onClick={submitNameBox}
+                className="absolute right-1 top-1 bottom-1 w-6 flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded transition-colors z-10"
+                title="Go to Cell"
+            >
+                <ChevronRight size={14} strokeWidth={2.5} />
+            </TooltipBtn>
+            <div className="absolute top-1/2 -right-3 -translate-y-1/2 w-[1px] h-5 bg-slate-300 hidden md:block"></div>
+          </div>
+      </Tooltip>
 
       {/* Function Icons & Controls */}
       <div className="flex items-center gap-1 text-slate-400 pl-1 md:pl-2 flex-shrink-0">

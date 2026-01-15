@@ -169,37 +169,38 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
                     const Icon = tab.icon;
                     
                     return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={cn(
-                                "relative px-3 md:px-4 py-2 text-[13px] transition-all duration-150 whitespace-nowrap flex-shrink-0 select-none rounded-t-md outline-none flex items-center gap-2 group",
-                                isActive 
-                                    ? "bg-[#f8fafc] text-slate-800 font-bold shadow-none z-10 pb-2.5 -mb-0.5" 
-                                    : "text-slate-300 hover:bg-white/10 hover:text-white mb-1 font-medium",
-                                isSpecial && !isActive && "text-indigo-300 hover:text-indigo-200",
-                                isSpecial && isActive && "text-indigo-700",
-                                isTable && !isActive && "text-emerald-300",
-                                isTable && isActive && "text-emerald-700"
-                            )}
-                        >
-                            <Icon 
-                                size={14} 
+                        <Tooltip key={tab.id} content={tab.label} delayDuration={500}>
+                            <button
+                                onClick={() => setActiveTab(tab.id)}
                                 className={cn(
-                                    "mb-0.5 transition-colors", 
+                                    "relative px-3 md:px-4 py-2 text-[13px] transition-all duration-150 whitespace-nowrap flex-shrink-0 select-none rounded-t-md outline-none flex items-center gap-2 group",
                                     isActive 
-                                        ? (isSpecial ? "text-indigo-600 fill-indigo-100" : isTable ? "text-emerald-600" : tab.color.replace('400', '600')) 
-                                        : (isSpecial ? "text-indigo-400" : isTable ? "text-emerald-400" : tab.color)
-                                )} 
-                            />
-                            <span className={cn(
-                                isActive && !isSpecial ? tab.color.replace('400', '700') : "",
-                                isActive && isTable ? "text-emerald-700" : ""
-                            )}>
-                                {tab.label}
-                            </span>
-                            {isTable && !isActive && <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />}
-                        </button>
+                                        ? "bg-[#f8fafc] text-slate-800 font-bold shadow-none z-10 pb-2.5 -mb-0.5" 
+                                        : "text-slate-300 hover:bg-white/10 hover:text-white mb-1 font-medium",
+                                    isSpecial && !isActive && "text-indigo-300 hover:text-indigo-200",
+                                    isSpecial && isActive && "text-indigo-700",
+                                    isTable && !isActive && "text-emerald-300",
+                                    isTable && isActive && "text-emerald-700"
+                                )}
+                            >
+                                <Icon 
+                                    size={14} 
+                                    className={cn(
+                                        "mb-0.5 transition-colors", 
+                                        isActive 
+                                            ? (isSpecial ? "text-indigo-600 fill-indigo-100" : isTable ? "text-emerald-600" : tab.color.replace('400', '600')) 
+                                            : (isSpecial ? "text-indigo-400" : isTable ? "text-emerald-400" : tab.color)
+                                    )} 
+                                />
+                                <span className={cn(
+                                    isActive && !isSpecial ? tab.color.replace('400', '700') : "",
+                                    isActive && isTable ? "text-emerald-700" : ""
+                                )}>
+                                    {tab.label}
+                                </span>
+                                {isTable && !isActive && <span className="absolute top-0 right-0 w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />}
+                            </button>
+                        </Tooltip>
                     );
                 })}
                 {/* Spacer for right gradient/arrow clearance */}

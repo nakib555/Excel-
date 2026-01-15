@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, useLayoutEffect, memo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, SquareArrowOutDownRight, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -356,6 +357,8 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
       ? cn(`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`, className)
       : cn(`${baseClass} p-1 w-7 h-7 relative`, className);
 
+  const tooltipText = title || (label ? `${label}${subLabel ? ' ' + subLabel : ''}` : undefined);
+
   const buttonElement = (
       <button 
         onClick={onClick} 
@@ -367,8 +370,8 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
       </button>
   );
 
-  if (title) {
-      return <Tooltip content={title}>{buttonElement}</Tooltip>;
+  if (tooltipText) {
+      return <Tooltip content={tooltipText}>{buttonElement}</Tooltip>;
   }
 
   return buttonElement;
@@ -499,7 +502,6 @@ export const ColorPicker: React.FC<{
                             className="w-6 h-6 rounded border border-slate-200 hover:scale-110 hover:border-slate-400 hover:shadow-sm transition-all relative overflow-hidden"
                             style={{ backgroundColor: c === 'transparent' ? 'white' : c }}
                             onClick={() => { onChange(c); setOpen(false); }}
-                            title={c}
                         >
                              {c === 'transparent' && (
                                  <div className="absolute inset-0 flex items-center justify-center">

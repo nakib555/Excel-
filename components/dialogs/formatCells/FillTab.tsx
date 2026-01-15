@@ -5,6 +5,7 @@ import { CellStyle } from '../../../types';
 import GroupBox from './GroupBox';
 import ModernSelect from './ModernSelect';
 import { Ban, PaintBucket, Palette, Grip } from 'lucide-react';
+import { Tooltip } from '../../shared';
 
 interface FillTabProps {
     style: CellStyle;
@@ -143,17 +144,17 @@ const FillTab: React.FC<FillTabProps> = ({ style, onChange, isMobile }) => {
                             </span>
                             <div className="grid grid-cols-10 gap-1.5">
                                 {THEME_COLORS.map((c, i) => (
-                                    <button
-                                        key={`theme-${c}-${i}`}
-                                        className={cn(
-                                            "aspect-square rounded-[3px] border border-transparent transition-all relative outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1",
-                                            "hover:scale-125 hover:border-white hover:shadow-lg hover:z-20 hover:rounded-[4px]",
-                                            currentBg === c && "ring-2 ring-primary-600 ring-offset-1 z-10 scale-110 shadow-md rounded-[3px]"
-                                        )}
-                                        style={{ backgroundColor: c }}
-                                        onClick={() => handleBgColorSelect(c)}
-                                        title={c}
-                                    />
+                                    <Tooltip key={`theme-${c}-${i}`} content={c}>
+                                        <button
+                                            className={cn(
+                                                "aspect-square rounded-[3px] border border-transparent transition-all relative outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1",
+                                                "hover:scale-125 hover:border-white hover:shadow-lg hover:z-20 hover:rounded-[4px]",
+                                                currentBg === c && "ring-2 ring-primary-600 ring-offset-1 z-10 scale-110 shadow-md rounded-[3px]"
+                                            )}
+                                            style={{ backgroundColor: c }}
+                                            onClick={() => handleBgColorSelect(c)}
+                                        />
+                                    </Tooltip>
                                 ))}
                             </div>
                         </div>
@@ -165,17 +166,17 @@ const FillTab: React.FC<FillTabProps> = ({ style, onChange, isMobile }) => {
                             </span>
                             <div className="grid grid-cols-10 gap-1.5">
                                 {STANDARD_COLORS.map((c, i) => (
-                                    <button
-                                        key={`std-${c}-${i}`}
-                                        className={cn(
-                                            "aspect-square rounded-full border border-transparent transition-all relative outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1",
-                                            "hover:scale-125 hover:border-white hover:shadow-lg hover:z-20",
-                                            currentBg === c && "ring-2 ring-primary-600 ring-offset-1 z-10 scale-110 shadow-md"
-                                        )}
-                                        style={{ backgroundColor: c }}
-                                        onClick={() => handleBgColorSelect(c)}
-                                        title={c}
-                                    />
+                                    <Tooltip key={`std-${c}-${i}`} content={c}>
+                                        <button
+                                            className={cn(
+                                                "aspect-square rounded-full border border-transparent transition-all relative outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1",
+                                                "hover:scale-125 hover:border-white hover:shadow-lg hover:z-20",
+                                                currentBg === c && "ring-2 ring-primary-600 ring-offset-1 z-10 scale-110 shadow-md"
+                                            )}
+                                            style={{ backgroundColor: c }}
+                                            onClick={() => handleBgColorSelect(c)}
+                                        />
+                                    </Tooltip>
                                 ))}
                             </div>
                         </div>
