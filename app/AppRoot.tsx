@@ -311,6 +311,11 @@ export const AppRoot: React.FC = () => {
             onSave={() => saveWorkbook('Manual')}
             onToggleAutoSave={toggleAutoSave}
             isAutoSave={isAutoSave}
+            // Undo/Redo Props
+            onUndo={undo}
+            onRedo={redo}
+            canUndo={canUndo}
+            canRedo={canRedo}
           />
         </Suspense>
       </div>

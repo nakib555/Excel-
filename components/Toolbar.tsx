@@ -14,7 +14,13 @@ import {
   Workflow, 
   TableProperties,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Save,
+  Undo2,
+  Redo2,
+  Search,
+  UserCircle2,
+  ChevronDown
 } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { DraggableScrollContainer, TabProps, Tooltip } from './shared';
@@ -54,9 +60,25 @@ interface ToolbarProps extends TabProps {
     onToggleHistory?: () => void;
 }
 
+const QuickAccessBtn = ({ onClick, disabled, icon, title, active }: { onClick?: () => void, disabled?: boolean, icon: React.ReactNode, title: string, active?: boolean }) => (
+    <Tooltip content={title} side="bottom">
+        <button 
+            onClick={onClick}
+            disabled={disabled}
+            className={cn(
+                "w-7 h-7 flex items-center justify-center rounded-[3px] transition-colors",
+                disabled ? "opacity-30 cursor-default" : "hover:bg-white/10 active:bg-white/20 text-white",
+                active && "bg-white/10"
+            )}
+        >
+            {icon}
+        </button>
+    </Tooltip>
+);
+
 const Toolbar: React.FC<ToolbarProps> = (props) => {
   const [activeTab, setActiveTab] = useState('Home');
-  const { onToggleAI, onToggleHistory, activeTable, onSave, onToggleAutoSave, isAutoSave, ...tabProps } = props;
+  const { onToggleAI, onToggleHistory, activeTable, onSave, onToggleAutoSave, isAutoSave, onUndo, onRedo, canUndo, canRedo, ...tabProps } = props;
   
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -135,12 +157,99 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
 
   return (
     <div className="flex flex-col bg-[#0f172a] z-40 select-none shadow-soft transition-all">
-      <div className="bg-[#0f172a] px-2 md:px-4 flex items-end justify-between pt-2 relative">
+      
+      {/* Top Title Bar & Quick Access Toolbar */}
+      <div className="h-9 flex items-center justify-between px-2 md:px-4 bg-[#0f172a] text-white gap-4 relative z-50">
+          
+          {/* Quick Access */}
+          <div className="flex items-center gap-1">
+              <div className="flex items-center mr-2 gap-2">
+                  {/* AutoSave Toggle */}
+                  <Tooltip content={isAutoSave ? "AutoSave On" : "AutoSave Off"}>
+                      <button 
+                        onClick={onToggleAutoSave}
+                        className="flex flex-col gap-[2px] items-start group cursor-pointer"
+                      >
+                          <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-bold text-slate-300 group-hover:text-white uppercase tracking-wider">AutoSave</span>
+                              <div className={cn(
+                                  "w-6 h-3 rounded-full relative transition-colors",
+                                  isAutoSave ? "bg-emerald-500" : "bg-slate-600"
+                              )}>
+                                  <div className={cn(
+                                      "absolute top-0.5 w-2 h-2 bg-white rounded-full shadow-sm transition-all",
+                                      isAutoSave ? "left-3.5" : "left-0.5"
+                                  )} />
+                              </div>
+                          </div>
+                      </button>
+                  </Tooltip>
+              </div>
+
+              {/* Action Buttons */}
+              <QuickAccessBtn 
+                  icon={<Save size={16} />} 
+                  title="Save (Ctrl+S)" 
+                  onClick={onSave} 
+              />
+              <div className="h-4 w-[1px] bg-slate-700 mx-1" />
+              <div className="flex items-center gap-0">
+                  <QuickAccessBtn 
+                      icon={<Undo2 size={16} />} 
+                      title="Undo (Ctrl+Z)" 
+                      onClick={onUndo} 
+                      disabled={!canUndo} 
+                  />
+                  <button className="w-3 h-7 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 rounded-[3px] disabled:opacity-30 disabled:hover:bg-transparent">
+                      <ChevronDown size={10} />
+                  </button>
+              </div>
+              <div className="flex items-center gap-0">
+                  <QuickAccessBtn 
+                      icon={<Redo2 size={16} />} 
+                      title="Redo (Ctrl+Y)" 
+                      onClick={onRedo} 
+                      disabled={!canRedo} 
+                  />
+                  <button className="w-3 h-7 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 rounded-[3px] disabled:opacity-30 disabled:hover:bg-transparent">
+                      <ChevronDown size={10} />
+                  </button>
+              </div>
+          </div>
+
+          {/* Title - Centered */}
+          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 text-center hidden sm:flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-300">Book1 - Excel</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700 cursor-pointer hover:bg-slate-700 hover:text-slate-200 transition-colors">
+                  Saved
+              </span>
+          </div>
+
+          {/* Search & Account - Right */}
+          <div className="flex items-center gap-3">
+              <div className="hidden md:flex relative group">
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                      <Search size={12} className="text-slate-400 group-focus-within:text-slate-200" />
+                  </div>
+                  <input 
+                      type="text" 
+                      placeholder="Search" 
+                      className="bg-slate-800/50 border border-slate-700 hover:bg-slate-800 hover:border-slate-600 focus:bg-slate-900 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-md py-1 pl-7 pr-2 text-xs text-slate-200 placeholder:text-slate-500 outline-none w-32 focus:w-64 transition-all duration-300"
+                  />
+              </div>
+              <div className="w-7 h-7 rounded-full bg-emerald-700 flex items-center justify-center text-emerald-100 font-bold text-xs cursor-pointer hover:ring-2 hover:ring-white/20 hover:bg-emerald-600 transition-all">
+                  JD
+              </div>
+          </div>
+      </div>
+
+      {/* Tabs Row */}
+      <div className="bg-[#0f172a] px-2 md:px-4 flex items-end justify-between pt-0 relative border-t border-white/5">
         
         {/* Tabs Scroll Container Wrapper */}
         <div className="flex-1 relative overflow-hidden">
             
-            {/* Left Fade/Button - Centered Vertically */}
+            {/* Left Fade/Button */}
             <div 
                 className={cn(
                     "absolute left-0 top-0 bottom-0 z-20 flex items-center pr-6 bg-gradient-to-r from-[#0f172a] via-[#0f172a] to-transparent transition-opacity duration-300 pointer-events-none",
@@ -207,7 +316,7 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
                 <div className="w-12 flex-shrink-0" />
             </div>
 
-            {/* Right Fade/Button - Centered Vertically */}
+            {/* Right Fade/Button */}
             <div 
                 className={cn(
                     "absolute right-0 top-0 bottom-0 z-20 flex items-center pl-6 bg-gradient-to-l from-[#0f172a] via-[#0f172a] to-transparent transition-opacity duration-300 pointer-events-none",
@@ -231,7 +340,10 @@ const Toolbar: React.FC<ToolbarProps> = (props) => {
           <AnimatePresence mode='wait'>
                 {activeTab === 'Home' && (
                     <Suspense key="home-suspense" fallback={<RibbonSkeleton />}>
-                        <HomeTab {...tabProps} />
+                        <HomeTab 
+                            {...tabProps} 
+                            onUndo={onUndo} onRedo={onRedo} canUndo={canUndo} canRedo={canRedo} 
+                        />
                     </Suspense>
                 )}
                 {activeTab === 'Insert' && (

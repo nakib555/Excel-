@@ -96,6 +96,10 @@ export const getSheetId = (sheetName: string): number => {
 
 // --- CORE EVALUATOR ---
 
+export const performBatchUpdate = (callback: () => void) => {
+    hfInstance.batch(callback);
+};
+
 export const syncHyperFormula = (cells: Record<CellId, CellData>, sheetName: string) => {
   getSheetId(sheetName);
 };

@@ -3,7 +3,7 @@ import React, { useCallback } from 'react';
 import { Sheet, CellData, CellStyle, ValidationRule, CellId } from '../../types';
 import { 
     validateCellValue, parseCellId, getCellId, adjustFormulaReferences, getRange, checkIntersect, getStyleId, calculateRotatedDimensions, numToChar,
-    updateCellInHF, getCellValueFromHF, extractDependencies
+    updateCellInHF, getCellValueFromHF, extractDependencies, performBatchUpdate
 } from '../../utils';
 import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../constants/grid.constants';
 
@@ -74,10 +74,6 @@ export const useCellHandlers = ({
         setSheets(prevSheets => prevSheets.map(sheet => {
             if (sheet.id !== activeSheetId) return sheet;
             
-            // Excel Behavior:
-            // If NOT Shift-Clicking, the clicked cell becomes the new Anchor AND Active Cell.
-            // If Shift-Clicking, the Anchor remains the same, Active Cell remains the same (usually), but selection expands.
-            
             let anchor = sheet.selectionAnchor;
             let active = sheet.activeCell;
 
@@ -86,14 +82,10 @@ export const useCellHandlers = ({
                 active = id;
             }
 
-            // Calculate new range from Anchor -> Clicked ID
             let newSelection = [id];
             if (isShift && anchor) {
                 newSelection = getRange(anchor, id);
-                // Active cell usually stays as the anchor/lead during shift-select in Excel, 
-                // but visually we often just keep the focus where it was or move it. 
-                // Standard Excel: Active cell doesn't change on Shift+Click, only selection grows.
-                // We keep active cell as is if shift is held.
+                // In Excel, active cell stays as anchor during shift-click
                 active = sheet.activeCell || id; 
             }
             
@@ -110,9 +102,6 @@ export const useCellHandlers = ({
         setSheets(prev => prev.map(s => {
             if (s.id !== activeSheetId) return s;
             
-            // Dragging implies creating a range from an anchor (startId) to current target (endId)
-            // In Excel, dragging usually starts from the active cell/anchor.
-            // Here, startId is likely the anchor if we started dragging from active cell.
             return { 
                 ...s, 
                 activeCell: startId,
@@ -186,49 +175,54 @@ export const useCellHandlers = ({
             const sourceStart = parseCellId(sourceRange[0]);
             if (!sourceStart) return sheet;
 
-            targetRange.forEach(targetId => {
-                if (sourceRange.includes(targetId)) return;
+            // BATCH UPDATE START
+            performBatchUpdate(() => {
+                targetRange.forEach(targetId => {
+                    if (sourceRange.includes(targetId)) return;
 
-                const targetPos = parseCellId(targetId);
-                if (!targetPos) return;
+                    const targetPos = parseCellId(targetId);
+                    if (!targetPos) return;
 
-                const rowOffset = targetPos.row - sourceStart.row;
-                const colOffset = targetPos.col - sourceStart.col;
-                
-                const sourceRows = new Set(sourceRange.map(id => parseCellId(id)!.row)).size;
-                const sourceCols = new Set(sourceRange.map(id => parseCellId(id)!.col)).size;
-                
-                const srcRowIdx = sourceStart.row + (rowOffset % sourceRows);
-                const srcColIdx = sourceStart.col + (colOffset % sourceCols);
-                const sourceId = getCellId(srcColIdx, srcRowIdx);
-                
-                const sourceCell = sheet.cells[sourceId];
-
-                if (sourceCell) {
-                    let newRaw = sourceCell.raw;
+                    const rowOffset = targetPos.row - sourceStart.row;
+                    const colOffset = targetPos.col - sourceStart.col;
                     
-                    if (newRaw.startsWith('=')) {
-                         const rDelta = targetPos.row - srcRowIdx;
-                         const cDelta = targetPos.col - srcColIdx;
-                         newRaw = adjustFormulaReferences(newRaw, rDelta, cDelta);
-                    }
-
-                    nextCells[targetId] = {
-                        ...sourceCell,
-                        id: targetId,
-                        raw: newRaw,
-                        value: newRaw 
-                    };
+                    const sourceRows = new Set(sourceRange.map(id => parseCellId(id)!.row)).size;
+                    const sourceCols = new Set(sourceRange.map(id => parseCellId(id)!.col)).size;
                     
-                    updateCellInHF(targetId, newRaw, activeSheetName);
-                } else {
-                    if (nextCells[targetId]) {
-                        delete nextCells[targetId];
-                        updateCellInHF(targetId, '', activeSheetName);
+                    const srcRowIdx = sourceStart.row + (rowOffset % sourceRows);
+                    const srcColIdx = sourceStart.col + (colOffset % sourceCols);
+                    const sourceId = getCellId(srcColIdx, srcRowIdx);
+                    
+                    const sourceCell = sheet.cells[sourceId];
+
+                    if (sourceCell) {
+                        let newRaw = sourceCell.raw;
+                        
+                        if (newRaw.startsWith('=')) {
+                             const rDelta = targetPos.row - srcRowIdx;
+                             const cDelta = targetPos.col - srcColIdx;
+                             newRaw = adjustFormulaReferences(newRaw, rDelta, cDelta);
+                        }
+
+                        nextCells[targetId] = {
+                            ...sourceCell,
+                            id: targetId,
+                            raw: newRaw,
+                            value: newRaw 
+                        };
+                        
+                        updateCellInHF(targetId, newRaw, activeSheetName);
+                    } else {
+                        if (nextCells[targetId]) {
+                            delete nextCells[targetId];
+                            updateCellInHF(targetId, '', activeSheetName);
+                        }
                     }
-                }
+                });
             });
+            // BATCH UPDATE END
             
+            // Re-fetch calculated values
             targetRange.forEach(id => {
                 if (nextCells[id]?.raw.startsWith('=')) {
                     nextCells[id].value = getCellValueFromHF(id, activeSheetName);
@@ -251,28 +245,30 @@ export const useCellHandlers = ({
 
             const nextCells = { ...sheet.cells };
             
-            targets.forEach(id => {
-                const cell = nextCells[id];
-                if (!cell) return;
+            performBatchUpdate(() => {
+                targets.forEach(id => {
+                    const cell = nextCells[id];
+                    if (!cell) return;
 
-                if (type === 'all') {
-                    delete nextCells[id];
-                    updateCellInHF(id, '', activeSheetName); 
-                } else if (type === 'contents') {
-                    // Keep style, remove value/raw
-                    nextCells[id] = { ...cell, value: '', raw: '' };
-                    updateCellInHF(id, '', activeSheetName);
-                } else if (type === 'formats') {
-                    // Remove styleId
-                    const { styleId, ...rest } = cell;
-                    nextCells[id] = rest;
-                    
-                    // Cleanup if empty
-                    const hasContent = rest.value || rest.raw || rest.comment || rest.link || rest.isCheckbox || rest.filterButton;
-                    if (!hasContent) {
+                    if (type === 'all') {
                         delete nextCells[id];
+                        updateCellInHF(id, '', activeSheetName); 
+                    } else if (type === 'contents') {
+                        // Keep style, remove value/raw
+                        nextCells[id] = { ...cell, value: '', raw: '' };
+                        updateCellInHF(id, '', activeSheetName);
+                    } else if (type === 'formats') {
+                        // Remove styleId
+                        const { styleId, ...rest } = cell;
+                        nextCells[id] = rest;
+                        
+                        // Cleanup if empty
+                        const hasContent = rest.value || rest.raw || rest.comment || rest.link || rest.isCheckbox || rest.filterButton;
+                        if (!hasContent) {
+                            delete nextCells[id];
+                        }
                     }
-                }
+                });
             });
 
             return { ...sheet, cells: nextCells };
@@ -340,56 +336,45 @@ export const useCellHandlers = ({
                 const p = parseCellId(srcId);
                 if (p) {
                     const newId = getCellId(p.col + colDelta, p.row + rowDelta);
-                    
-                    // Adjust formulas
                     let finalCell = cell;
-                    if (cell && cell.raw && cell.raw.startsWith('=')) {
-                        // For moving, standard excel behavior is usually keeping references absolute 
-                        // unless specifically filling. However, adjusting relative refs 
-                        // is often expected in modern web grid moves to preserve relative logic.
-                        // We will keep raw as is for "Cut/Paste" behavior (Move), 
-                        // unlike Fill which increments.
-                        // Actually, Cut/Paste usually DOES NOT change formula refs inside the moved cell,
-                        // but DOES change refs pointing TO the moved cell (too complex for this MVP).
-                        // We will copy raw as is.
-                        finalCell = { ...cell };
-                    } else if (cell) {
+                    if (cell) {
                         finalCell = { ...cell };
                     }
 
                     if (finalCell) {
                         movedData.push({ id: newId, cell: { ...finalCell, id: newId }, validation });
                     } else {
-                        // Mark as empty if source was empty (to overwrite target)
                         movedData.push({ id: newId, cell: null as any, validation: undefined });
                     }
                 }
             });
 
-            // 2. Clear Source Range
-            sourceRange.forEach(srcId => {
-                delete nextCells[srcId];
-                delete nextValidations[srcId];
-                updateCellInHF(srcId, '', activeSheetName);
+            performBatchUpdate(() => {
+                // 2. Clear Source Range
+                sourceRange.forEach(srcId => {
+                    delete nextCells[srcId];
+                    delete nextValidations[srcId];
+                    updateCellInHF(srcId, '', activeSheetName);
+                });
+
+                // 3. Write to Target
+                movedData.forEach(({ id, cell, validation }) => {
+                    if (cell) {
+                        nextCells[id] = cell;
+                        updateCellInHF(id, cell.raw, activeSheetName);
+                    } else {
+                        delete nextCells[id];
+                        updateCellInHF(id, '', activeSheetName);
+                    }
+
+                    if (validation) nextValidations[id] = validation;
+                    else delete nextValidations[id];
+                });
             });
 
-            // 3. Write to Target
-            const newSelection: string[] = [];
-            movedData.forEach(({ id, cell, validation }) => {
-                newSelection.push(id);
-                if (cell) {
-                    nextCells[id] = cell;
-                    updateCellInHF(id, cell.raw, activeSheetName);
-                } else {
-                    delete nextCells[id];
-                    updateCellInHF(id, '', activeSheetName);
-                }
+            const newSelection: string[] = movedData.map(d => d.id);
 
-                if (validation) nextValidations[id] = validation;
-                else delete nextValidations[id];
-            });
-
-            // Re-evaluate affected cells (simple approach: re-eval all formulas)
+            // Re-evaluate affected cells
             Object.values(nextCells).forEach((c: CellData) => {
                 if (c.raw && c.raw.startsWith('=')) {
                     c.value = getCellValueFromHF(c.id, activeSheetName);

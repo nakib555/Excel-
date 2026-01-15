@@ -1,6 +1,6 @@
 
 import { CellId, CellData, CellStyle, Sheet } from '../../types';
-import { evaluateFormula, extractDependencies, getStyleId, updateCellInHF } from '../../utils';
+import { evaluateFormula, extractDependencies, getStyleId, updateCellInHF, performBatchUpdate } from '../../utils';
 
 interface InitialData {
     id: string;
@@ -59,11 +59,13 @@ export const generateSparseData = (sheetName: string): { cells: Record<CellId, C
     
     // 1. First Pass: Register all non-formula values to HF
     // This ensures dependencies (e.g. B2, C2) exist before formulas (D2) are calculated
-    Object.keys(cells).forEach(key => {
-        const cell = cells[key];
-        if (!cell.raw.startsWith('=')) {
-            updateCellInHF(key, cell.raw, sheetName);
-        }
+    performBatchUpdate(() => {
+        Object.keys(cells).forEach(key => {
+            const cell = cells[key];
+            if (!cell.raw.startsWith('=')) {
+                updateCellInHF(key, cell.raw, sheetName);
+            }
+        });
     });
 
     // 2. Second Pass: Evaluate formulas

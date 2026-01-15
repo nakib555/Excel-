@@ -1,13 +1,12 @@
 
-import React, { useRef, useState, useEffect, memo, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, memo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, SquareArrowOutDownRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CellStyle, Table } from '../types';
 import { cn, useSmartPosition } from '../utils';
-import { Tooltip, TooltipProps } from './Tooltip';
+import { Tooltip } from './Tooltip';
 
 export { Tooltip };
-export type { TooltipProps };
 
 export interface TabProps {
   currentStyle: CellStyle;
@@ -76,6 +75,12 @@ export interface TabProps {
   // Table Design
   activeTable?: Table | null;
   onTableOptionChange?: (tableId: string, key: keyof Table, value: any) => void;
+  
+  // Undo/Redo Props
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {
@@ -226,14 +231,13 @@ export const RibbonGroup: React.FC<{
     </div>
     <div className="h-[18px] flex items-center justify-center text-[10px] text-slate-400 font-medium whitespace-nowrap pb-1 cursor-default">{label}</div>
     {showLauncher && (
-        <Tooltip content="See more options">
-            <button 
-                onClick={onLaunch}
-                className="absolute bottom-0.5 right-0.5 p-[0.3rem] text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-sm transition-colors"
-            >
-                <SquareArrowOutDownRight size={10} />
-            </button>
-        </Tooltip>
+        <button 
+            onClick={onLaunch}
+            className="absolute bottom-0.5 right-0.5 p-[0.3rem] text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-sm transition-colors"
+            title="See more options"
+        >
+            <SquareArrowOutDownRight size={10} />
+        </button>
     )}
   </div>
 ));
@@ -275,72 +279,68 @@ export const RibbonButton: React.FC<RibbonButtonProps> = memo(({
     ? React.cloneElement(icon as React.ReactElement<any>, iconConfig) 
     : icon;
 
-  // Render the button itself
-  const renderButton = (
-      <>
-        {variant === 'large' ? (
-            <>
-              <div className="p-1">{styledIcon}</div>
-              <div className="text-[11px] font-medium leading-[1.1] text-center flex flex-col items-center text-slate-700">
-                  {label}
-                  {subLabel && <span>{subLabel}</span>}
-                  {hasDropdown && <ChevronDown size={10} className="mt-0.5 opacity-50 stroke-[3]" />}
-              </div>
-            </>
-        ) : variant === 'small' ? (
-            <>
-              <div className="transform flex-shrink-0 text-slate-700 flex items-center">{styledIcon}</div>
-              {label && <span className="text-[12px] text-slate-700 font-medium whitespace-nowrap leading-none pt-0.5">{label}</span>}
-              {hasDropdown && <ChevronDown size={10} className="ml-auto opacity-50 stroke-[3]" />}
-            </>
-        ) : (
-            <>
-              {styledIcon}
-              {hasDropdown && (
-                  <svg 
-                      xmlns="http://www.w3.org/2000/svg" 
-                      width="8" 
-                      height="8" 
-                      viewBox="0 0 24 24" 
-                      fill="none" 
-                      stroke="currentColor" 
-                      strokeWidth="2" 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      className="lucide lucide-chevron-down absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]"
-                  >
-                      <path d="m6 9 6 6 6-6"/>
-                  </svg>
-              )}
-            </>
-        )}
-      </>
-  );
-
-  const buttonClass = variant === 'large' 
-    ? cn(`${baseClass} flex-col px-1 py-1 h-full min-w-[52px] md:min-w-[60px] gap-0.5 justify-center`, className)
-    : variant === 'small' 
-      ? cn(`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`, className)
-      : cn(`${baseClass} p-1 w-7 h-7 relative`, className);
-
-  const tooltipText = title || (label ? `${label}${subLabel ? ' ' + subLabel : ''}` : undefined);
-
-  const buttonElement = (
+  if (variant === 'large') {
+    return (
       <button 
         onClick={onClick} 
         onDoubleClick={onDoubleClick}
+        title={title} 
         disabled={disabled} 
-        className={buttonClass}
+        className={cn(`${baseClass} flex-col px-1 py-1 h-full min-w-[52px] md:min-w-[60px] gap-0.5 justify-center`, className)}
       >
-        {renderButton}
+        <div className="p-1">{styledIcon}</div>
+        <div className="text-[11px] font-medium leading-[1.1] text-center flex flex-col items-center text-slate-700">
+            {label}
+            {subLabel && <span>{subLabel}</span>}
+            {hasDropdown && <ChevronDown size={10} className="mt-0.5 opacity-50 stroke-[3]" />}
+        </div>
       </button>
-  );
-
-  if (tooltipText) {
-      return <Tooltip content={tooltipText}>{buttonElement}</Tooltip>;
+    );
   }
 
-  return buttonElement;
+  if (variant === 'small') {
+    return (
+      <button 
+        onClick={onClick} 
+        onDoubleClick={onDoubleClick}
+        title={title} 
+        disabled={disabled} 
+        className={cn(`${baseClass} flex-row px-1.5 py-0.5 w-full justify-start gap-2 text-left h-6`, className)}
+      >
+        <div className="transform flex-shrink-0 text-slate-700 flex items-center">{styledIcon}</div>
+        {label && <span className="text-[12px] text-slate-700 font-medium whitespace-nowrap leading-none pt-0.5">{label}</span>}
+        {hasDropdown && <ChevronDown size={10} className="ml-auto opacity-50 stroke-[3]" />}
+      </button>
+    );
+  }
+
+  return (
+    <button 
+        onClick={onClick} 
+        onDoubleClick={onDoubleClick}
+        title={title} 
+        disabled={disabled} 
+        className={cn(`${baseClass} p-1 w-7 h-7 relative`, className)}
+    >
+      {styledIcon}
+      {hasDropdown && (
+        <svg 
+            xmlns="http://www.w3.org/2000/svg" 
+            width="8" 
+            height="8" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className="lucide lucide-chevron-down absolute bottom-0.5 right-0.5 opacity-60 stroke-[3]"
+        >
+            <path d="m6 9 6 6 6-6"/>
+        </svg>
+      )}
+    </button>
+  );
 });
 
 export const SmartDropdown = ({ 
@@ -463,19 +463,19 @@ export const ColorPicker: React.FC<{
         >
              <div className="grid grid-cols-5 gap-1.5 p-2">
                 {colors.map(c => (
-                    <Tooltip key={c} content={c} side="top" delayDuration={300}>
-                        <button
-                            className="w-6 h-6 rounded border border-slate-200 hover:scale-110 hover:border-slate-400 hover:shadow-sm transition-all relative overflow-hidden"
-                            style={{ backgroundColor: c === 'transparent' ? 'white' : c }}
-                            onClick={() => { onChange(c); setOpen(false); }}
-                        >
-                             {c === 'transparent' && (
-                                 <div className="absolute inset-0 flex items-center justify-center">
-                                     <div className="w-full h-[1px] bg-red-500 rotate-45 transform" />
-                                 </div>
-                             )}
-                        </button>
-                    </Tooltip>
+                    <button
+                        key={c}
+                        className="w-6 h-6 rounded border border-slate-200 hover:scale-110 hover:border-slate-400 hover:shadow-sm transition-all relative overflow-hidden"
+                        style={{ backgroundColor: c === 'transparent' ? 'white' : c }}
+                        onClick={() => { onChange(c); setOpen(false); }}
+                        title={c}
+                    >
+                         {c === 'transparent' && (
+                             <div className="absolute inset-0 flex items-center justify-center">
+                                 <div className="w-full h-[1px] bg-red-500 rotate-45 transform" />
+                             </div>
+                         )}
+                    </button>
                 ))}
             </div>
         </SmartDropdown>
