@@ -1,7 +1,7 @@
 
 import React, { useMemo, useCallback, useState, useEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
-import { DataGrid, Column, RenderCellProps } from 'react-data-grid';
+import { DataGrid, Column, RenderCellProps, DataGridHandle } from 'react-data-grid';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
 import { numToChar, getCellId, formatCellValue, parseCellId, cn, getRange } from '../utils';
 import { NavigationDirection } from './Cell';
@@ -343,14 +343,17 @@ const Grid: React.FC<GridProps> = ({
   selectionRange,
   columnWidths,
   rowHeights,
+  centerActiveCell,
   onCellClick,
   onCellChange,
   onColumnResize,
   onSelectionDrag,
   onExpandGrid,
-  onFill
+  onFill,
+  onScrollToActiveCell
 }) => {
   const [isTouch, setIsTouch] = useState(false);
+  const gridRef = useRef<DataGridHandle>(null);
   
   const [isSelecting, setIsSelecting] = useState(false);
   const [dragStartCell, setDragStartCell] = useState<string | null>(null);
@@ -367,6 +370,21 @@ const Grid: React.FC<GridProps> = ({
       window.addEventListener('resize', checkTouch);
       return () => window.removeEventListener('resize', checkTouch);
   }, []);
+
+  // Programmatic Scroll Effect for Search/GoTo
+  useEffect(() => {
+      if (centerActiveCell && activeCell && gridRef.current) {
+          const coords = parseCellId(activeCell);
+          if (coords) {
+              gridRef.current.scrollToCell({ rowIdx: coords.row, idx: coords.col });
+              // Notify parent we handled the scroll request
+              if (onScrollToActiveCell) {
+                  // Short timeout to ensure scroll happens before reset
+                  requestAnimationFrame(onScrollToActiveCell);
+              }
+          }
+      }
+  }, [centerActiveCell, activeCell, onScrollToActiveCell]);
 
   const selectionSet = useMemo(() => new Set(selectionRange || []), [selectionRange]);
   const fillSet = useMemo(() => new Set(fillTargetRange || []), [fillTargetRange]);
@@ -615,6 +633,7 @@ const Grid: React.FC<GridProps> = ({
   return (
     <div className="w-full h-full text-sm bg-white select-none">
         <DataGrid 
+            ref={gridRef}
             columns={columns} 
             rows={rows} 
             rowHeight={(row) => rowHeights[row.id] || 24}
