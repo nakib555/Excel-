@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { Table as TableIcon } from 'lucide-react';
 import { RibbonButton } from '../../shared';
@@ -9,7 +8,7 @@ interface TableProps {
 }
 
 const Table: React.FC<TableProps> = ({ onInsertTable }) => (
-    <RibbonButton variant="large" icon={<TableIcon size={20} className="text-sky-600" />} label="Table" onClick={onInsertTable || (() => {})} />
+    <RibbonButton variant="large" icon={<TableIcon size={20} className="text-sky-600" />} label="Table" onClick={onInsertTable || (() => {})} title="Insert Table (Ctrl+T)" />
 );
 
 export default Table;

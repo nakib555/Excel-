@@ -20,6 +20,7 @@ const Delete: React.FC<DeleteProps> = ({ onDeleteRow, onDeleteColumn, onDeleteSh
                     label="Delete" 
                     hasDropdown 
                     onClick={() => {}} 
+                    title="Delete Cells"
                 />
             }
         >

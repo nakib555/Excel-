@@ -20,6 +20,7 @@ const Insert: React.FC<InsertProps> = ({ onInsertRow, onInsertColumn, onInsertSh
                     label="Insert" 
                     hasDropdown 
                     onClick={() => {}} 
+                    title="Insert Cells"
                 />
             }
         >

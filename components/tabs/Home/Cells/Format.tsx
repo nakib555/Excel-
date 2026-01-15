@@ -36,6 +36,7 @@ const Format: React.FC<FormatProps> = ({
                     label="Format" 
                     hasDropdown 
                     onClick={() => {}} 
+                    title="Format Cells"
                 />
             }
         >
