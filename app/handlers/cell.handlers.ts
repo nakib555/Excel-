@@ -10,7 +10,7 @@ import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../constants/grid.constan
 interface UseCellHandlersProps {
     setSheets: React.Dispatch<React.SetStateAction<Sheet[]>>;
     activeSheetId: string;
-    activeSheetName: string; // Added sheet name
+    activeSheetName: string; 
     validations: Record<CellId, ValidationRule>;
     activeCell: CellId | null;
     selectionRange: CellId[] | null;
@@ -35,7 +35,6 @@ export const useCellHandlers = ({
             }
         }
 
-        // 1. Sync HyperFormula Engine First
         updateCellInHF(id, rawValue, activeSheetName);
 
         setSheets(prevSheets => prevSheets.map(sheet => {
@@ -45,8 +44,6 @@ export const useCellHandlers = ({
             let nextRowHeights = { ...sheet.rowHeights };
             let nextColWidths = { ...sheet.columnWidths };
 
-            // 2. Update Source Cell in React State
-            // We get the calculated value from HF immediately
             const calculatedValue = getCellValueFromHF(id, activeSheetName);
             
             const oldCell = nextCells[id];
@@ -63,10 +60,6 @@ export const useCellHandlers = ({
                 } as CellData;
             }
 
-            // 3. Update Dependencies
-            // For a robust implementation, we should ask HF which cells changed. 
-            // For MVP, we naively re-check visible cells or just rely on HF lazy eval if we were using it for rendering directly.
-            // Here we iterate known formula cells in the sheet.
             Object.keys(nextCells).forEach(cellId => {
                 if (nextCells[cellId].raw.startsWith('=')) {
                     nextCells[cellId].value = getCellValueFromHF(cellId, activeSheetName);
@@ -81,20 +74,32 @@ export const useCellHandlers = ({
         setSheets(prevSheets => prevSheets.map(sheet => {
             if (sheet.id !== activeSheetId) return sheet;
             
+            // Excel Behavior:
+            // If NOT Shift-Clicking, the clicked cell becomes the new Anchor AND Active Cell.
+            // If Shift-Clicking, the Anchor remains the same, Active Cell remains the same (usually), but selection expands.
+            
             let anchor = sheet.selectionAnchor;
+            let active = sheet.activeCell;
+
             if (!isShift || !anchor) {
                 anchor = id;
+                active = id;
             }
 
+            // Calculate new range from Anchor -> Clicked ID
             let newSelection = [id];
             if (isShift && anchor) {
                 newSelection = getRange(anchor, id);
+                // Active cell usually stays as the anchor/lead during shift-select in Excel, 
+                // but visually we often just keep the focus where it was or move it. 
+                // Standard Excel: Active cell doesn't change on Shift+Click, only selection grows.
+                // We keep active cell as is if shift is held.
+                active = sheet.activeCell || id; 
             }
             
             return { 
                 ...sheet, 
-                // Excel Behavior: Active cell stays put if extending selection (Shift)
-                activeCell: isShift && sheet.activeCell ? sheet.activeCell : id, 
+                activeCell: active, 
                 selectionAnchor: anchor,
                 selectionRange: newSelection 
             };
@@ -105,10 +110,11 @@ export const useCellHandlers = ({
         setSheets(prev => prev.map(s => {
             if (s.id !== activeSheetId) return s;
             
-            // If dragging, we anchor at startId and extend to endId
-            // Active cell is NOT updated during drag, consistent with Excel
+            // Dragging implies creating a range from an anchor (startId) to current target (endId)
+            // Active cell usually remains at the startId.
             return { 
                 ...s, 
+                activeCell: startId,
                 selectionAnchor: startId,
                 selectionRange: getRange(startId, endId) 
             };

@@ -104,7 +104,7 @@ const CustomCellRenderer = memo(({
       fontWeight: style.bold ? '700' : '400',
       fontStyle: style.italic ? 'italic' : 'normal',
       textDecoration: style.underline ? 'underline' : 'none',
-      backgroundColor: style.bg, // Apply background color from style directly
+      backgroundColor: style.bg, 
       color: style.color || 'inherit',
       whiteSpace: style.wrapText ? 'pre-wrap' : 'nowrap',
   };
@@ -174,23 +174,23 @@ const CustomCellRenderer = memo(({
 
       {showSelectionBorder && (
           <>
-            {/* Using higher z-index (50) to ensure border draws over adjacent cells */}
-            {isTop && <div className="absolute top-[-1px] left-[-1px] right-[-1px] h-[2px] z-50 pointer-events-none" style={{ backgroundColor: selectionColor }} />}
-            {isBottom && <div className="absolute bottom-[-1px] left-[-1px] right-[-1px] h-[2px] z-50 pointer-events-none" style={{ backgroundColor: selectionColor }} />}
-            {isLeft && <div className="absolute top-[-1px] bottom-[-1px] left-[-1px] w-[2px] z-50 pointer-events-none" style={{ backgroundColor: selectionColor }} />}
-            {isRight && <div className="absolute top-[-1px] bottom-[-1px] right-[-1px] w-[2px] z-50 pointer-events-none" style={{ backgroundColor: selectionColor }} />}
+            {/* Main Selection Borders - High Z-index to float over neighbors */}
+            {isTop && <div className="absolute top-[-2px] left-[-2px] right-[-2px] h-[2px] z-[50] pointer-events-none" style={{ backgroundColor: selectionColor }} />}
+            {isBottom && <div className="absolute bottom-[-2px] left-[-2px] right-[-2px] h-[2px] z-[50] pointer-events-none" style={{ backgroundColor: selectionColor }} />}
+            {isLeft && <div className="absolute top-[-2px] bottom-[-2px] left-[-2px] w-[2px] z-[50] pointer-events-none" style={{ backgroundColor: selectionColor }} />}
+            {isRight && <div className="absolute top-[-2px] bottom-[-2px] right-[-2px] w-[2px] z-[50] pointer-events-none" style={{ backgroundColor: selectionColor }} />}
             
-            {/* Top-Left Handle (Visual Only) */}
-            {isTopLeft && (
+            {/* Top-Left Handle (Mobile) */}
+            {isTopLeft && isTouch && (
                 <div 
-                    className="absolute -top-[6px] -left-[6px] w-[12px] h-[12px] rounded-full bg-white border-[2px] border-[#107c41] z-[60] pointer-events-none shadow-sm"
+                    className="absolute -top-[6px] -left-[6px] w-[12px] h-[12px] rounded-full bg-white border-[2px] border-[#107c41] z-[60] pointer-events-auto shadow-sm"
                 />
             )}
 
-            {/* Bottom-Right Handle (Fill Handle) */}
+            {/* Bottom-Right Fill Handle */}
             {isBottomRight && (
                 <div 
-                    className="absolute -bottom-[6px] -right-[6px] w-[12px] h-[12px] rounded-full bg-white border-[2px] border-[#107c41] z-[60] cursor-crosshair hover:scale-110 transition-transform shadow-sm"
+                    className="absolute -bottom-[5px] -right-[5px] w-[9px] h-[9px] bg-[#107c41] border border-white cursor-crosshair z-[60] pointer-events-auto shadow-[0_0_2px_rgba(0,0,0,0.2)] hover:scale-125 transition-transform"
                     onMouseDown={(e) => onFillHandleDown(e, cellId)}
                 />
             )}
@@ -199,18 +199,13 @@ const CustomCellRenderer = memo(({
     </div>
   );
 }, (prev, next) => {
-    // Custom Comparator for Performance
     const colKey = parseInt(next.column.key);
     const rowId = next.row.id;
     const cellId = getCellId(colKey, rowId);
     
-    // Check Content
     if (prev.cells[cellId] !== next.cells[cellId]) return false;
-    
-    // Check Styles (Registry Reference)
     if (prev.styles !== next.styles) return false;
 
-    // Check Selection
     const wasActive = prev.activeCell === cellId;
     const isActive = next.activeCell === cellId;
     if (wasActive !== isActive) return false;
@@ -219,7 +214,7 @@ const CustomCellRenderer = memo(({
     const isInSelection = next.selectionSet.has(cellId);
     if (wasInSelection !== isInSelection) return false;
     
-    // Check Bounds only if involved in selection to update borders
+    // Re-render if selection bounds changed (to update borders)
     if ((isInSelection || wasInSelection) && prev.selectionBounds !== next.selectionBounds) return false;
 
     return true;
@@ -244,7 +239,6 @@ const Grid: React.FC<GridProps> = ({
   const [dragStartCell, setDragStartCell] = useState<string | null>(null);
   const [isTouch, setIsTouch] = useState(false);
   
-  // Fill Handle State
   const [isFilling, setIsFilling] = useState(false);
   const [fillStartRange, setFillStartRange] = useState<string[] | null>(null);
   const [fillTargetRange, setFillTargetRange] = useState<string[] | null>(null);
@@ -256,9 +250,7 @@ const Grid: React.FC<GridProps> = ({
       return () => window.removeEventListener('resize', checkTouch);
   }, []);
 
-  // Set for fast lookup
   const selectionSet = useMemo(() => {
-      // During filling, we show the selection expanded to the target
       if (isFilling && fillTargetRange) {
           return new Set(fillTargetRange);
       }
@@ -283,7 +275,6 @@ const Grid: React.FC<GridProps> = ({
 
   // --- Handlers ---
 
-  // Selection Drag
   const handleMouseDown = useCallback((id: string, shift: boolean) => {
       onCellClick(id, shift);
       if (!shift) {
@@ -294,9 +285,7 @@ const Grid: React.FC<GridProps> = ({
 
   const handleMouseEnter = useCallback((id: string) => {
       if (isFilling && fillStartRange) {
-          // Calculate Fill Range Preview
           const start = fillStartRange[0];
-          // We use simple rectangle extension logic for visual preview
           const newRange = getRange(start, id); 
           setFillTargetRange(newRange);
       } else if (isDragging && dragStartCell && onSelectionDrag) {
@@ -304,7 +293,6 @@ const Grid: React.FC<GridProps> = ({
       }
   }, [isDragging, dragStartCell, onSelectionDrag, isFilling, fillStartRange]);
 
-  // Fill Handle Start
   const handleFillHandleDown = useCallback((e: React.MouseEvent, id: string) => {
       e.stopPropagation();
       e.preventDefault();
@@ -315,11 +303,9 @@ const Grid: React.FC<GridProps> = ({
       }
   }, [selectionRange]);
 
-  // Global Mouse Up
   useEffect(() => {
       const handleMouseUp = () => {
           if (isFilling && fillStartRange && fillTargetRange && onFill) {
-              // Trigger Fill
               onFill(fillStartRange, fillTargetRange);
           }
           setIsDragging(false);
@@ -332,20 +318,12 @@ const Grid: React.FC<GridProps> = ({
       return () => window.removeEventListener('mouseup', handleMouseUp);
   }, [isFilling, fillStartRange, fillTargetRange, onFill]);
 
-  // Infinite Scroll Handler
   const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
       const { scrollTop, scrollHeight, clientHeight, scrollLeft, scrollWidth, clientWidth } = event.currentTarget;
-      
-      // Threshold: 200px from edge
-      if (scrollHeight - scrollTop - clientHeight < 200) {
-          onExpandGrid?.('row');
-      }
-      if (scrollWidth - scrollLeft - clientWidth < 200) {
-          onExpandGrid?.('col');
-      }
+      if (scrollHeight - scrollTop - clientHeight < 200) onExpandGrid?.('row');
+      if (scrollWidth - scrollLeft - clientWidth < 200) onExpandGrid?.('col');
   }, [onExpandGrid]);
 
-  // --- Column Definitions ---
   const columns = useMemo((): Column<any>[] => {
     return [
        { 
@@ -359,7 +337,9 @@ const Grid: React.FC<GridProps> = ({
             return (
                 <div className={cn(
                     "flex items-center justify-center w-full h-full font-semibold select-none text-[11px] border-r border-b border-[#bfbfbf]",
-                    isRowActive ? "bg-[#d3f0e0] text-[#107c41] border-r-[#107c41]" : "bg-[#e6e6e6] text-[#444]"
+                    isRowActive 
+                        ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
+                        : "bg-[#e6e6e6] text-[#444]"
                 )}>
                     {props.row.id + 1}
                 </div>
@@ -393,7 +373,9 @@ const Grid: React.FC<GridProps> = ({
                 return (
                     <div className={cn(
                         "flex items-center justify-center w-full h-full font-semibold text-[12px] border-r border-b border-[#bfbfbf]",
-                        isColActive ? "bg-[#d3f0e0] text-[#107c41] border-b-2 border-b-[#107c41]" : "bg-[#e6e6e6] text-[#444]"
+                        isColActive 
+                            ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
+                            : "bg-[#e6e6e6] text-[#444]"
                     )}>
                         {props.column.name}
                     </div>

@@ -7,20 +7,27 @@
 
 /* Standard CSS Overrides */
 
+:root {
+  --excel-green: #107c41;
+  --excel-green-light: #e0f2f1;
+  --excel-header-gray: #f8f9fa;
+  --excel-border-gray: #d4d4d4;
+  --excel-header-border: #bfbfbf;
+}
+
 body {
   overscroll-behavior: none;
-  background-color: #f3f3f3; /* Excel background gray */
+  background-color: #f3f3f3;
   color: #000000;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Authentic Excel Fonts */
   font-family: "Segoe UI", "Inter", sans-serif;
   user-select: none;
   touch-action: pan-x pan-y;
   font-size: 13px;
 }
 
-/* Selection Color - Authentic Excel Green */
+/* Selection Color */
 ::selection {
   background-color: #c6efce; 
   color: #006100;
@@ -28,8 +35,8 @@ body {
 
 /* Modern Scrollbar */
 ::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
 }
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
@@ -37,7 +44,7 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #c1c1c1;
   border: 3px solid #f1f1f1;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
@@ -52,50 +59,9 @@ body {
   scrollbar-width: none;
 }
 
-.transform-gpu {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000px;
-}
-
 html, body, #root {
   height: 100%;
   overflow: hidden;
-}
-
-/* Custom Range Slider Styling for StatusBar */
-.range-slider {
-  -webkit-appearance: none;
-  background: transparent;
-  height: 20px;
-  display: flex;
-  align-items: center;
-}
-
-.range-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  height: 12px;
-  width: 12px;
-  border-radius: 50%;
-  background: #ffffff;
-  border: 1px solid #888;
-  cursor: pointer;
-  margin-top: -5px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  transition: transform 0.1s ease;
-}
-
-.range-slider::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 2px;
-  cursor: pointer;
-  background: #888;
-  border-radius: 1px;
-}
-
-.range-slider:hover::-webkit-slider-thumb {
-  transform: scale(1.2);
-  background: #f0f0f0;
 }
 
 /* React Data Grid Overrides for Excel Look */
@@ -103,12 +69,12 @@ html, body, #root {
   border: none;
   background-color: #ffffff;
   --rdg-color: #000000;
-  --rdg-border-color: #d4d4d4; /* Standard Excel gridline color */
-  --rdg-summary-border-color: #d4d4d4;
+  --rdg-border-color: var(--excel-border-gray);
+  --rdg-summary-border-color: var(--excel-border-gray);
   --rdg-background-color: #ffffff;
-  --rdg-header-background-color: #f8f9fa; /* Slightly lighter than Excel native but clean */
+  --rdg-header-background-color: var(--excel-header-gray);
   --rdg-row-hover-background-color: transparent;
-  --rdg-selection-color: #217346; /* Excel Green */
+  --rdg-selection-color: var(--excel-green);
   --rdg-font-size: 13px;
   block-size: 100%;
 }
@@ -129,51 +95,46 @@ html, body, #root {
 .rdg-cell[aria-selected="true"] {
   box-shadow: none !important;
   border-color: var(--rdg-border-color);
+  z-index: 2; /* Ensure active cell sits above others */
 }
 
 /* Row Headers (1, 2, 3...) */
 .rdg-cell[aria-colindex="1"] {
-    background-color: #e6e6e6; /* Authentic Excel Row Header Gray */
+    background-color: #e6e6e6;
     color: #444;
-    border-right: 1px solid #bfbfbf;
-    border-bottom: 1px solid #bfbfbf;
+    border-right: 1px solid var(--excel-header-border);
+    border-bottom: 1px solid var(--excel-header-border);
     font-size: 11px;
     font-weight: 600;
-    /* Reset overflow for row headers to keep numbers neat */
     overflow: hidden !important; 
+    z-index: 10 !important;
 }
 
 /* Column Headers (A, B, C...) */
 .rdg-header-row {
-  background-color: #e6e6e6; /* Authentic Excel Col Header Gray */
+  background-color: #e6e6e6; 
   color: #444;
   font-weight: 600;
   text-align: center;
-  border-bottom: 1px solid #bfbfbf;
-  z-index: 100; /* Ensure headers stay above cells */
+  border-bottom: 1px solid var(--excel-header-border);
+  z-index: 20; 
 }
 
 .rdg-header-row .rdg-cell {
   justify-content: center;
-  border-right: 1px solid #bfbfbf;
-  border-bottom: 1px solid #bfbfbf;
+  border-right: 1px solid var(--excel-header-border);
+  border-bottom: 1px solid var(--excel-header-border);
   background-color: #e6e6e6;
 }
 
 .rdg-row {
   background-color: #fff;
-  contain: none !important; /* Allow cell overflow */
+  contain: none !important; 
 }
 
-/* Selection Border - Thicker and Green (RDG Default Override) */
-.rdg-selected {
-  border: 2px solid #217346 !important; /* Excel Green */
-  z-index: 50;
-}
-
-/* Editor Input Override - Ensure it sits above cell content */
+/* Editor Input Override */
 .rdg-editor-container {
-  z-index: 100 !important;
+  z-index: 1000 !important;
 }
 
 /* Skeleton Animation */
