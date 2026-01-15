@@ -19,7 +19,7 @@
     "react-dom": "^19.2.1",
     "tailwind-merge": "^2.2.2",
     "@google/genai": "*",
-    "react-data-grid": "^7.0.0-beta.44",
+    "react-data-grid": "^7.0.0-beta.59",
     "hyperformula": "^2.6.0"
   },
   "devDependencies": {
