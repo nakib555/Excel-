@@ -78,20 +78,21 @@ const Border = memo(({
 
     let positionClass = "";
     
+    // Use 0 offsets (inset) to prevent clipping by adjacent cells in the grid stacking context
     if (type === 'top') {
-        positionClass = "top-[-1px] left-[-1px] right-[-1px]";
+        positionClass = "top-0 left-0 right-0";
         styleObj.height = thickness;
         if (style === 'dashed') styleObj.borderTopWidth = thickness;
     } else if (type === 'bottom') {
-        positionClass = "bottom-[-1px] left-[-1px] right-[-1px]";
+        positionClass = "bottom-0 left-0 right-0";
         styleObj.height = thickness;
         if (style === 'dashed') styleObj.borderBottomWidth = thickness;
     } else if (type === 'left') {
-        positionClass = "left-[-1px] top-[-1px] bottom-[-1px]";
+        positionClass = "left-0 top-0 bottom-0";
         styleObj.width = thickness;
         if (style === 'dashed') styleObj.borderLeftWidth = thickness;
     } else if (type === 'right') {
-        positionClass = "right-[-1px] top-[-1px] bottom-[-1px]";
+        positionClass = "right-0 top-0 bottom-0";
         styleObj.width = thickness;
         if (style === 'dashed') styleObj.borderRightWidth = thickness;
     }
@@ -280,7 +281,7 @@ const CustomCellRenderer = memo(({
       {/* Bottom-Right Fill Handle (Desktop) */}
       {isBottomRight && !isTouch && !isFilling && (
         <div 
-            className="absolute -bottom-[5px] -right-[5px] w-[8px] h-[8px] bg-[#107c41] border border-white z-[60] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform"
+            className="absolute -bottom-[3px] -right-[3px] w-[7px] h-[7px] bg-[#107c41] border border-white z-[60] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform"
             style={{ boxSizing: 'content-box' }}
             onMouseDown={(e) => onFillHandleDown(e, cellId)}
         />
