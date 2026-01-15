@@ -180,11 +180,17 @@ const CustomCellRenderer = memo(({
             {isLeft && <div className="absolute top-[-1px] bottom-[-1px] left-[-1px] w-[2px] z-50 pointer-events-none" style={{ backgroundColor: selectionColor }} />}
             {isRight && <div className="absolute top-[-1px] bottom-[-1px] right-[-1px] w-[2px] z-50 pointer-events-none" style={{ backgroundColor: selectionColor }} />}
             
-            {/* Fill Handle (Desktop) - Adjusted for authentic Excel look (square, white border) */}
-            {!isTouch && isBottomRight && (
+            {/* Top-Left Handle (Visual Only) */}
+            {isTopLeft && (
                 <div 
-                    className="absolute -bottom-[4px] -right-[4px] w-[7px] h-[7px] bg-[#107c41] border border-white z-[60] cursor-crosshair hover:scale-125 transition-transform"
-                    style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }}
+                    className="absolute -top-[6px] -left-[6px] w-[12px] h-[12px] rounded-full bg-white border-[2px] border-[#107c41] z-[60] pointer-events-none shadow-sm"
+                />
+            )}
+
+            {/* Bottom-Right Handle (Fill Handle) */}
+            {isBottomRight && (
+                <div 
+                    className="absolute -bottom-[6px] -right-[6px] w-[12px] h-[12px] rounded-full bg-white border-[2px] border-[#107c41] z-[60] cursor-crosshair hover:scale-110 transition-transform shadow-sm"
                     onMouseDown={(e) => onFillHandleDown(e, cellId)}
                 />
             )}
