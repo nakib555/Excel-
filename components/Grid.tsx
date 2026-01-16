@@ -225,6 +225,10 @@ const CustomCellRenderer = memo(({
   const paddingLeft = style.align === 'right' ? 4 * scale : (4 * scale) + indentPx;
   const paddingRight = style.align === 'right' ? (4 * scale) + indentPx : 4 * scale;
 
+  // Calculate font size with floor to prevent invisibility on zoom out
+  // and direct scaling on zoom in.
+  const fontSize = Math.max(scale < 0.6 ? 7 : 9, (style.fontSize || 13) * scale);
+
   const baseStyle: React.CSSProperties = {
       width: '100%',
       height: '100%',
@@ -237,7 +241,8 @@ const CustomCellRenderer = memo(({
       position: 'relative',
       cursor: 'cell',
       fontFamily: style.fontFamily || 'Calibri, "Segoe UI", sans-serif',
-      fontSize: `${(style.fontSize || 13) * scale}px`,
+      fontSize: `${fontSize}px`,
+      lineHeight: 1.2, // Ensure tight line-height to prevent clipping on zoom
       fontWeight: style.bold ? '700' : '400',
       fontStyle: style.italic ? 'italic' : 'normal',
       textDecoration: style.underline ? 'underline' : 'none',
