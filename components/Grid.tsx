@@ -111,11 +111,13 @@ const Border = memo(({
     color: string, 
     thickness?: number 
 }) => {
-    const baseClass = "absolute z-[50] pointer-events-none transition-opacity duration-200 ease-in-out";
+    // Updated transition as requested: 0.08s ease-out
+    const baseClass = "absolute z-[50] pointer-events-none";
     
     const styleObj: React.CSSProperties = {
         backgroundColor: style === 'solid' ? color : 'transparent',
         opacity: visible ? 1 : 0,
+        transition: 'all 0.08s ease-out'
     };
 
     if (style === 'dashed') {
@@ -321,17 +323,19 @@ const CustomCellRenderer = memo(({
       {/* Background Selection with Transition */}
       <div 
           className={cn(
-              "absolute inset-0 bg-[#107c41] pointer-events-none z-[5] transition-opacity duration-200 ease-in-out",
+              "absolute inset-0 bg-[#107c41] pointer-events-none z-[5]",
               (isInSelection && !isActive) ? "opacity-[0.15]" : "opacity-0"
-          )} 
+          )}
+          style={{ transition: 'all 0.08s ease-out' }} 
       />
       
       {/* Fill Selection with Transition */}
       <div 
           className={cn(
-              "absolute inset-0 bg-gray-400 pointer-events-none z-[5] transition-opacity duration-200 ease-in-out",
+              "absolute inset-0 bg-gray-400 pointer-events-none z-[5]",
               (isInFill && !isInSelection) ? "opacity-20" : "opacity-0"
           )} 
+          style={{ transition: 'all 0.08s ease-out' }}
       />
 
       <div className="relative z-0 w-full h-full flex" style={{ alignItems: baseStyle.alignItems, justifyContent: baseStyle.justifyContent }}>
