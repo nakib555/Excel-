@@ -1,5 +1,6 @@
 
 import React, { lazy, Suspense, useCallback, useState, useEffect } from 'react';
+import { useStore } from 'zustand';
 import { MAX_ROWS, MAX_COLS } from './constants/grid.constants';
 import { getApiKey } from './utils/apiKey';
 import { parseCellId, generateCsv, downloadCsv } from '../utils';
@@ -48,8 +49,10 @@ export const AppRoot: React.FC = () => {
     gridSize, setGridSize, zoom, setZoom, updateCell
   } = useSheetStore();
   
-  // Zundo Undo/Redo
-  const { undo, redo, pastStates, futureStates } = useSheetStore.temporal.getState();
+  // Zundo Undo/Redo - Reactive
+  const temporal = useStore(useSheetStore.temporal);
+  const { undo, redo, pastStates, futureStates } = temporal;
+  
   const canUndo = pastStates.length > 0;
   const canRedo = futureStates.length > 0;
 
@@ -275,6 +278,8 @@ export const AppRoot: React.FC = () => {
             onSave={handleSave}
             onToggleAutoSave={() => {}}
             isAutoSave={false}
+            onUndo={undo}
+            onRedo={redo}
           />
         </Suspense>
       </div>

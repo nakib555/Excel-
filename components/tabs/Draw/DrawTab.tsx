@@ -19,7 +19,10 @@ const InkToShape = lazy(() => import('./Convert/InkToShape'));
 const InkToMath = lazy(() => import('./Convert/InkToMath'));
 const InkReplay = lazy(() => import('./Convert/InkReplay'));
 
-const DrawTab: React.FC<TabProps> = () => {
+const Undo = lazy(() => import('./Undo'));
+const Redo = lazy(() => import('./Redo'));
+
+const DrawTab: React.FC<TabProps> = ({ onUndo, onRedo }) => {
   return (
     <motion.div 
         initial={{ opacity: 0 }}
@@ -58,6 +61,15 @@ const DrawTab: React.FC<TabProps> = () => {
         <Suspense fallback={<GroupSkeleton width={80} />}>
             <RibbonGroup label="Replay">
                 <InkReplay />
+            </RibbonGroup>
+        </Suspense>
+
+        <Suspense fallback={<GroupSkeleton width={80} />}>
+            <RibbonGroup label="History">
+                <div className="flex items-center gap-1 h-full">
+                    <Undo onUndo={onUndo} />
+                    <Redo onRedo={onRedo} />
+                </div>
             </RibbonGroup>
         </Suspense>
     </motion.div>
