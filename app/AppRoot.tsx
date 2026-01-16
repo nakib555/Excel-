@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense, useCallback, useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { MAX_ROWS, MAX_COLS } from './constants/grid.constants';
@@ -23,7 +24,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 // Component Imports
 import { 
-  ToolbarSkeleton, FormulaBarSkeleton, GridSkeleton, SheetTabsSkeleton, StatusBarSkeleton, AppSkeleton 
+  ToolbarSkeleton, FormulaBarSkeleton, GridSkeleton, SheetTabsSkeleton, StatusBarSkeleton 
 } from '../components/Skeletons';
 
 const AIAssistant = lazy(() => import('../components/AIAssistant'));
@@ -43,21 +44,14 @@ const HistorySidebar = lazy(() => import('../components/HistorySidebar'));
 
 export const AppRoot: React.FC = () => {
   // 1. Core State from Zustand
-  // Safe destructuring in case store is undefined (though it shouldn't be with correct versions)
-  const store = useSheetStore();
   const { 
     sheets, setSheets, activeSheetId, setActiveSheetId, 
     gridSize, setGridSize, zoom, setZoom, updateCell
-  } = store || { sheets: [], activeSheetId: 'sheet1', gridSize: { rows: 100, cols: 26 }, zoom: 1 };
+  } = useSheetStore();
   
-  // Zundo Undo/Redo - Reactive with Safety Check
-  const temporalStore = (useSheetStore as any).temporal;
-  const temporalState = temporalStore ? useStore(temporalStore) : null;
-  
-  const undo = temporalState?.undo || (() => {});
-  const redo = temporalState?.redo || (() => {});
-  const pastStates = temporalState?.pastStates || [];
-  const futureStates = temporalState?.futureStates || [];
+  // Zundo Undo/Redo - Reactive
+  const temporal = useStore(useSheetStore.temporal);
+  const { undo, redo, pastStates, futureStates } = temporal;
   
   const canUndo = pastStates.length > 0;
   const canRedo = futureStates.length > 0;
@@ -80,7 +74,7 @@ export const AppRoot: React.FC = () => {
   const cellHandlers = useCellHandlers({ 
       setSheets, 
       activeSheetId, 
-      activeSheetName: activeSheet?.name || 'Sheet1', 
+      activeSheetName: activeSheet.name, 
       validations, 
       activeCell, 
       selectionRange, 
@@ -93,7 +87,7 @@ export const AppRoot: React.FC = () => {
   
   const navigationHandlers = useNavigationHandlers({ 
       activeCell, 
-      selectionAnchor: activeSheet?.selectionAnchor || null,
+      selectionAnchor: activeSheet.selectionAnchor,
       selectionRange,
       gridSize, 
       handleCellClick: cellHandlers.handleCellClick, 
@@ -220,15 +214,13 @@ export const AppRoot: React.FC = () => {
 
   const handleExport = useCallback(() => {
       const csv = generateCsv(cells);
-      downloadCsv(csv, `${activeSheet?.name || 'Sheet'}.csv`);
-  }, [cells, activeSheet]);
+      downloadCsv(csv, `${activeSheet.name}.csv`);
+  }, [cells, activeSheet.name]);
 
   const handleSave = useCallback(() => {
       // Implement persistence logic
       alert("Save functionality");
   }, []);
-
-  if (!store || !activeSheet) return <AppSkeleton />;
 
   return (
     <div className="flex flex-col h-[100dvh] w-screen bg-slate-50 overflow-hidden font-sans text-slate-900 relative">

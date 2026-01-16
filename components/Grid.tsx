@@ -6,7 +6,7 @@ import { useDrag } from '@use-gesture/react';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
 import { numToChar, getCellId, formatCellValue, parseCellId, cn, getRange } from '../utils';
 import { NavigationDirection } from './Cell';
-import Cell from './Cell'; // Import the full feature Cell component
+import { ExternalLink } from 'lucide-react';
 import { Tooltip } from './shared';
 import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../app/constants/grid.constants';
 
@@ -39,6 +39,22 @@ interface GridProps {
   onScrollToActiveCell?: () => void;
   onMoveCells?: (source: CellId[], targetStartId: CellId) => void;
 }
+
+const CommentTooltip = ({ text, rect }: { text: string, rect: DOMRect }) => {
+    return createPortal(
+        <div 
+            className="fixed z-[9999] bg-[#ffffe1] border border-slate-400 shadow-[2px_2px_5px_rgba(0,0,0,0.2)] p-2 text-xs text-slate-900 pointer-events-none max-w-[200px] break-words animate-in fade-in zoom-in-95 duration-100"
+            style={{
+                top: rect.top,
+                left: rect.right + 5,
+            }}
+        >
+            <div className="font-bold mb-1 text-slate-500 text-[10px] uppercase tracking-wider">Comment</div>
+            {text}
+        </div>,
+        document.body
+    );
+};
 
 // --- FILL HANDLE COMPONENT ---
 const FillHandle = ({ onFillStart, onFillMove, onFillEnd, size }: { onFillStart: () => void, onFillMove: (x: number, y: number) => void, onFillEnd: () => void, size: number }) => {
@@ -112,12 +128,12 @@ const SelectionOverlay = memo(({
     const rowHeaderWidth = 46 * scale;
 
     // Adjust position relative to the grid container
-    // Removed -1 offset from left to prevent selection box from being hidden by row header z-index
+    // Shift -1px to align the border centered on grid lines
     const top = rect.y + headerHeight - scroll.top - 1;
-    const left = rect.x + rowHeaderWidth - scroll.left;
+    const left = rect.x + rowHeaderWidth - scroll.left - 1;
     
-    // Adjusted width to +1 (from +2) to align right edge correctly with grid lines
-    const width = rect.w + 1;
+    // Add +2px to encompass the border width properly around cells
+    const width = rect.w + 2;
     const height = rect.h + 2;
     
     const fillHandleSize = Math.max(8, 8 * scale);
@@ -164,7 +180,6 @@ const CustomCellRenderer = memo(({
     column, 
     cells, 
     styles, 
-    validations,
     activeCell, 
     selectionSet,
     fillSet,
@@ -173,14 +188,10 @@ const CustomCellRenderer = memo(({
     scale,
     onMouseEnter,
     onDragStart,
-    onCellClick,
-    onCellDoubleClick,
-    onCellChange,
-    onNavigate
+    onCellClick 
 }: RenderCellProps<any> & { 
     cells: Record<string, CellData>, 
     styles: Record<string, CellStyle>,
-    validations: Record<string, ValidationRule>,
     activeCell: string | null,
     selectionSet: Set<string>,
     fillSet: Set<string>,
@@ -189,13 +200,12 @@ const CustomCellRenderer = memo(({
     scale: number,
     onMouseEnter: (id: string) => void,
     onDragStart: (e: React.MouseEvent, id: string) => void,
-    onCellClick: (id: string, isShift: boolean) => void,
-    onCellDoubleClick?: (id: string) => void,
-    onCellChange: (id: string, val: string) => void,
-    onNavigate: (dir: any, isShift: boolean) => void
+    onCellClick: (id: string, isShift: boolean) => void
 }) => {
   const cellId = getCellId(parseInt(column.key), row.id);
-  const cellData = cells[cellId] || { id: cellId, raw: '', value: '' };
+  const cellData = cells[cellId];
+  const [isHovered, setIsHovered] = useState(false);
+  const cellRef = useRef<HTMLDivElement>(null);
   
   const isActive = activeCell === cellId;
   const isInSelection = selectionSet.has(cellId);
@@ -203,46 +213,117 @@ const CustomCellRenderer = memo(({
 
   const styleId = cellData?.styleId;
   const style = styleId ? styles[styleId] : {};
-  const validation = validations[cellId];
+  const displayValue = formatCellValue(cellData?.value || '', style);
 
-  // We use the robust Cell component which handles editing, formatting, and interactions internally.
+  const verticalText = style.verticalText;
+  const rotation = style.textRotation || 0;
+  const cssRotation = rotation ? -rotation : 0; 
+  const hasRotation = rotation !== 0;
+  
+  const indent = style.indent || 0;
+  const indentPx = indent * 10 * scale;
+  const paddingLeft = style.align === 'right' ? 4 * scale : (4 * scale) + indentPx;
+  const paddingRight = style.align === 'right' ? (4 * scale) + indentPx : 4 * scale;
+
+  const baseStyle: React.CSSProperties = {
+      width: '100%',
+      height: '100%',
+      paddingLeft: verticalText ? 0 : `${paddingLeft}px`,
+      paddingRight: verticalText ? 0 : `${paddingRight}px`,
+      display: 'flex',
+      alignItems: style.verticalAlign === 'middle' ? 'center' : style.verticalAlign === 'top' ? 'flex-start' : 'flex-end',
+      justifyContent: style.align === 'center' ? 'center' : style.align === 'right' ? 'flex-end' : 'flex-start',
+      overflow: 'visible', 
+      position: 'relative',
+      cursor: 'cell',
+      fontFamily: style.fontFamily || 'Calibri, "Segoe UI", sans-serif',
+      fontSize: `${(style.fontSize || 13) * scale}px`,
+      fontWeight: style.bold ? '700' : '400',
+      fontStyle: style.italic ? 'italic' : 'normal',
+      textDecoration: style.underline ? 'underline' : 'none',
+      backgroundColor: style.bg || 'transparent', 
+      color: style.color || 'inherit',
+      whiteSpace: style.wrapText ? 'pre-wrap' : 'nowrap',
+      ...(verticalText ? { 
+          writingMode: 'vertical-rl', 
+          textOrientation: 'upright', 
+          letterSpacing: `${1 * scale}px`
+      } : {}),
+      ...(hasRotation ? {
+          transform: `rotate(${cssRotation}deg)`,
+          transformOrigin: 'center',
+          justifyContent: 'center',
+          alignItems: 'center'
+      } : {})
+  };
+
+  if (style.strikethrough) {
+      baseStyle.textDecoration = `${baseStyle.textDecoration} line-through`;
+  }
+
+  const borderThickness = Math.max(1, 1 * scale);
+  const thickBorderThickness = Math.max(2, 2 * scale);
+
+  if (style.borders) {
+      const getBWidth = (s?: string) => s === 'thick' ? `${thickBorderThickness}px` : `${borderThickness}px`;
+      if (style.borders.bottom) baseStyle.borderBottom = `${getBWidth(style.borders.bottom.style)} solid ${style.borders.bottom.color}`;
+      if (style.borders.top) baseStyle.borderTop = `${getBWidth(style.borders.top.style)} solid ${style.borders.top.color}`;
+      if (style.borders.left) baseStyle.borderLeft = `${getBWidth(style.borders.left.style)} solid ${style.borders.left.color}`;
+      if (style.borders.right) baseStyle.borderRight = `${getBWidth(style.borders.right.style)} solid ${style.borders.right.color}`;
+  }
+
   return (
-    <div className="relative w-full h-full" onMouseEnter={() => onMouseEnter(cellId)}>
-        {/* Background Selection Highlight (Dimmed) */}
-        <div 
-            className={cn(
-                "absolute inset-0 bg-[#107c41] pointer-events-none z-[5]",
-                (isInSelection && !isActive) ? "opacity-[0.10]" : "opacity-0"
-            )}
-            style={{ transition: 'all 0.08s ease-out' }} 
-        />
-        
-        {/* Fill Selection Highlight */}
-        <div 
-            className={cn(
-                "absolute inset-0 bg-gray-400 pointer-events-none z-[5]",
-                (isInFill && !isInSelection) ? "opacity-20" : "opacity-0"
-            )} 
-            style={{ transition: 'all 0.08s ease-out' }}
-        />
+    <div 
+        ref={cellRef}
+        style={baseStyle}
+        onMouseEnter={() => { onMouseEnter(cellId); setIsHovered(true); }}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={() => {
+            if (isTouch) {
+                onCellClick(cellId, false);
+            }
+        }}
+        className="relative group select-none"
+        data-cell-id={cellId}
+    >
+      {/* Background Selection Highlight (Dimmed) */}
+      <div 
+          className={cn(
+              "absolute inset-0 bg-[#107c41] pointer-events-none z-[5]",
+              (isInSelection && !isActive) ? "opacity-[0.10]" : "opacity-0"
+          )}
+          style={{ transition: 'all 0.08s ease-out' }} 
+      />
+      
+      {/* Fill Selection Highlight */}
+      <div 
+          className={cn(
+              "absolute inset-0 bg-gray-400 pointer-events-none z-[5]",
+              (isInFill && !isInSelection) ? "opacity-20" : "opacity-0"
+          )} 
+          style={{ transition: 'all 0.08s ease-out' }}
+      />
 
-        <Cell 
-            id={cellId}
-            data={cellData}
-            style={style}
-            isSelected={isActive}
-            isActive={isActive}
-            isInRange={isInSelection}
-            width={column.width}
-            height={row.height} // React Data Grid doesn't pass height directly in props easily, but we can assume parent sets it or we use 100%
-            scale={scale}
-            validation={validation}
-            onMouseDown={onCellClick}
-            onMouseEnter={() => {}} // Handled by parent wrapper for performance
-            onDoubleClick={(id) => onCellDoubleClick?.(id)}
-            onChange={onCellChange}
-            onNavigate={(dir) => onNavigate(dir, false)}
-        />
+      <div className="relative z-0 w-full h-full flex" style={{ alignItems: baseStyle.alignItems, justifyContent: baseStyle.justifyContent }}>
+          {displayValue}
+      </div>
+      
+      {cellData?.link && <ExternalLink size={10 * scale} className="absolute top-1 right-1 text-blue-500 opacity-50" />}
+
+      {cellData?.comment && (
+          <>
+            <div 
+                className="absolute top-0 right-0 w-0 h-0 border-l-transparent border-t-red-600 z-[20]" 
+                style={{
+                    borderLeftWidth: `${6 * scale}px`,
+                    borderTopWidth: `${6 * scale}px`
+                }}
+            />
+            {isHovered && cellRef.current && (
+                <CommentTooltip text={cellData.comment} rect={cellRef.current.getBoundingClientRect()} />
+            )}
+          </>
+      )}
     </div>
   );
 }, (prev, next) => {
@@ -250,17 +331,9 @@ const CustomCellRenderer = memo(({
     const rowId = next.row.id;
     const cellId = getCellId(colKey, rowId);
     
-    // Deep compare necessary props
     if (prev.scale !== next.scale) return false;
-    if (prev.column.width !== next.column.width) return false;
-    // Row height check is tricky as it's not in props directly, but typically stable unless global change
-    
     if (prev.cells[cellId] !== next.cells[cellId]) return false;
-    // Check style changes via ID or reference
-    const prevStyleId = prev.cells[cellId]?.styleId;
-    const nextStyleId = next.cells[cellId]?.styleId;
-    if (prevStyleId !== nextStyleId) return false;
-    if (prevStyleId && prev.styles[prevStyleId] !== next.styles[prevStyleId]) return false;
+    if (prev.styles !== next.styles) return false;
 
     const wasActive = prev.activeCell === cellId;
     const isActive = next.activeCell === cellId;
@@ -275,7 +348,8 @@ const CustomCellRenderer = memo(({
     if (wasInFill !== isInFill) return false;
     
     if (prev.isFilling !== next.isFilling) return false;
-    
+    if (prev.isTouch !== next.isTouch) return false;
+
     return true;
 });
 
@@ -283,7 +357,6 @@ const Grid: React.FC<GridProps> = ({
   size,
   cells,
   styles,
-  validations,
   activeCell,
   selectionRange,
   columnWidths,
@@ -292,10 +365,8 @@ const Grid: React.FC<GridProps> = ({
   scale = 1,
   onCellClick,
   onCellChange,
-  onNavigate,
   onColumnResize,
   onSelectionDrag,
-  onCellDoubleClick,
   onExpandGrid,
   onFill,
   onScrollToActiveCell,
@@ -379,16 +450,10 @@ const Grid: React.FC<GridProps> = ({
       if (centerActiveCell && activeCell && gridRef.current) {
           const coords = parseCellId(activeCell);
           if (coords) {
-              // Add delay to ensure virtualization and new row data is ready
-              // This fixes "jumping" or "disappearing" when jumping to far-off cells like A1000
-              setTimeout(() => {
-                  if (gridRef.current) {
-                      gridRef.current.scrollToCell({ rowIdx: coords.row, idx: coords.col });
-                      if (onScrollToActiveCell) {
-                          onScrollToActiveCell();
-                      }
-                  }
-              }, 50);
+              gridRef.current.scrollToCell({ rowIdx: coords.row, idx: coords.col });
+              if (onScrollToActiveCell) {
+                  requestAnimationFrame(onScrollToActiveCell);
+              }
           }
       }
   }, [centerActiveCell, activeCell, onScrollToActiveCell]);
@@ -409,6 +474,19 @@ const Grid: React.FC<GridProps> = ({
           maxCol: Math.max(pFirst.col, pLast.col)
       };
   }, [selectionRange]);
+
+  const fillBounds = useMemo(() => {
+      if (!fillTargetRange || fillTargetRange.length === 0) return null;
+      const pFirst = parseCellId(fillTargetRange[0]);
+      const pLast = parseCellId(fillTargetRange[fillTargetRange.length - 1]);
+      if (!pFirst || !pLast) return null;
+      return {
+          minRow: Math.min(pFirst.row, pLast.row),
+          maxRow: Math.max(pFirst.row, pLast.row),
+          minCol: Math.min(pFirst.col, pLast.col),
+          maxCol: Math.max(pFirst.col, pLast.col)
+      };
+  }, [fillTargetRange]);
 
   // --- OVERLAY GEOMETRY CALCULATION ---
   const selectionRect = useMemo(() => {
@@ -600,7 +678,6 @@ const Grid: React.FC<GridProps> = ({
                     {...props} 
                     cells={cells} 
                     styles={styles} 
-                    validations={validations}
                     activeCell={activeCell}
                     selectionSet={selectionSet}
                     fillSet={fillSet}
@@ -610,9 +687,6 @@ const Grid: React.FC<GridProps> = ({
                     onMouseEnter={handleMouseEnter}
                     onDragStart={handleDragStart}
                     onCellClick={onCellClick}
-                    onCellDoubleClick={onCellDoubleClick}
-                    onCellChange={onCellChange}
-                    onNavigate={onNavigate}
                 />
             ),
             renderHeaderCell: (props) => {
@@ -631,11 +705,37 @@ const Grid: React.FC<GridProps> = ({
                         </div>
                     </Tooltip>
                 );
+            },
+            editor: ({ row, column, onClose }) => {
+                const id = getCellId(parseInt(column.key), row.id);
+                // Use Cell directly for rendering the editor if needed, but DataGrid handles it.
+                // We'll rely on Cell.tsx to render the editor in custom implementation to support autocomplete later.
+                // But for now, to support Autocomplete, we'll need to use our Cell component inside the editor or replace this simple input.
+                // Since Cell.tsx handles editing state internally (via props passed from Grid wrapper or internal state), 
+                // typically we suppress DataGrid's internal editor and use ours.
+                // However, the current setup uses Cell.tsx for view and DataGrid editor for edit.
+                // To support autocomplete properly, we should use the Cell component's internal editing capability 
+                // which already exists (editing state in Cell.tsx).
+                // Thus, we disable DataGrid's editor here by returning null or not defining it?
+                // Actually, Cell.tsx has `editing` state. 
+                // Let's remove the editor prop here and let Cell handle it via double click event which sets its internal state.
+                return (
+                    <div className="w-full h-full relative z-[100]">
+                        <input 
+                            autoFocus
+                            className="w-full h-full px-1 outline-none bg-white text-slate-900 font-[Calibri] border-2 border-[#107c41] shadow-lg"
+                            style={{ fontSize: `${11 * scale}pt` }}
+                            onBlur={(e) => { onCellChange(id, e.target.value); onClose(true); }}
+                            onKeyDown={(e) => { if(e.key === 'Enter') { onCellChange(id, (e.target as HTMLInputElement).value); onClose(true); } }}
+                            defaultValue={cells[id]?.raw || ''}
+                        />
+                    </div>
+                );
             }
           };
        })
     ];
-  }, [size.cols, columnWidths, cells, styles, validations, activeCell, selectionSet, fillSet, isFilling, isTouch, scale, activeCoords, handleMouseEnter, handleDragStart, onCellChange, onCellClick, onCellDoubleClick, onNavigate]);
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, isFilling, isTouch, scale, activeCoords, handleMouseEnter, handleDragStart, onCellChange, onCellClick]);
 
   const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
 
@@ -668,6 +768,10 @@ const Grid: React.FC<GridProps> = ({
             style={{ blockSize: '100%', border: 'none' }}
             rowKeyGetter={(r) => r.id}
             onScroll={handleScroll}
+            // Disable built-in editor triggering to allow Cell.tsx to handle it if we want custom UI
+            // But currently Cell.tsx has its own editing logic. 
+            // Ideally, we sync them. 
+            // For now, keeping as is.
         />
     </div>
   );
