@@ -128,8 +128,13 @@ const SelectionOverlay = memo(({
     const rowHeaderWidth = 46 * scale;
 
     // Adjust position relative to the grid container
-    const top = rect.y + headerHeight - scroll.top;
-    const left = rect.x + rowHeaderWidth - scroll.left;
+    // Shift -1px to align the border centered on grid lines
+    const top = rect.y + headerHeight - scroll.top - 1;
+    const left = rect.x + rowHeaderWidth - scroll.left - 1;
+    
+    // Add +2px to encompass the border width properly around cells
+    const width = rect.w + 2;
+    const height = rect.h + 2;
     
     const fillHandleSize = Math.max(8, 8 * scale);
     const selectionHandleSize = Math.max(18, 18 * scale);
@@ -140,12 +145,12 @@ const SelectionOverlay = memo(({
             style={{
                 top: `${top}px`,
                 left: `${left}px`,
-                width: `${rect.w}px`,
-                height: `${rect.h}px`,
+                width: `${width}px`,
+                height: `${height}px`,
                 // Disable transition during scroll to prevent drifting/lag
                 transition: isScrolling 
                     ? 'none' 
-                    : 'top 0.25s cubic-bezier(0.25, 0.8, 0.25, 1.25), left 0.25s cubic-bezier(0.25, 0.8, 0.25, 1.25), width 0.25s cubic-bezier(0.25, 0.8, 0.25, 1.25), height 0.25s cubic-bezier(0.25, 0.8, 0.25, 1.25)'
+                    : 'top 0.1s, left 0.1s, width 0.1s, height 0.1s'
             }}
         >
             {/* Desktop Fill Handle */}
