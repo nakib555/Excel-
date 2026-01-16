@@ -112,12 +112,12 @@ const SelectionOverlay = memo(({
     const rowHeaderWidth = 46 * scale;
 
     // Adjust position relative to the grid container
-    // Shift -1px to align the border centered on grid lines
+    // Removed -1 offset from left to prevent selection box from being hidden by row header z-index
     const top = rect.y + headerHeight - scroll.top - 1;
-    const left = rect.x + rowHeaderWidth - scroll.left - 1;
+    const left = rect.x + rowHeaderWidth - scroll.left;
     
-    // Add +2px to encompass the border width properly around cells
-    const width = rect.w + 2;
+    // Adjusted width to +1 (from +2) to align right edge correctly with grid lines
+    const width = rect.w + 1;
     const height = rect.h + 2;
     
     const fillHandleSize = Math.max(8, 8 * scale);
