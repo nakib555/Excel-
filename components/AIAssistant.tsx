@@ -37,7 +37,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ isOpen, onClose, onApply, api
         const ai = new GoogleGenAI({ apiKey: key });
         
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3-flash-preview',
           contents: `You are an expert Excel assistant.
           Task: ${prompt}
           
