@@ -481,7 +481,7 @@ const Grid: React.FC<GridProps> = ({
                         className={cn(
                             "flex items-center justify-center w-full h-full font-semibold select-none cursor-e-resize transition-colors duration-150",
                             isRowActive 
-                                ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
+                                ? "bg-[#e0f2f1] text-[#107c41] font-bold" 
                                 : "bg-[#f8f9fa] text-[#444] hover:bg-[#e2e8f0]"
                         )}
                         style={{ fontSize: `${11 * scale}px` }}
@@ -559,9 +559,17 @@ const Grid: React.FC<GridProps> = ({
               const targetColIdx = coords.col + 1; // +1 for row header
               // Safety check to prevent crashing if rows/cols not yet updated
               if (coords.row < rows.length && targetColIdx < columns.length) {
-                  gridRef.current.scrollToCell({ rowIdx: coords.row, idx: targetColIdx });
+                  // Add delay to ensure grid has layout before scrolling to new bounds
+                  setTimeout(() => {
+                      if (gridRef.current) {
+                          gridRef.current.scrollToCell({ rowIdx: coords.row, idx: targetColIdx });
+                      }
+                  }, 50);
+                  
                   if (onScrollToActiveCell) {
-                      requestAnimationFrame(onScrollToActiveCell);
+                      setTimeout(() => {
+                          onScrollToActiveCell();
+                      }, 100);
                   }
               }
           }
