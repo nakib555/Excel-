@@ -130,8 +130,8 @@ const SelectionOverlay = memo(({
     // Adjust position relative to the grid container
     // Shift -1px to align the border centered on grid lines
     const top = rect.y + headerHeight - scroll.top - 1;
-    // Adjusted by +0.5px (moved left another 0.5px)
-    const left = rect.x + rowHeaderWidth - scroll.left + 0.5;
+    // Adjusted left position
+    const left = rect.x + rowHeaderWidth - scroll.left;
     
     // Add +2px to encompass the border width properly around cells
     const width = rect.w + 2;
@@ -757,3 +757,4 @@ const Grid: React.FC<GridProps> = ({
 };
 
 export default Grid;
+    
