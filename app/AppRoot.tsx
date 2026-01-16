@@ -51,7 +51,7 @@ export const AppRoot: React.FC = () => {
   
   // Zundo Undo/Redo - Reactive
   // Cast useSheetStore to any to access temporal middleware store which is not typed on the hook
-  const temporal = useStore((useSheetStore as any).temporal);
+  const temporal = useStore((useSheetStore as any).temporal) as any;
   const { undo, redo, pastStates, futureStates } = temporal;
   
   const canUndo = pastStates.length > 0;
@@ -88,7 +88,7 @@ export const AppRoot: React.FC = () => {
   
   const navigationHandlers = useNavigationHandlers({ 
       activeCell, 
-      selectionAnchor: activeSheet.selectionAnchor,
+      selectionAnchor: activeSheet.selectionAnchor, 
       selectionRange,
       gridSize, 
       handleCellClick: cellHandlers.handleCellClick, 

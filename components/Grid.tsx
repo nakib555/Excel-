@@ -130,7 +130,8 @@ const SelectionOverlay = memo(({
     // Adjust position relative to the grid container
     // Shift -1px to align the border centered on grid lines
     const top = rect.y + headerHeight - scroll.top - 1;
-    const left = rect.x + rowHeaderWidth - scroll.left - 1;
+    // Adjusted by +2px to move right (was -1, now +1)
+    const left = rect.x + rowHeaderWidth - scroll.left + 1;
     
     // Add +2px to encompass the border width properly around cells
     const width = rect.w + 2;
@@ -705,32 +706,6 @@ const Grid: React.FC<GridProps> = ({
                         </div>
                     </Tooltip>
                 );
-            },
-            editor: ({ row, column, onClose }) => {
-                const id = getCellId(parseInt(column.key), row.id);
-                // Use Cell directly for rendering the editor if needed, but DataGrid handles it.
-                // We'll rely on Cell.tsx to render the editor in custom implementation to support autocomplete later.
-                // But for now, to support Autocomplete, we'll need to use our Cell component inside the editor or replace this simple input.
-                // Since Cell.tsx handles editing state internally (via props passed from Grid wrapper or internal state), 
-                // typically we suppress DataGrid's internal editor and use ours.
-                // However, the current setup uses Cell.tsx for view and DataGrid editor for edit.
-                // To support autocomplete properly, we should use the Cell component's internal editing capability 
-                // which already exists (editing state in Cell.tsx).
-                // Thus, we disable DataGrid's editor here by returning null or not defining it?
-                // Actually, Cell.tsx has `editing` state. 
-                // Let's remove the editor prop here and let Cell handle it via double click event which sets its internal state.
-                return (
-                    <div className="w-full h-full relative z-[100]">
-                        <input 
-                            autoFocus
-                            className="w-full h-full px-1 outline-none bg-white text-slate-900 font-[Calibri] border-2 border-[#107c41] shadow-lg"
-                            style={{ fontSize: `${11 * scale}pt` }}
-                            onBlur={(e) => { onCellChange(id, e.target.value); onClose(true); }}
-                            onKeyDown={(e) => { if(e.key === 'Enter') { onCellChange(id, (e.target as HTMLInputElement).value); onClose(true); } }}
-                            defaultValue={cells[id]?.raw || ''}
-                        />
-                    </div>
-                );
             }
           };
        })
@@ -768,10 +743,6 @@ const Grid: React.FC<GridProps> = ({
             style={{ blockSize: '100%', border: 'none' }}
             rowKeyGetter={(r) => r.id}
             onScroll={handleScroll}
-            // Disable built-in editor triggering to allow Cell.tsx to handle it if we want custom UI
-            // But currently Cell.tsx has its own editing logic. 
-            // Ideally, we sync them. 
-            // For now, keeping as is.
         />
     </div>
   );
