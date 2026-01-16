@@ -68,8 +68,8 @@ const FillHandle = ({ onFillStart, onFillMove, onFillEnd, size }: { onFillStart:
     return (
         <div 
             {...bind()} 
-            className="absolute -bottom-[4px] -right-[4px] bg-[#107c41] border border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform touch-none fill-handle"
-            style={{ width: size, height: size, boxSizing: 'content-box', borderRadius: '1px' }}
+            className="absolute -bottom-[5px] -right-[5px] bg-[#107c41] border-[2px] border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform touch-none fill-handle rounded-sm"
+            style={{ width: size, height: size, boxSizing: 'content-box' }}
         />
     );
 };
@@ -79,8 +79,6 @@ const SelectionHandle = ({ type, size, onResizeStart, onResizeMove, onResizeEnd 
     const bind = useDrag(({ down, xy: [x, y], first, last, event }) => {
         if (event) {
              event.stopPropagation();
-             // Prevent scrolling on touch devices while dragging handles
-             // if (event.type === 'touchstart') event.preventDefault();
         }
         
         if (first) onResizeStart(type);
@@ -95,10 +93,10 @@ const SelectionHandle = ({ type, size, onResizeStart, onResizeMove, onResizeEnd 
         <div
             {...bind()}
             className={cn(
-                "absolute z-[80] bg-[#107c41] rounded-full border-[3px] border-white shadow-md pointer-events-auto touch-none cursor-move flex items-center justify-center",
-                type === 'tl' ? "-top-3 -left-3" : "-bottom-3 -right-3"
+                "absolute z-[100] bg-white rounded-full border-[4px] border-[#107c41] shadow-[0_2px_4px_rgba(0,0,0,0.25)] pointer-events-auto touch-none cursor-move flex items-center justify-center transform transition-transform active:scale-110",
+                type === 'tl' ? "-top-[12px] -left-[12px]" : "-bottom-[12px] -right-[12px]"
             )}
-            style={{ width: size, height: size }}
+            style={{ width: size, height: size, boxSizing: 'border-box' }}
         />
     );
 };
@@ -303,8 +301,9 @@ const CustomCellRenderer = memo(({
       }
   }, [isTopLeft, isBottomRight, isTouch, isFilling]);
 
-  const dragHandleSize = Math.max(7, 8 * scale);
-  const selectionBorderThickness = Math.max(2, 2 * scale);
+  const fillHandleSize = Math.max(8, 8 * scale);
+  const selectionHandleSize = Math.max(22, 24 * scale); // Larger for mobile handles
+  const selectionBorderThickness = 2; // Fixed crisp border
 
   return (
     <div 
@@ -316,7 +315,7 @@ const CustomCellRenderer = memo(({
         data-cell-id={cellId}
     >
       {(isInSelection && !isActive) && (
-          <div className="absolute inset-0 bg-[#107c41] bg-opacity-[0.12] pointer-events-none z-[5]" />
+          <div className="absolute inset-0 bg-[#107c41] bg-opacity-[0.15] pointer-events-none z-[5]" />
       )}
       
       {(isInFill && !isInSelection) && (
@@ -365,7 +364,7 @@ const CustomCellRenderer = memo(({
             {isTopLeft && (
                 <SelectionHandle
                     type="tl"
-                    size={20 * scale}
+                    size={selectionHandleSize}
                     onResizeStart={onResizeStart}
                     onResizeMove={onResizeMove}
                     onResizeEnd={onResizeEnd}
@@ -374,7 +373,7 @@ const CustomCellRenderer = memo(({
             {isBottomRight && (
                 <SelectionHandle
                     type="br"
-                    size={20 * scale}
+                    size={selectionHandleSize}
                     onResizeStart={onResizeStart}
                     onResizeMove={onResizeMove}
                     onResizeEnd={onResizeEnd}
@@ -398,7 +397,7 @@ const CustomCellRenderer = memo(({
             onFillStart={onFillStart}
             onFillMove={onFillMove}
             onFillEnd={onFillEnd}
-            size={dragHandleSize}
+            size={fillHandleSize}
         />
       )}
     </div>
