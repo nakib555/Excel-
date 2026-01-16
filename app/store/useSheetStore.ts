@@ -27,6 +27,7 @@ interface SheetState {
   getActiveSheet: () => Sheet | undefined;
 }
 
+// Ensure stable store creation
 export const useSheetStore = create<SheetState>()(
   temporal(
     (set, get) => ({
@@ -73,9 +74,6 @@ export const useSheetStore = create<SheetState>()(
             
             const nextCells = { ...sheet.cells };
             
-            // Check dependencies to update other cells if needed
-            // ( simplified for this step, ideally we get changes from HF )
-            
             nextCells[id] = {
               ...(nextCells[id] || { id }),
               raw: rawValue,
@@ -83,7 +81,6 @@ export const useSheetStore = create<SheetState>()(
             };
 
             // Re-evaluate simple dependencies
-            // Note: In a full app, HyperFormula returns a list of changed cells.
             Object.keys(nextCells).forEach(cid => {
                 if(nextCells[cid].raw.startsWith('=')) {
                     nextCells[cid].value = getCellValueFromHF(cid, activeSheet.name);
@@ -108,31 +105,26 @@ export const useSheetStore = create<SheetState>()(
                 active = id;
             }
             
-            // Calculate range (simplified logic, real logic handles diagonals)
             let newSelection = [id];
-            
-            // We use the util `getRange` in the component or here. 
-            // For now, assuming single selection if logic is external or simple.
-            // If shift, we need the logic. Importing getRange inside store might be circular if not careful.
             
             return {
                 ...sheet,
                 activeCell: active,
                 selectionAnchor: anchor,
-                selectionRange: newSelection // Updated by Grid interaction usually
+                selectionRange: newSelection
             };
           })
         }));
       },
 
       selectRange: (startId, endId) => {
-         // Logic usually handled by Grid gesture, pushing final range here
+         // Placeholder for logic if needed
       }
     }),
     {
-      limit: 50, // Undo history limit
-      partialize: (state) => ({ sheets: state.sheets }), // Only track sheets for undo
-      equality: (a, b) => a === b // Simple equality
+      limit: 50,
+      partialize: (state) => ({ sheets: state.sheets }),
+      equality: (a, b) => a === b
     }
   )
 );

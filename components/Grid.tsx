@@ -75,13 +75,14 @@ const FillHandle = ({ onFillStart, onFillMove, onFillEnd, size }: { onFillStart:
 };
 
 // --- SELECTION HANDLE COMPONENT (MOBILE) ---
-// Simplified to just trigger the global resize mode on pointer down
 const SelectionHandle = ({ type, size, onResizeInit }: any) => {
     return (
         <div
             onPointerDown={(e) => {
-                e.stopPropagation(); // Prevent grid scroll/drag
-                e.preventDefault(); // Prevent native selection
+                e.stopPropagation(); 
+                e.preventDefault(); 
+                // Capture pointer to ensure we receive moves even if finger leaves the handle
+                (e.target as Element).setPointerCapture(e.pointerId);
                 onResizeInit(e, type);
             }}
             className="absolute z-[100] bg-white rounded-full border-[4px] border-[#107c41] shadow-[0_2px_4px_rgba(0,0,0,0.25)] pointer-events-auto touch-none cursor-move flex items-center justify-center transition-transform active:scale-110"
@@ -89,12 +90,12 @@ const SelectionHandle = ({ type, size, onResizeInit }: any) => {
                 width: size, 
                 height: size, 
                 boxSizing: 'border-box',
-                // Position relative to corner using transform to ensure perfect centering regardless of size
-                top: type === 'tl' ? 0 : undefined,
-                left: type === 'tl' ? 0 : undefined,
-                bottom: type === 'br' ? 0 : undefined,
-                right: type === 'br' ? 0 : undefined,
-                transform: type === 'tl' ? 'translate(-50%, -50%)' : 'translate(50%, 50%)'
+                // Center exactly on the corner
+                top: type === 'tl' ? 0 : '100%',
+                left: type === 'tl' ? 0 : '100%',
+                transform: 'translate(-50%, -50%)',
+                marginTop: type === 'tl' ? 0 : -2, // Slight adjustment for border alignment
+                marginLeft: type === 'tl' ? 0 : -2
             }}
         />
     );
@@ -110,7 +111,6 @@ const Border = memo(({
     color: string, 
     thickness?: number 
 }) => {
-    // Increased duration for smoother visual expansion effect
     const baseClass = "absolute z-[50] pointer-events-none transition-opacity duration-200 ease-in-out";
     
     const styleObj: React.CSSProperties = {
@@ -166,7 +166,7 @@ const CustomCellRenderer = memo(({
     onFillMove,
     onFillEnd,
     onDragStart,
-    onResizeInit, // Updated prop name
+    onResizeInit,
     onCellClick 
 }: RenderCellProps<any> & { 
     cells: Record<string, CellData>, 
@@ -300,7 +300,7 @@ const CustomCellRenderer = memo(({
   }, [isTopLeft, isBottomRight, isTouch, isFilling]);
 
   const fillHandleSize = Math.max(8, 8 * scale);
-  const selectionHandleSize = Math.max(22, 24 * scale); // Larger for mobile handles
+  const selectionHandleSize = Math.max(20, 22 * scale); // Mobile handle size
   const selectionBorderThickness = 2; // Fixed crisp border
 
   return (
@@ -469,6 +469,7 @@ const Grid: React.FC<GridProps> = ({
   // Resize Handlers Refs
   const [resizingHandle, setResizingHandle] = useState<'tl' | 'br' | null>(null);
   const resizeAnchorRef = useRef<string | null>(null);
+  const autoScrollRaf = useRef<number>();
 
   // Gesture handling for main grid interaction (Selection)
   const bindGridGestures = useDrag((state) => {
@@ -612,9 +613,6 @@ const Grid: React.FC<GridProps> = ({
   }, [isFilling, fillStartRange, fillTargetRange, onFill]);
 
   // --- GLOBAL SELECTION RESIZE LOGIC (MOBILE) ---
-  // Using global window listeners ensures the drag continues even if the
-  // SelectionHandle component unmounts because the cell it belongs to re-renders/moves.
-  
   const handleResizeInit = useCallback((e: React.PointerEvent, handleType: 'tl' | 'br') => {
       if (!selectionBounds) return;
       const { minRow, maxRow, minCol, maxCol } = selectionBounds;
@@ -630,12 +628,36 @@ const Grid: React.FC<GridProps> = ({
   useEffect(() => {
       if (!resizingHandle || !onSelectionDrag || !resizeAnchorRef.current) return;
 
+      const autoScroll = () => {
+          if (!gridRef.current?.element) return;
+          // Simple Scroll Logic: 
+          // If we had mouse coords in a ref we could scroll.
+          // Since we are using event listeners, we handle scroll in handlePointerMove below.
+      };
+
       const handlePointerMove = (e: PointerEvent) => {
-          e.preventDefault(); // Prevent scrolling on mobile while dragging handle
+          e.preventDefault(); 
           
-          // Use elementsFromPoint to find the cell underneath the finger/cursor.
-          // We look for multiple elements because the handle itself (circle) might be under the finger
-          // and we want to find the cell *behind* it or near it.
+          // Auto Scroll Logic
+          const SCROLL_ZONE = 50;
+          const SCROLL_SPEED = 15;
+          const viewportHeight = window.innerHeight;
+          const viewportWidth = window.innerWidth;
+          
+          let scrollX = 0;
+          let scrollY = 0;
+
+          if (e.clientY < SCROLL_ZONE + 100) scrollY = -SCROLL_SPEED; // +100 for top UI offset
+          else if (e.clientY > viewportHeight - SCROLL_ZONE) scrollY = SCROLL_SPEED;
+          
+          if (e.clientX < SCROLL_ZONE) scrollX = -SCROLL_SPEED;
+          else if (e.clientX > viewportWidth - SCROLL_ZONE) scrollX = SCROLL_SPEED;
+
+          if ((scrollX !== 0 || scrollY !== 0) && gridRef.current?.element) {
+              gridRef.current.element.scrollBy(scrollX, scrollY);
+          }
+
+          // Hit Test
           const elements = document.elementsFromPoint(e.clientX, e.clientY);
           const cellEl = elements.find(el => el.hasAttribute('data-cell-id'));
           
@@ -652,7 +674,6 @@ const Grid: React.FC<GridProps> = ({
           resizeAnchorRef.current = null;
       };
 
-      // Use capture to ensure we get events even if user drifts off
       window.addEventListener('pointermove', handlePointerMove, { passive: false });
       window.addEventListener('pointerup', handlePointerUp);
       window.addEventListener('pointercancel', handlePointerUp);
@@ -664,10 +685,8 @@ const Grid: React.FC<GridProps> = ({
       };
   }, [resizingHandle, onSelectionDrag]);
 
-  // Stub for move logic (can be expanded later)
+  // Stub for move logic
   const handleDragStart = useCallback((e: React.MouseEvent, id: string) => {
-      // Prevent default to avoid browser drag image if we implement custom drag
-      // e.preventDefault(); 
       // Logic for moving cells would go here using a separate useDrag
   }, []);
 
