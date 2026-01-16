@@ -92,11 +92,18 @@ const SelectionHandle = ({ type, size, onResizeStart, onResizeMove, onResizeEnd 
     return (
         <div
             {...bind()}
-            className={cn(
-                "absolute z-[100] bg-white rounded-full border-[4px] border-[#107c41] shadow-[0_2px_4px_rgba(0,0,0,0.25)] pointer-events-auto touch-none cursor-move flex items-center justify-center transform transition-transform active:scale-110",
-                type === 'tl' ? "-top-[12px] -left-[12px]" : "-bottom-[12px] -right-[12px]"
-            )}
-            style={{ width: size, height: size, boxSizing: 'border-box' }}
+            className="absolute z-[100] bg-white rounded-full border-[4px] border-[#107c41] shadow-[0_2px_4px_rgba(0,0,0,0.25)] pointer-events-auto touch-none cursor-move flex items-center justify-center transition-transform active:scale-110"
+            style={{ 
+                width: size, 
+                height: size, 
+                boxSizing: 'border-box',
+                // Position relative to corner using transform to ensure perfect centering regardless of size
+                top: type === 'tl' ? 0 : undefined,
+                left: type === 'tl' ? 0 : undefined,
+                bottom: type === 'br' ? 0 : undefined,
+                right: type === 'br' ? 0 : undefined,
+                transform: type === 'tl' ? 'translate(-50%, -50%)' : 'translate(50%, 50%)'
+            }}
         />
     );
 };
@@ -169,7 +176,8 @@ const CustomCellRenderer = memo(({
     onDragStart,
     onResizeStart,
     onResizeMove,
-    onResizeEnd
+    onResizeEnd,
+    onCellClick // Added for tap support
 }: RenderCellProps<any> & { 
     cells: Record<string, CellData>, 
     styles: Record<string, CellStyle>,
@@ -188,7 +196,8 @@ const CustomCellRenderer = memo(({
     onDragStart: (e: React.MouseEvent, id: string) => void,
     onResizeStart: (type: 'tl' | 'br') => void,
     onResizeMove: (x: number, y: number) => void,
-    onResizeEnd: () => void
+    onResizeEnd: () => void,
+    onCellClick: (id: string, isShift: boolean) => void
 }) => {
   const cellId = getCellId(parseInt(column.key), row.id);
   const cellData = cells[cellId];
@@ -312,6 +321,12 @@ const CustomCellRenderer = memo(({
         style={baseStyle}
         onMouseEnter={() => { onMouseEnter(cellId); setIsHovered(true); }}
         onMouseLeave={() => setIsHovered(false)}
+        onClick={() => {
+            // Enable simple tap selection on touch devices where drag is disabled to allow scrolling
+            if (isTouch) {
+                onCellClick(cellId, false);
+            }
+        }}
         className="relative group select-none"
         data-cell-id={cellId}
     >
@@ -501,10 +516,8 @@ const Grid: React.FC<GridProps> = ({
       }
   }, {
       pointer: { keys: false },
-      // Use filterTaps to allow clicks to pass through if no drag occurs, 
-      // but we handle click in 'first' so we want to capture it. 
-      // However, preventScroll is key for touch devices.
-      preventScroll: true 
+      preventScroll: true,
+      enabled: !isTouch // DISABLE ON TOUCH to allow native scrolling. Selection via Tap or Handles.
   });
 
   useEffect(() => {
@@ -711,6 +724,7 @@ const Grid: React.FC<GridProps> = ({
                     onResizeStart={handleResizeStart}
                     onResizeMove={handleResizeMove}
                     onResizeEnd={handleResizeEnd}
+                    onCellClick={onCellClick}
                 />
             ),
             renderHeaderCell: (props) => {
@@ -748,7 +762,7 @@ const Grid: React.FC<GridProps> = ({
           };
        })
     ];
-  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, scale, activeCoords, handleMouseEnter, handleFillStart, handleFillMove, handleFillEnd, handleDragStart, onCellChange, handleResizeStart, handleResizeMove, handleResizeEnd]);
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, scale, activeCoords, handleMouseEnter, handleFillStart, handleFillMove, handleFillEnd, handleDragStart, onCellChange, handleResizeStart, handleResizeMove, handleResizeEnd, onCellClick]);
 
   const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
 
