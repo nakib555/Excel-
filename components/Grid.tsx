@@ -130,8 +130,8 @@ const SelectionOverlay = memo(({
     // Adjust position relative to the grid container
     // Shift -1px to align the border centered on grid lines
     const top = rect.y + headerHeight - scroll.top - 1;
-    // Adjusted left position - shifted -1.25px to align perfectly with grid lines
-    const left = rect.x + rowHeaderWidth - scroll.left - 1.25;
+    // Adjusted left position - shifted +1.25px (was -1.25px) to align perfectly with grid lines (moved 2.5px right)
+    const left = rect.x + rowHeaderWidth - scroll.left + 1.25;
     
     // Add +2px to encompass the border width properly around cells
     const width = rect.w + 2;
@@ -533,7 +533,7 @@ const Grid: React.FC<GridProps> = ({
                             className={cn(
                                 "flex items-center justify-center w-full h-full font-semibold cursor-s-resize transition-colors duration-150",
                                 isColActive 
-                                    ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
+                                    ? "bg-[#e0f2f1] text-[#107c41] font-bold" 
                                     : "bg-[#f8f9fa] text-[#444] hover:bg-[#e2e8f0]"
                             )}
                             style={{ fontSize: `${12 * scale}px` }}
