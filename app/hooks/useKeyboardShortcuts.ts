@@ -10,14 +10,22 @@ interface UseKeyboardShortcutsProps {
     onNavigate: (dir: any, isShift: boolean) => void;
     onUndo?: () => void;
     onRedo?: () => void;
+    onCopy?: () => void;
+    onCut?: () => void;
+    onPaste?: () => void;
 }
 
 export const useKeyboardShortcuts = ({ 
-    selectionRange, activeCell, cells, onCellChange, onNavigate, onUndo, onRedo 
+    selectionRange, activeCell, cells, onCellChange, onNavigate, onUndo, onRedo,
+    onCopy, onCut, onPaste
 }: UseKeyboardShortcutsProps) => {
     
     // Delete / Backspace
     useHotkeys(['delete', 'backspace'], (e) => {
+        // Only trigger if not editing text in an input
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
         if (selectionRange && selectionRange.length > 0) {
              e.preventDefault();
              selectionRange.forEach(id => onCellChange(id, ''));
@@ -41,8 +49,33 @@ export const useKeyboardShortcuts = ({
     useHotkeys('ctrl+z, meta+z', (e) => { e.preventDefault(); onUndo?.(); }, { enableOnFormTags: true }, [onUndo]);
     useHotkeys('ctrl+y, meta+y, ctrl+shift+z, meta+shift+z', (e) => { e.preventDefault(); onRedo?.(); }, { enableOnFormTags: true }, [onRedo]);
 
+    // Clipboard (Ctrl+C, Ctrl+X, Ctrl+V)
+    useHotkeys(['meta+c', 'ctrl+c'], (e) => { 
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+        e.preventDefault(); 
+        onCopy?.(); 
+    }, { enableOnFormTags: false }, [onCopy]);
+
+    useHotkeys(['meta+x', 'ctrl+x'], (e) => { 
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+        e.preventDefault(); 
+        onCut?.(); 
+    }, { enableOnFormTags: false }, [onCut]);
+
+    useHotkeys(['meta+v', 'ctrl+v'], (e) => { 
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+        e.preventDefault(); 
+        onPaste?.(); 
+    }, { enableOnFormTags: false }, [onPaste]);
+
     // Checkbox toggle (Space)
     useHotkeys('space', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
         if (activeCell) {
              const cell = cells[activeCell];
              if (cell && cell.isCheckbox) {

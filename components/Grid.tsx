@@ -2,7 +2,7 @@
 import React, { useMemo, useCallback, useState, useEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { DataGrid, Column, RenderCellProps, DataGridHandle } from 'react-data-grid';
-import { useDrag } from '@use-gesture/react'; // Integrated
+import { useDrag } from '@use-gesture/react';
 import { CellId, CellData, GridSize, CellStyle, ValidationRule } from '../types';
 import { numToChar, getCellId, formatCellValue, parseCellId, cn, getRange } from '../utils';
 import { NavigationDirection } from './Cell';
@@ -52,6 +52,27 @@ const CommentTooltip = ({ text, rect }: { text: string, rect: DOMRect }) => {
             {text}
         </div>,
         document.body
+    );
+};
+
+// --- FILL HANDLE COMPONENT ---
+// Separate component to isolate useDrag gesture
+const FillHandle = ({ onFillStart, onFillMove, onFillEnd, size }: { onFillStart: () => void, onFillMove: (x: number, y: number) => void, onFillEnd: () => void, size: number }) => {
+    const bind = useDrag(({ down, xy: [x, y], first, last, event }) => {
+        // Stop event from bubbling to grid selection gesture
+        if (event) event.stopPropagation(); 
+        
+        if (first) onFillStart();
+        if (down) onFillMove(x, y);
+        if (last) onFillEnd();
+    }, { pointer: { keys: false } }); // Ensure we capture pointers
+
+    return (
+        <div 
+            {...bind()} 
+            className="absolute -bottom-[3px] -right-[3px] bg-[#107c41] border border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform touch-none"
+            style={{ width: size, height: size, boxSizing: 'content-box' }}
+        />
     );
 };
 
@@ -117,8 +138,9 @@ const CustomCellRenderer = memo(({
     scale,
     onMouseDown, 
     onMouseEnter,
-    onFillHandleDown,
-    onMobileHandleDown,
+    onFillStart,
+    onFillMove,
+    onFillEnd,
     onDragStart
 }: RenderCellProps<any> & { 
     cells: Record<string, CellData>, 
@@ -133,8 +155,9 @@ const CustomCellRenderer = memo(({
     scale: number,
     onMouseDown: (id: string, shift: boolean) => void,
     onMouseEnter: (id: string) => void,
-    onFillHandleDown: (e: React.MouseEvent, id: string) => void,
-    onMobileHandleDown: (e: React.TouchEvent, id: string, type: 'start' | 'end') => void,
+    onFillStart: () => void,
+    onFillMove: (x: number, y: number) => void,
+    onFillEnd: () => void,
     onDragStart: (e: React.MouseEvent, id: string) => void
 }) => {
   const cellId = getCellId(parseInt(column.key), row.id);
@@ -316,11 +339,13 @@ const CustomCellRenderer = memo(({
           </>
       )}
 
+      {/* Fill Handle - Only show on bottom right of selection, not on touch unless specialized, not while filling */}
       {isBottomRight && !isTouch && !isFilling && (
-        <div 
-            className="absolute -bottom-[3px] -right-[3px] bg-[#107c41] border border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform"
-            style={{ width: dragHandleSize, height: dragHandleSize, boxSizing: 'content-box' }}
-            onMouseDown={(e) => onFillHandleDown(e, cellId)}
+        <FillHandle 
+            onFillStart={onFillStart}
+            onFillMove={onFillMove}
+            onFillEnd={onFillEnd}
+            size={dragHandleSize}
         />
       )}
     </div>
@@ -463,37 +488,13 @@ const Grid: React.FC<GridProps> = ({
       onCellClick(id, shift);
   }, [onCellClick, isFilling]);
 
-  // UseGesture drag binder for grid container
-  // We attach this to a wrapper div around the grid
-  
   const handleMouseEnter = useCallback((id: string) => {
       // Fallback for hover if gesture misses (or for fill handle logic which uses native mouse events still)
-      if (isFilling && fillStartRange && selectionBounds) {
-          const hoverCoords = parseCellId(id);
-          if (!hoverCoords) return;
-          
-          const { row: hRow, col: hCol } = hoverCoords;
-          const { minRow, maxRow, minCol, maxCol } = selectionBounds;
+      // Note: Now used mainly for update triggers if gesture logic delegates to it
+  }, []);
 
-          let tMinR = minRow, tMaxR = maxRow, tMinC = minCol, tMaxC = maxCol;
-
-          if (hRow > maxRow) tMaxR = hRow;
-          else if (hRow < minRow) tMinR = hRow;
-          
-          if (hCol > maxCol) tMaxC = hCol;
-          else if (hCol < minCol) tMinC = hCol;
-
-          const startId = getCellId(tMinC, tMinR);
-          const endId = getCellId(tMaxC, tMaxR);
-          const newRange = getRange(startId, endId);
-          
-          setFillTargetRange(newRange);
-      }
-  }, [isFilling, fillStartRange, selectionBounds]);
-
-  const handleFillHandleDown = useCallback((e: React.MouseEvent, id: string) => {
-      e.stopPropagation();
-      e.preventDefault(); 
+  // --- FILL GESTURE LOGIC ---
+  const handleFillStart = useCallback(() => {
       if (selectionRange && selectionRange.length > 0) {
           setIsFilling(true);
           setFillStartRange(selectionRange);
@@ -501,25 +502,62 @@ const Grid: React.FC<GridProps> = ({
       }
   }, [selectionRange]);
 
+  const handleFillMove = useCallback((x: number, y: number) => {
+      if (fillStartRange && selectionBounds) {
+          const el = document.elementFromPoint(x, y);
+          const cellEl = el?.closest('[data-cell-id]');
+          
+          if (cellEl) {
+              const id = cellEl.getAttribute('data-cell-id');
+              if (!id) return;
+
+              const hoverCoords = parseCellId(id);
+              if (!hoverCoords) return;
+              
+              const { row: hRow, col: hCol } = hoverCoords;
+              const { minRow, maxRow, minCol, maxCol } = selectionBounds;
+
+              let tMinR = minRow, tMaxR = maxRow, tMinC = minCol, tMaxC = maxCol;
+
+              // Constrain fill to one direction (standard Excel behavior, roughly)
+              // Or allow 2D fill. Let's allow simple extension.
+              
+              if (hRow > maxRow) tMaxR = hRow;
+              else if (hRow < minRow) tMinR = hRow;
+              
+              if (hCol > maxCol) tMaxC = hCol;
+              else if (hCol < minCol) tMinC = hCol;
+
+              const startId = getCellId(tMinC, tMinR);
+              const endId = getCellId(tMaxC, tMaxR);
+              const newRange = getRange(startId, endId);
+              
+              setFillTargetRange(newRange);
+          }
+      }
+  }, [fillStartRange, selectionBounds]);
+
+  const handleFillEnd = useCallback(() => {
+      if (isFilling && fillStartRange && fillTargetRange && onFill) {
+          onFill(fillStartRange, fillTargetRange);
+      }
+      setIsFilling(false);
+      setFillStartRange(null);
+      setFillTargetRange(null);
+  }, [isFilling, fillStartRange, fillTargetRange, onFill]);
+
   // Mobile/Touch Handlers stubbed or kept as is
   const handleMobileHandleDown = useCallback(() => {}, []);
   const handleDragStart = useCallback(() => {}, []); // Stub for now as gesture handles main selection
 
   useEffect(() => {
       const handleMouseUp = () => {
-          if (isFilling && fillStartRange && fillTargetRange && onFill) {
-              onFill(fillStartRange, fillTargetRange);
-          }
-          setIsFilling(false);
-          setFillStartRange(null);
-          setFillTargetRange(null);
-
           setIsSelecting(false);
           setDragStartCell(null);
       };
       window.addEventListener('mouseup', handleMouseUp);
       return () => window.removeEventListener('mouseup', handleMouseUp);
-  }, [isFilling, fillStartRange, fillTargetRange, onFill]);
+  }, []);
 
   const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
       const { scrollTop, scrollHeight, clientHeight, scrollLeft, scrollWidth, clientWidth } = event.currentTarget;
@@ -576,7 +614,9 @@ const Grid: React.FC<GridProps> = ({
                     scale={scale}
                     onMouseDown={handleMouseDown}
                     onMouseEnter={handleMouseEnter}
-                    onFillHandleDown={handleFillHandleDown}
+                    onFillStart={handleFillStart}
+                    onFillMove={handleFillMove}
+                    onFillEnd={handleFillEnd}
                     onMobileHandleDown={handleMobileHandleDown}
                     onDragStart={handleDragStart}
                 />
@@ -616,7 +656,7 @@ const Grid: React.FC<GridProps> = ({
           };
        })
     ];
-  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, scale, activeCoords, handleMouseDown, handleMouseEnter, handleFillHandleDown, handleMobileHandleDown, handleDragStart, onCellChange]);
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, scale, activeCoords, handleMouseDown, handleMouseEnter, handleFillStart, handleFillMove, handleFillEnd, handleMobileHandleDown, handleDragStart, onCellChange]);
 
   const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
 

@@ -104,7 +104,10 @@ export const AppRoot: React.FC = () => {
       onCellChange: updateCell, // Use store direct update
       onNavigate: navigationHandlers.handleNavigate,
       onUndo: undo,
-      onRedo: redo
+      onRedo: redo,
+      onCopy: clipboardHandlers.handleCopy,
+      onCut: clipboardHandlers.handleCut,
+      onPaste: clipboardHandlers.handlePaste
   });
 
   // 7. Aux Handlers
