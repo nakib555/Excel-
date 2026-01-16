@@ -70,8 +70,8 @@ const FillHandle = ({ onFillStart, onFillMove, onFillEnd, size }: { onFillStart:
     return (
         <div 
             {...bind()} 
-            className="absolute -bottom-[3px] -right-[3px] bg-[#107c41] border border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform touch-none"
-            style={{ width: size, height: size, boxSizing: 'content-box' }}
+            className="absolute -bottom-[4px] -right-[4px] bg-[#107c41] border border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform touch-none fill-handle"
+            style={{ width: size, height: size, boxSizing: 'content-box', borderRadius: '1px' }}
         />
     );
 };
@@ -86,7 +86,7 @@ const Border = memo(({
     color: string, 
     thickness?: number 
 }) => {
-    const baseClass = "absolute z-[50] pointer-events-none transition-opacity duration-150 ease-in-out";
+    const baseClass = "absolute z-[50] pointer-events-none transition-opacity duration-75 ease-in-out";
     
     const styleObj: React.CSSProperties = {
         backgroundColor: style === 'solid' ? color : 'transparent',
@@ -136,7 +136,6 @@ const CustomCellRenderer = memo(({
     isFilling,
     isTouch,
     scale,
-    onMouseDown, 
     onMouseEnter,
     onFillStart,
     onFillMove,
@@ -153,7 +152,6 @@ const CustomCellRenderer = memo(({
     isFilling: boolean,
     isTouch: boolean,
     scale: number,
-    onMouseDown: (id: string, shift: boolean) => void,
     onMouseEnter: (id: string) => void,
     onFillStart: () => void,
     onFillMove: (x: number, y: number) => void,
@@ -271,27 +269,24 @@ const CustomCellRenderer = memo(({
       }
   }, [isTopLeft, isBottomRight, isTouch, isFilling]);
 
-  const handleSize = Math.max(16, 20 * scale);
-  const dragHandleSize = Math.max(6, 7 * scale);
+  const dragHandleSize = Math.max(7, 8 * scale);
   const selectionBorderThickness = Math.max(2, 2 * scale);
 
   return (
     <div 
         ref={cellRef}
         style={baseStyle}
-        // Native mouse down logic retained for core clicking, useGesture is on grid container
-        onMouseDown={(e) => onMouseDown(cellId, e.shiftKey)}
         onMouseEnter={() => { onMouseEnter(cellId); setIsHovered(true); }}
         onMouseLeave={() => setIsHovered(false)}
         className="relative group select-none"
         data-cell-id={cellId}
     >
       {(isInSelection && !isActive) && (
-          <div className="absolute inset-0 bg-[#107c41] bg-opacity-10 pointer-events-none z-[5] transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-[#107c41] bg-opacity-[0.12] pointer-events-none z-[5]" />
       )}
       
       {(isInFill && !isInSelection) && (
-          <div className="absolute inset-0 bg-gray-400 bg-opacity-10 pointer-events-none z-[5] animate-in fade-in duration-300" />
+          <div className="absolute inset-0 bg-gray-400 bg-opacity-20 pointer-events-none z-[5]" />
       )}
 
       <div className="relative z-0 w-full h-full flex" style={{ alignItems: baseStyle.alignItems, justifyContent: baseStyle.justifyContent }}>
@@ -320,13 +315,13 @@ const CustomCellRenderer = memo(({
       <Border type="left" visible={sLeft} color="#107c41" thickness={selectionBorderThickness} />
       <Border type="right" visible={sRight} color="#107c41" thickness={selectionBorderThickness} />
 
-      {/* Drag Move Triggers */}
+      {/* Move Triggers: Allow dragging the border to move cells */}
       {!isFilling && isInSelection && (
           <>
-            {sTop && <div className="absolute top-0 left-0 right-0 h-2 -mt-1 cursor-grab z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
-            {sBottom && <div className="absolute bottom-0 left-0 right-0 h-2 -mb-1 cursor-grab z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
-            {sLeft && <div className="absolute top-0 bottom-0 left-0 w-2 -ml-1 cursor-grab z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
-            {sRight && <div className="absolute top-0 bottom-0 right-0 w-2 -mr-1 cursor-grab z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
+            {sTop && <div className="absolute top-0 left-0 right-0 h-2 -mt-1 cursor-move z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
+            {sBottom && <div className="absolute bottom-0 left-0 right-0 h-2 -mb-1 cursor-move z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
+            {sLeft && <div className="absolute top-0 bottom-0 left-0 w-2 -ml-1 cursor-move z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
+            {sRight && <div className="absolute top-0 bottom-0 right-0 w-2 -mr-1 cursor-move z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
           </>
       )}
 
@@ -339,7 +334,7 @@ const CustomCellRenderer = memo(({
           </>
       )}
 
-      {/* Fill Handle - Only show on bottom right of selection, not on touch unless specialized, not while filling */}
+      {/* Fill Handle */}
       {isBottomRight && !isTouch && !isFilling && (
         <FillHandle 
             onFillStart={onFillStart}
@@ -351,7 +346,6 @@ const CustomCellRenderer = memo(({
     </div>
   );
 }, (prev, next) => {
-    // Memo check (Simplified for brevity, same logic as before)
     const colKey = parseInt(next.column.key);
     const rowId = next.row.id;
     const cellId = getCellId(colKey, rowId);
@@ -402,32 +396,45 @@ const Grid: React.FC<GridProps> = ({
   const [isTouch, setIsTouch] = useState(false);
   const gridRef = useRef<DataGridHandle>(null);
   
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [dragStartCell, setDragStartCell] = useState<string | null>(null);
-
   const [isFilling, setIsFilling] = useState(false);
   const [fillStartRange, setFillStartRange] = useState<string[] | null>(null);
   const [fillTargetRange, setFillTargetRange] = useState<string[] | null>(null);
 
-  // React Use Gesture for Grid Selection
-  // Binding to document/window level or grid container to handle dragging outside cells smoothly
-  const bindGridGestures = useDrag(({ down, movement: [mx, my], target, xy: [x, y], cancel }) => {
-      // Find the cell element under the cursor
-      // Note: react-data-grid uses canvas or virtualization, so we look for data attributes
-      if (!down) return;
+  // Gesture handling for main grid interaction (Selection)
+  const bindGridGestures = useDrag((state) => {
+      const { event, first, down, xy: [x, y], memo } = state;
       
-      const el = document.elementFromPoint(x, y);
-      const cellEl = el?.closest('[data-cell-id]');
+      // Ignore if touching fill handle or scrollbars roughly
+      if (event.target instanceof Element && event.target.closest('.fill-handle')) return;
       
-      if (cellEl) {
-          const id = cellEl.getAttribute('data-cell-id');
-          if (id && dragStartCell && onSelectionDrag) {
-              onSelectionDrag(dragStartCell, id);
-          }
+      if (first) {
+           const el = document.elementFromPoint(x, y);
+           const cellEl = el?.closest('[data-cell-id]');
+           if (cellEl) {
+               const id = cellEl.getAttribute('data-cell-id')!;
+               // Trigger initial selection (set anchor)
+               onCellClick(id, state.shiftKey);
+               return { startId: id }; // Memoize startId
+           }
+           return null;
+      }
+      
+      if (down && memo?.startId && onSelectionDrag) {
+           const el = document.elementFromPoint(x, y);
+           const cellEl = el?.closest('[data-cell-id]');
+           if (cellEl) {
+               const id = cellEl.getAttribute('data-cell-id')!;
+               if (id !== memo.startId) {
+                   onSelectionDrag(memo.startId, id);
+               }
+           }
       }
   }, {
-      // Only enable if we are already selecting via mouse down on a cell
-      enabled: isSelecting && !!dragStartCell
+      pointer: { keys: false },
+      // Use filterTaps to allow clicks to pass through if no drag occurs, 
+      // but we handle click in 'first' so we want to capture it. 
+      // However, preventScroll is key for touch devices.
+      preventScroll: true 
   });
 
   useEffect(() => {
@@ -479,18 +486,8 @@ const Grid: React.FC<GridProps> = ({
       };
   }, [fillTargetRange]);
 
-  const handleMouseDown = useCallback((id: string, shift: boolean) => {
-      if (isFilling) return;
-      if (!shift) {
-          setIsSelecting(true);
-          setDragStartCell(id);
-      }
-      onCellClick(id, shift);
-  }, [onCellClick, isFilling]);
-
   const handleMouseEnter = useCallback((id: string) => {
-      // Fallback for hover if gesture misses (or for fill handle logic which uses native mouse events still)
-      // Note: Now used mainly for update triggers if gesture logic delegates to it
+      // Used for tracking hover states if needed
   }, []);
 
   // --- FILL GESTURE LOGIC ---
@@ -519,9 +516,7 @@ const Grid: React.FC<GridProps> = ({
 
               let tMinR = minRow, tMaxR = maxRow, tMinC = minCol, tMaxC = maxCol;
 
-              // Constrain fill to one direction (standard Excel behavior, roughly)
-              // Or allow 2D fill. Let's allow simple extension.
-              
+              // Simple 1D fill direction heuristic
               if (hRow > maxRow) tMaxR = hRow;
               else if (hRow < minRow) tMinR = hRow;
               
@@ -546,17 +541,11 @@ const Grid: React.FC<GridProps> = ({
       setFillTargetRange(null);
   }, [isFilling, fillStartRange, fillTargetRange, onFill]);
 
-  // Mobile/Touch Handlers stubbed or kept as is
-  const handleMobileHandleDown = useCallback(() => {}, []);
-  const handleDragStart = useCallback(() => {}, []); // Stub for now as gesture handles main selection
-
-  useEffect(() => {
-      const handleMouseUp = () => {
-          setIsSelecting(false);
-          setDragStartCell(null);
-      };
-      window.addEventListener('mouseup', handleMouseUp);
-      return () => window.removeEventListener('mouseup', handleMouseUp);
+  // Stub for move logic (can be expanded later)
+  const handleDragStart = useCallback((e: React.MouseEvent, id: string) => {
+      // Prevent default to avoid browser drag image if we implement custom drag
+      // e.preventDefault(); 
+      // Logic for moving cells would go here using a separate useDrag
   }, []);
 
   const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
@@ -612,12 +601,10 @@ const Grid: React.FC<GridProps> = ({
                     isFilling={isFilling}
                     isTouch={isTouch}
                     scale={scale}
-                    onMouseDown={handleMouseDown}
                     onMouseEnter={handleMouseEnter}
                     onFillStart={handleFillStart}
                     onFillMove={handleFillMove}
                     onFillEnd={handleFillEnd}
-                    onMobileHandleDown={handleMobileHandleDown}
                     onDragStart={handleDragStart}
                 />
             ),
@@ -656,12 +643,11 @@ const Grid: React.FC<GridProps> = ({
           };
        })
     ];
-  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, scale, activeCoords, handleMouseDown, handleMouseEnter, handleFillStart, handleFillMove, handleFillEnd, handleMobileHandleDown, handleDragStart, onCellChange]);
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, scale, activeCoords, handleMouseEnter, handleFillStart, handleFillMove, handleFillEnd, handleDragStart, onCellChange]);
 
   const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
 
   return (
-    // Apply react-use-gesture bind here
     <div className="w-full h-full text-sm bg-white select-none relative" {...bindGridGestures()}>
         <DataGrid 
             ref={gridRef}
