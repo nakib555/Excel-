@@ -151,7 +151,7 @@ const SelectionOverlay = memo(({
                 // Disable transition during scroll to prevent drifting/lag
                 transition: isScrolling 
                     ? 'none' 
-                    : 'top 0.1s, left 0.1s, width 0.1s, height 0.1s'
+                    : 'all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1)' // Smoother, slightly springy easing
             }}
         >
             {/* Desktop Fill Handle */}
@@ -298,7 +298,7 @@ const CustomCellRenderer = memo(({
               "absolute inset-0 bg-[#107c41] pointer-events-none z-[5]",
               (isInSelection && !isActive) ? "opacity-[0.10]" : "opacity-0"
           )}
-          style={{ transition: 'all 0.08s ease-out' }} 
+          style={{ transition: 'opacity 0.2s ease-out' }} 
       />
       
       {/* Fill Selection Highlight */}
@@ -307,7 +307,7 @@ const CustomCellRenderer = memo(({
               "absolute inset-0 bg-gray-400 pointer-events-none z-[5]",
               (isInFill && !isInSelection) ? "opacity-20" : "opacity-0"
           )} 
-          style={{ transition: 'all 0.08s ease-out' }}
+          style={{ transition: 'opacity 0.2s ease-out' }}
       />
 
       <div className="relative z-0 w-full h-full flex" style={{ alignItems: baseStyle.alignItems, justifyContent: baseStyle.justifyContent }}>
@@ -476,13 +476,15 @@ const Grid: React.FC<GridProps> = ({
             const isRowActive = activeCoords?.row === props.row.id;
             return (
                 <Tooltip content={`Row ${props.row.id + 1}`}>
-                    <div className={cn(
-                        "flex items-center justify-center w-full h-full font-semibold select-none",
-                        isRowActive 
-                            ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
-                            : "bg-[#f8f9fa] text-[#444]"
-                    )}
-                    style={{ fontSize: `${11 * scale}px` }}
+                    <div 
+                        className={cn(
+                            "flex items-center justify-center w-full h-full font-semibold select-none cursor-e-resize transition-colors duration-150",
+                            isRowActive 
+                                ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
+                                : "bg-[#f8f9fa] text-[#444] hover:bg-[#e2e8f0]"
+                        )}
+                        style={{ fontSize: `${11 * scale}px` }}
+                        onClick={() => onCellClick(getCellId(0, props.row.id), false)}
                     >
                         {props.row.id + 1}
                     </div>
@@ -492,6 +494,7 @@ const Grid: React.FC<GridProps> = ({
          renderHeaderCell: () => (
              <div 
                 className="w-full h-full bg-[#f8f9fa] flex items-end justify-end p-0.5 cursor-pointer hover:bg-slate-200 transition-colors"
+                onClick={() => onCellClick('A1', false)}
              >
                  <svg viewBox="0 0 10 10" className="w-3 h-3 fill-slate-400 mr-0.5 mb-0.5">
                     <path d="M10 10H0L10 0z" />
@@ -526,13 +529,15 @@ const Grid: React.FC<GridProps> = ({
                 const isColActive = activeCoords?.col === i;
                 return (
                     <Tooltip content={`Column ${props.column.name}`}>
-                        <div className={cn(
-                            "flex items-center justify-center w-full h-full font-semibold",
-                            isColActive 
-                                ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
-                                : "bg-[#f8f9fa] text-[#444]"
-                        )}
-                        style={{ fontSize: `${12 * scale}px` }}
+                        <div 
+                            className={cn(
+                                "flex items-center justify-center w-full h-full font-semibold cursor-s-resize transition-colors duration-150",
+                                isColActive 
+                                    ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
+                                    : "bg-[#f8f9fa] text-[#444] hover:bg-[#e2e8f0]"
+                            )}
+                            style={{ fontSize: `${12 * scale}px` }}
+                            onClick={() => onCellClick(getCellId(i, 0), false)}
                         >
                             {props.column.name}
                         </div>
