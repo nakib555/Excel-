@@ -121,7 +121,14 @@ html, body, #root {
   font-weight: 600;
   text-align: center;
   border-bottom: 1px solid var(--excel-header-border);
-  z-index: 40 !important; 
+  z-index: 40 !important;
+  position: sticky;
+  top: 0;
+}
+
+/* Corner Header Fix (Top Left) */
+.rdg-header-row .rdg-cell[aria-colindex="1"] {
+  z-index: 50 !important;
 }
 
 .rdg-header-row .rdg-cell {

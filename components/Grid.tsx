@@ -665,7 +665,15 @@ const Grid: React.FC<GridProps> = ({
                 </Tooltip>
             );
          },
-         renderHeaderCell: () => <div className="w-full h-full bg-[#f8f9fa]" />
+         renderHeaderCell: () => (
+             <div 
+                className="w-full h-full bg-[#f8f9fa] flex items-end justify-end p-0.5 cursor-pointer hover:bg-slate-200 transition-colors"
+             >
+                 <svg viewBox="0 0 10 10" className="w-3 h-3 fill-slate-400 mr-0.5 mb-0.5">
+                    <path d="M10 10H0L10 0z" />
+                 </svg>
+             </div>
+         )
        }, 
        ...Array.from({ length: size.cols }, (_, i) => {
           const colChar = numToChar(i);
