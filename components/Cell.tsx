@@ -100,6 +100,20 @@ const Cell = memo(({
     if (isActive && editing) inputRef.current?.focus();
   }, [isActive, editing]);
 
+  // Disable editing if cell loses focus
+  useEffect(() => {
+      if (!isActive && editing) {
+          setEditing(false);
+          // If needed, commit change here, but usually onBlur handles it. 
+          // If switching active cell rapidly, relying on onBlur of unmounted input is risky.
+          // Since we are inside the same grid, the Cell component might re-render as inactive but not unmount.
+          // The input will unmount. 
+          if (editValue !== data.raw) {
+              onChange(id, editValue);
+          }
+      }
+  }, [isActive, editing, editValue, data.raw, id, onChange]);
+
   useEffect(() => {
       // Cleanup timeout on unmount
       return () => {
