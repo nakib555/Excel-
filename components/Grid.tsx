@@ -111,7 +111,8 @@ const Border = memo(({
     color: string, 
     thickness?: number 
 }) => {
-    const baseClass = "absolute z-[50] pointer-events-none transition-opacity duration-75 ease-in-out";
+    // Increased duration for smoother visual expansion effect
+    const baseClass = "absolute z-[50] pointer-events-none transition-opacity duration-200 ease-in-out";
     
     const styleObj: React.CSSProperties = {
         backgroundColor: style === 'solid' ? color : 'transparent',
@@ -314,13 +315,21 @@ const CustomCellRenderer = memo(({
         className="relative group select-none"
         data-cell-id={cellId}
     >
-      {(isInSelection && !isActive) && (
-          <div className="absolute inset-0 bg-[#107c41] bg-opacity-[0.15] pointer-events-none z-[5]" />
-      )}
+      {/* Background Selection with Transition */}
+      <div 
+          className={cn(
+              "absolute inset-0 bg-[#107c41] pointer-events-none z-[5] transition-opacity duration-200 ease-in-out",
+              (isInSelection && !isActive) ? "opacity-[0.15]" : "opacity-0"
+          )} 
+      />
       
-      {(isInFill && !isInSelection) && (
-          <div className="absolute inset-0 bg-gray-400 bg-opacity-20 pointer-events-none z-[5]" />
-      )}
+      {/* Fill Selection with Transition */}
+      <div 
+          className={cn(
+              "absolute inset-0 bg-gray-400 pointer-events-none z-[5] transition-opacity duration-200 ease-in-out",
+              (isInFill && !isInSelection) ? "opacity-20" : "opacity-0"
+          )} 
+      />
 
       <div className="relative z-0 w-full h-full flex" style={{ alignItems: baseStyle.alignItems, justifyContent: baseStyle.justifyContent }}>
           {displayValue}
