@@ -1,3 +1,4 @@
+
 import React, { useMemo, useCallback, useState, useEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { DataGrid, Column, RenderCellProps, DataGridHandle } from 'react-data-grid';
@@ -141,7 +142,7 @@ const SelectionOverlay = memo(({
 
     return (
         <div
-            className="absolute border-[2px] border-[#107c41] pointer-events-none z-[25] box-border"
+            className="absolute border-[2px] border-[#107c41] pointer-events-none z-[60] box-border"
             style={{
                 top: `${top}px`,
                 left: `${left}px`,

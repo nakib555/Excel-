@@ -94,14 +94,14 @@ html, body, #root {
   z-index: 1;
 }
 
-/* Active Cell Z-Index Boost */
+/* Active Cell Z-Index Boost - Level 50 */
 .rdg-cell[aria-selected="true"] {
   box-shadow: none !important;
   border-color: var(--rdg-border-color);
-  z-index: 20 !important; 
+  z-index: 50 !important; 
 }
 
-/* Row Headers (1, 2, 3...) */
+/* Row Headers (1, 2, 3...) - Level 90 */
 .rdg-cell[aria-colindex="1"] {
     background-color: #f8f9fa;
     color: #444;
@@ -110,32 +110,34 @@ html, body, #root {
     font-size: 11px;
     font-weight: 600;
     overflow: hidden !important; 
-    z-index: 30 !important;
+    z-index: 90 !important;
     text-align: center;
 }
 
-/* Column Headers (A, B, C...) */
+/* Column Headers (A, B, C...) - Level 100 */
 .rdg-header-row {
   background-color: #f8f9fa; 
   color: #444;
   font-weight: 600;
   text-align: center;
   border-bottom: 1px solid var(--excel-header-border);
-  z-index: 40 !important;
+  z-index: 100 !important;
   position: sticky;
   top: 0;
 }
 
-/* Corner Header Fix (Top Left) */
-.rdg-header-row .rdg-cell[aria-colindex="1"] {
-  z-index: 50 !important;
-}
-
+/* Ensure individual header cells also respect the high z-index */
 .rdg-header-row .rdg-cell {
   justify-content: center;
   border-right: 1px solid var(--excel-header-border);
   border-bottom: 1px solid var(--excel-header-border);
   background-color: #f8f9fa;
+  z-index: 100 !important;
+}
+
+/* Corner Header Fix (Top Left) - Level 110 (Topmost) */
+.rdg-header-row .rdg-cell[aria-colindex="1"] {
+  z-index: 110 !important;
 }
 
 .rdg-row {
