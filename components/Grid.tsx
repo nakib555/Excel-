@@ -1,4 +1,3 @@
-
 import React, { useMemo, useCallback, useState, useEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { DataGrid, Column, RenderCellProps, DataGridHandle } from 'react-data-grid';
@@ -8,6 +7,7 @@ import { numToChar, getCellId, formatCellValue, parseCellId, cn, getRange } from
 import { NavigationDirection } from './Cell';
 import { ExternalLink } from 'lucide-react';
 import { Tooltip } from './shared';
+import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../constants/grid.constants';
 
 import 'react-data-grid/lib/styles.css';
 
@@ -68,8 +68,8 @@ const FillHandle = ({ onFillStart, onFillMove, onFillEnd, size }: { onFillStart:
     return (
         <div 
             {...bind()} 
-            className="absolute -bottom-[5px] -right-[5px] bg-[#107c41] border-[2px] border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform touch-none fill-handle rounded-sm"
-            style={{ width: size, height: size, boxSizing: 'content-box' }}
+            className="absolute -bottom-[4px] -right-[4px] bg-[#107c41] border border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform touch-none fill-handle rounded-[1px]"
+            style={{ width: size, height: size }}
         />
     );
 };
@@ -81,72 +81,91 @@ const SelectionHandle = ({ type, size, onResizeInit }: any) => {
             onPointerDown={(e) => {
                 e.stopPropagation(); 
                 e.preventDefault(); 
-                // Capture pointer to ensure we receive moves even if finger leaves the handle
                 (e.target as Element).setPointerCapture(e.pointerId);
                 onResizeInit(e, type);
             }}
-            className="absolute z-[100] bg-white rounded-full border-[4px] border-[#107c41] shadow-[0_2px_4px_rgba(0,0,0,0.25)] pointer-events-auto touch-none cursor-move flex items-center justify-center transition-transform active:scale-110"
+            className="absolute z-[100] bg-white rounded-full border-[3px] border-[#107c41] shadow-md pointer-events-auto touch-none cursor-move flex items-center justify-center transition-transform active:scale-110"
             style={{ 
                 width: size, 
                 height: size, 
-                boxSizing: 'border-box',
-                // Center exactly on the corner
                 top: type === 'tl' ? 0 : '100%',
                 left: type === 'tl' ? 0 : '100%',
                 transform: 'translate(-50%, -50%)',
-                marginTop: type === 'tl' ? 0 : -2, // Slight adjustment for border alignment
-                marginLeft: type === 'tl' ? 0 : -2
             }}
         />
     );
 };
 
-// --- BORDER COMPONENT ---
-const Border = memo(({ 
-    type, visible, style = 'solid', color, thickness = 2 
+// --- SELECTION OVERLAY COMPONENT ---
+interface SelectionRect { x: number, y: number, w: number, h: number }
+
+const SelectionOverlay = memo(({ 
+    rect, 
+    scroll, 
+    scale,
+    isScrolling,
+    isTouch,
+    onFillStart,
+    onFillMove,
+    onFillEnd,
+    onResizeInit
 }: { 
-    type: 'top' | 'bottom' | 'left' | 'right', 
-    visible: boolean, 
-    style?: 'solid' | 'dashed', 
-    color: string, 
-    thickness?: number 
+    rect: SelectionRect | null, 
+    scroll: { left: number, top: number },
+    scale: number,
+    isScrolling: boolean,
+    isTouch: boolean,
+    onFillStart: () => void,
+    onFillMove: (x: number, y: number) => void,
+    onFillEnd: () => void,
+    onResizeInit: (e: React.PointerEvent, type: 'tl' | 'br') => void
 }) => {
-    // Updated transition as requested: 0.08s ease-out
-    const baseClass = "absolute z-[50] pointer-events-none";
+    if (!rect) return null;
+
+    // Fixed Header Dimensions (matches DataGrid config)
+    const headerHeight = 32 * scale;
+    const rowHeaderWidth = 46 * scale;
+
+    // Adjust position relative to the grid container
+    const top = rect.y + headerHeight - scroll.top;
+    const left = rect.x + rowHeaderWidth - scroll.left;
     
-    const styleObj: React.CSSProperties = {
-        backgroundColor: style === 'solid' ? color : 'transparent',
-        opacity: visible ? 1 : 0,
-        transition: 'all 0.08s ease-out'
-    };
+    const fillHandleSize = Math.max(8, 8 * scale);
+    const selectionHandleSize = Math.max(18, 18 * scale);
 
-    if (style === 'dashed') {
-        styleObj.borderStyle = 'dashed';
-        styleObj.borderColor = color;
-        styleObj.borderWidth = 0;
-    }
+    return (
+        <div
+            className="absolute border-[2px] border-[#107c41] pointer-events-none z-[25] box-border"
+            style={{
+                top: `${top}px`,
+                left: `${left}px`,
+                width: `${rect.w}px`,
+                height: `${rect.h}px`,
+                // Disable transition during scroll to prevent drifting/lag
+                transition: isScrolling 
+                    ? 'none' 
+                    : 'top 0.25s cubic-bezier(0.25, 0.8, 0.25, 1.25), left 0.25s cubic-bezier(0.25, 0.8, 0.25, 1.25), width 0.25s cubic-bezier(0.25, 0.8, 0.25, 1.25), height 0.25s cubic-bezier(0.25, 0.8, 0.25, 1.25)'
+            }}
+        >
+            {/* Desktop Fill Handle */}
+            {!isTouch && (
+                <FillHandle 
+                    onFillStart={onFillStart}
+                    onFillMove={onFillMove}
+                    onFillEnd={onFillEnd}
+                    size={fillHandleSize}
+                />
+            )}
 
-    let positionClass = "";
-    
-    if (type === 'top') {
-        positionClass = "top-0 left-0 right-0";
-        styleObj.height = thickness;
-        if (style === 'dashed') styleObj.borderTopWidth = thickness;
-    } else if (type === 'bottom') {
-        positionClass = "bottom-0 left-0 right-0";
-        styleObj.height = thickness;
-        if (style === 'dashed') styleObj.borderBottomWidth = thickness;
-    } else if (type === 'left') {
-        positionClass = "left-0 top-0 bottom-0";
-        styleObj.width = thickness;
-        if (style === 'dashed') styleObj.borderLeftWidth = thickness;
-    } else if (type === 'right') {
-        positionClass = "right-0 top-0 bottom-0";
-        styleObj.width = thickness;
-        if (style === 'dashed') styleObj.borderRightWidth = thickness;
-    }
-
-    return <div className={cn(baseClass, positionClass)} style={styleObj} />;
+            {/* Mobile Selection Handles */}
+            {isTouch && (
+                <>
+                    <SelectionHandle type="tl" size={selectionHandleSize} onResizeInit={onResizeInit} />
+                    <SelectionHandle type="br" size={selectionHandleSize} onResizeInit={onResizeInit} />
+                </>
+            )}
+        </div>
+    );
 });
 
 // --- EXCEL CELL RENDERER ---
@@ -158,17 +177,11 @@ const CustomCellRenderer = memo(({
     activeCell, 
     selectionSet,
     fillSet,
-    selectionBounds,
-    fillBounds,
     isFilling,
     isTouch,
     scale,
     onMouseEnter,
-    onFillStart,
-    onFillMove,
-    onFillEnd,
     onDragStart,
-    onResizeInit,
     onCellClick 
 }: RenderCellProps<any> & { 
     cells: Record<string, CellData>, 
@@ -176,17 +189,11 @@ const CustomCellRenderer = memo(({
     activeCell: string | null,
     selectionSet: Set<string>,
     fillSet: Set<string>,
-    selectionBounds: { minRow: number, maxRow: number, minCol: number, maxCol: number } | null,
-    fillBounds: { minRow: number, maxRow: number, minCol: number, maxCol: number } | null,
     isFilling: boolean,
     isTouch: boolean,
     scale: number,
     onMouseEnter: (id: string) => void,
-    onFillStart: () => void,
-    onFillMove: (x: number, y: number) => void,
-    onFillEnd: () => void,
     onDragStart: (e: React.MouseEvent, id: string) => void,
-    onResizeInit: (e: React.PointerEvent, type: 'tl' | 'br') => void,
     onCellClick: (id: string, isShift: boolean) => void
 }) => {
   const cellId = getCellId(parseInt(column.key), row.id);
@@ -259,52 +266,6 @@ const CustomCellRenderer = memo(({
       if (style.borders.right) baseStyle.borderRight = `${getBWidth(style.borders.right.style)} solid ${style.borders.right.color}`;
   }
 
-  const r = row.id;
-  const c = parseInt(column.key);
-
-  let sTop = false, sBottom = false, sLeft = false, sRight = false;
-  let isBottomRight = false;
-  let isTopLeft = false;
-
-  if (isInSelection && selectionBounds) {
-      if (r === selectionBounds.minRow) sTop = true;
-      if (r === selectionBounds.maxRow) sBottom = true;
-      if (c === selectionBounds.minCol) sLeft = true;
-      if (c === selectionBounds.maxCol) sRight = true;
-      
-      if (sBottom && sRight) isBottomRight = true;
-      if (sTop && sLeft) isTopLeft = true;
-  }
-
-  let fTop = false, fBottom = false, fLeft = false, fRight = false;
-  if (isInFill && fillBounds && isFilling) {
-      if (r === fillBounds.minRow) fTop = true;
-      if (r === fillBounds.maxRow) fBottom = true;
-      if (c === fillBounds.minCol) fLeft = true;
-      if (c === fillBounds.maxCol) fRight = true;
-  }
-
-  // Ensure z-index is elevated for handles
-  useEffect(() => {
-      const cell = cellRef.current?.closest('.rdg-cell') as HTMLElement;
-      const row = cell?.closest('.rdg-row') as HTMLElement;
-
-      if (cell && row) {
-          const hasHandle = (isTopLeft || isBottomRight) && isTouch && !isFilling;
-          if (hasHandle) {
-              cell.style.zIndex = '100';
-              row.style.zIndex = '100';
-          } else {
-              cell.style.zIndex = ''; 
-              row.style.zIndex = '';
-          }
-      }
-  }, [isTopLeft, isBottomRight, isTouch, isFilling]);
-
-  const fillHandleSize = Math.max(8, 8 * scale);
-  const selectionHandleSize = Math.max(20, 22 * scale); // Mobile handle size
-  const selectionBorderThickness = 2; // Fixed crisp border
-
   return (
     <div 
         ref={cellRef}
@@ -312,7 +273,6 @@ const CustomCellRenderer = memo(({
         onMouseEnter={() => { onMouseEnter(cellId); setIsHovered(true); }}
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => {
-            // Enable simple tap selection on touch devices where drag is disabled to allow scrolling
             if (isTouch) {
                 onCellClick(cellId, false);
             }
@@ -320,16 +280,16 @@ const CustomCellRenderer = memo(({
         className="relative group select-none"
         data-cell-id={cellId}
     >
-      {/* Background Selection with Transition */}
+      {/* Background Selection Highlight (Dimmed) */}
       <div 
           className={cn(
               "absolute inset-0 bg-[#107c41] pointer-events-none z-[5]",
-              (isInSelection && !isActive) ? "opacity-[0.15]" : "opacity-0"
+              (isInSelection && !isActive) ? "opacity-[0.10]" : "opacity-0"
           )}
           style={{ transition: 'all 0.08s ease-out' }} 
       />
       
-      {/* Fill Selection with Transition */}
+      {/* Fill Selection Highlight */}
       <div 
           className={cn(
               "absolute inset-0 bg-gray-400 pointer-events-none z-[5]",
@@ -358,60 +318,6 @@ const CustomCellRenderer = memo(({
             )}
           </>
       )}
-
-      <Border type="top" visible={sTop} color="#107c41" thickness={selectionBorderThickness} />
-      <Border type="bottom" visible={sBottom} color="#107c41" thickness={selectionBorderThickness} />
-      <Border type="left" visible={sLeft} color="#107c41" thickness={selectionBorderThickness} />
-      <Border type="right" visible={sRight} color="#107c41" thickness={selectionBorderThickness} />
-
-      {/* Move Triggers: Allow dragging the border to move cells */}
-      {!isFilling && isInSelection && !isTouch && (
-          <>
-            {sTop && <div className="absolute top-0 left-0 right-0 h-2 -mt-1 cursor-move z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
-            {sBottom && <div className="absolute bottom-0 left-0 right-0 h-2 -mb-1 cursor-move z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
-            {sLeft && <div className="absolute top-0 bottom-0 left-0 w-2 -ml-1 cursor-move z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
-            {sRight && <div className="absolute top-0 bottom-0 right-0 w-2 -mr-1 cursor-move z-[60]" onMouseDown={(e) => onDragStart(e, cellId)} />}
-          </>
-      )}
-
-      {/* Mobile Selection Handles */}
-      {isTouch && isInSelection && !isFilling && (
-          <>
-            {isTopLeft && (
-                <SelectionHandle
-                    type="tl"
-                    size={selectionHandleSize}
-                    onResizeInit={onResizeInit}
-                />
-            )}
-            {isBottomRight && (
-                <SelectionHandle
-                    type="br"
-                    size={selectionHandleSize}
-                    onResizeInit={onResizeInit}
-                />
-            )}
-          </>
-      )}
-
-      {isFilling && (
-          <>
-            <Border type="top" visible={fTop && !sTop} style="solid" color="#64748b" thickness={selectionBorderThickness} />
-            <Border type="bottom" visible={fBottom && !sBottom} style="solid" color="#64748b" thickness={selectionBorderThickness} />
-            <Border type="left" visible={fLeft && !sLeft} style="solid" color="#64748b" thickness={selectionBorderThickness} />
-            <Border type="right" visible={fRight && !sRight} style="solid" color="#64748b" thickness={selectionBorderThickness} />
-          </>
-      )}
-
-      {/* Fill Handle - Desktop Only */}
-      {isBottomRight && !isTouch && !isFilling && (
-        <FillHandle 
-            onFillStart={onFillStart}
-            onFillMove={onFillMove}
-            onFillEnd={onFillEnd}
-            size={fillHandleSize}
-        />
-      )}
     </div>
   );
 }, (prev, next) => {
@@ -434,9 +340,6 @@ const CustomCellRenderer = memo(({
     const wasInFill = prev.fillSet.has(cellId);
     const isInFill = next.fillSet.has(cellId);
     if (wasInFill !== isInFill) return false;
-
-    if ((isInSelection || wasInSelection) && prev.selectionBounds !== next.selectionBounds) return false;
-    if ((isInFill || wasInFill) && prev.fillBounds !== next.fillBounds) return false;
     
     if (prev.isFilling !== next.isFilling) return false;
     if (prev.isTouch !== next.isTouch) return false;
@@ -473,7 +376,25 @@ const Grid: React.FC<GridProps> = ({
   // Resize Handlers Refs
   const [resizingHandle, setResizingHandle] = useState<'tl' | 'br' | null>(null);
   const resizeAnchorRef = useRef<string | null>(null);
-  const autoScrollRaf = useRef<number>();
+  
+  // Scrolling State for Overlay
+  const [scrollPos, setScrollPos] = useState({ left: 0, top: 0 });
+  const [isScrolling, setIsScrolling] = useState(false);
+  const scrollTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight, scrollLeft, scrollWidth, clientWidth } = event.currentTarget;
+      
+      // Update scroll pos for overlay
+      setScrollPos({ left: scrollLeft, top: scrollTop });
+      setIsScrolling(true);
+      if (scrollTimeout.current) clearTimeout(scrollTimeout.current);
+      scrollTimeout.current = setTimeout(() => setIsScrolling(false), 150);
+
+      // Expansion logic
+      if (scrollHeight - scrollTop - clientHeight < 200) onExpandGrid?.('row');
+      if (scrollWidth - scrollLeft - clientWidth < 200) onExpandGrid?.('col');
+  }, [onExpandGrid]);
 
   // Gesture handling for main grid interaction (Selection)
   const bindGridGestures = useDrag((state) => {
@@ -561,6 +482,31 @@ const Grid: React.FC<GridProps> = ({
       };
   }, [fillTargetRange]);
 
+  // --- OVERLAY GEOMETRY CALCULATION ---
+  const selectionRect = useMemo(() => {
+      if (!selectionBounds) return null;
+      
+      let y = 0;
+      for (let r = 0; r < selectionBounds.minRow; r++) {
+          y += (rowHeights[r] ?? DEFAULT_ROW_HEIGHT) * scale;
+      }
+      let h = 0;
+      for (let r = selectionBounds.minRow; r <= selectionBounds.maxRow; r++) {
+          h += (rowHeights[r] ?? DEFAULT_ROW_HEIGHT) * scale;
+      }
+
+      let x = 0;
+      for (let c = 0; c < selectionBounds.minCol; c++) {
+          x += (columnWidths[numToChar(c)] ?? DEFAULT_COL_WIDTH) * scale;
+      }
+      let w = 0;
+      for (let c = selectionBounds.minCol; c <= selectionBounds.maxCol; c++) {
+          w += (columnWidths[numToChar(c)] ?? DEFAULT_COL_WIDTH) * scale;
+      }
+
+      return { x, y, w, h };
+  }, [selectionBounds, rowHeights, columnWidths, scale]);
+
   const handleMouseEnter = useCallback((id: string) => {
       // Used for tracking hover states if needed
   }, []);
@@ -632,13 +578,6 @@ const Grid: React.FC<GridProps> = ({
   useEffect(() => {
       if (!resizingHandle || !onSelectionDrag || !resizeAnchorRef.current) return;
 
-      const autoScroll = () => {
-          if (!gridRef.current?.element) return;
-          // Simple Scroll Logic: 
-          // If we had mouse coords in a ref we could scroll.
-          // Since we are using event listeners, we handle scroll in handlePointerMove below.
-      };
-
       const handlePointerMove = (e: PointerEvent) => {
           e.preventDefault(); 
           
@@ -651,7 +590,7 @@ const Grid: React.FC<GridProps> = ({
           let scrollX = 0;
           let scrollY = 0;
 
-          if (e.clientY < SCROLL_ZONE + 100) scrollY = -SCROLL_SPEED; // +100 for top UI offset
+          if (e.clientY < SCROLL_ZONE + 100) scrollY = -SCROLL_SPEED;
           else if (e.clientY > viewportHeight - SCROLL_ZONE) scrollY = SCROLL_SPEED;
           
           if (e.clientX < SCROLL_ZONE) scrollX = -SCROLL_SPEED;
@@ -693,12 +632,6 @@ const Grid: React.FC<GridProps> = ({
   const handleDragStart = useCallback((e: React.MouseEvent, id: string) => {
       // Logic for moving cells would go here using a separate useDrag
   }, []);
-
-  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
-      const { scrollTop, scrollHeight, clientHeight, scrollLeft, scrollWidth, clientWidth } = event.currentTarget;
-      if (scrollHeight - scrollTop - clientHeight < 200) onExpandGrid?.('row');
-      if (scrollWidth - scrollLeft - clientWidth < 200) onExpandGrid?.('col');
-  }, [onExpandGrid]);
 
   const columns = useMemo((): Column<any>[] => {
     return [
@@ -742,17 +675,11 @@ const Grid: React.FC<GridProps> = ({
                     activeCell={activeCell}
                     selectionSet={selectionSet}
                     fillSet={fillSet}
-                    selectionBounds={selectionBounds}
-                    fillBounds={fillBounds}
                     isFilling={isFilling}
                     isTouch={isTouch}
                     scale={scale}
                     onMouseEnter={handleMouseEnter}
-                    onFillStart={handleFillStart}
-                    onFillMove={handleFillMove}
-                    onFillEnd={handleFillEnd}
                     onDragStart={handleDragStart}
-                    onResizeInit={handleResizeInit}
                     onCellClick={onCellClick}
                 />
             ),
@@ -791,17 +718,30 @@ const Grid: React.FC<GridProps> = ({
           };
        })
     ];
-  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, selectionBounds, fillBounds, isFilling, isTouch, scale, activeCoords, handleMouseEnter, handleFillStart, handleFillMove, handleFillEnd, handleDragStart, onCellChange, handleResizeInit, onCellClick]);
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, isFilling, isTouch, scale, activeCoords, handleMouseEnter, handleDragStart, onCellChange, onCellClick]);
 
   const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
 
   return (
     <div className="w-full h-full text-sm bg-white select-none relative" {...bindGridGestures()}>
+        {/* Selection Overlay */}
+        <SelectionOverlay 
+            rect={selectionRect}
+            scroll={scrollPos}
+            scale={scale}
+            isScrolling={isScrolling}
+            isTouch={isTouch}
+            onFillStart={handleFillStart}
+            onFillMove={handleFillMove}
+            onFillEnd={handleFillEnd}
+            onResizeInit={handleResizeInit}
+        />
+
         <DataGrid 
             ref={gridRef}
             columns={columns} 
             rows={rows} 
-            rowHeight={(row) => (rowHeights[row.id] || 24) * scale}
+            rowHeight={(row) => (rowHeights[row.id] || DEFAULT_ROW_HEIGHT) * scale}
             headerRowHeight={32 * scale}
             onColumnResize={(idx, width) => {
                 const col = columns[idx];
