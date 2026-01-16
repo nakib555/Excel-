@@ -6,6 +6,8 @@ import { CellSkeleton } from './Skeletons';
 import { ChevronDown, ExternalLink } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Tooltip } from './shared';
+import AutocompleteList from './AutocompleteList';
+import { COMMON_FUNCTIONS } from '../app/constants/functions';
 
 // Lazy load the new FilterMenu
 const FilterMenu = lazy(() => import('./menus/FilterMenu'));
@@ -65,6 +67,12 @@ const Cell = memo(({
   const filterBtnRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<any>(null);
   
+  // Autocomplete State
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [triggerToken, setTriggerToken] = useState<{ start: number, end: number, text: string } | null>(null);
+  const [acPosition, setAcPosition] = useState<{ top: number, left: number } | null>(null);
+
   const [isHovered, setIsHovered] = useState(false);
   
   // Touch detection for mobile adjustment
@@ -98,6 +106,74 @@ const Cell = memo(({
           if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
       };
   }, []);
+
+  // Autocomplete Logic
+  useEffect(() => {
+      if (!editing) {
+          setSuggestions([]);
+          return;
+      }
+      
+      const input = inputRef.current;
+      if (!input || !editValue) {
+          setSuggestions([]);
+          return;
+      }
+
+      const cursor = input.selectionStart || 0;
+      // Find token backwards from cursor
+      let start = cursor;
+      while (start > 0) {
+          const char = editValue[start - 1];
+          // Stop at separators
+          if (/[\s=(),]/.test(char)) break;
+          start--;
+      }
+
+      const token = editValue.slice(start, cursor);
+      if (token.length < 1) {
+          setSuggestions([]);
+          setTriggerToken(null);
+          return;
+      }
+
+      const matches = COMMON_FUNCTIONS.filter(fn => fn.startsWith(token.toUpperCase()));
+      if (matches.length > 0) {
+          setSuggestions(matches);
+          setTriggerToken({ start, end: cursor, text: token });
+          setSelectedIndex(0);
+          
+          // Calculate position relative to container
+          const rect = input.getBoundingClientRect();
+          const leftOffset = Math.min(width, start * (fontSize * 0.6)); // Approximate char width based on font size
+          
+          setAcPosition({ 
+              top: rect.bottom, 
+              left: rect.left + leftOffset
+          });
+      } else {
+          setSuggestions([]);
+      }
+
+  }, [editValue, editing]);
+
+  const applySuggestion = (suggestion: string) => {
+      if (!triggerToken || !inputRef.current) return;
+      const before = editValue.slice(0, triggerToken.start);
+      const after = editValue.slice(triggerToken.end);
+      const newValue = before + suggestion + after;
+      setEditValue(newValue);
+      setSuggestions([]);
+      
+      // Restore focus and cursor
+      setTimeout(() => {
+          if (inputRef.current) {
+              inputRef.current.focus();
+              const newCursorPos = triggerToken.start + suggestion.length;
+              inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+          }
+      }, 0);
+  };
 
   useEffect(() => {
       if (!showDropdown) return;
@@ -158,13 +234,38 @@ const Cell = memo(({
   }, [displayValue, resolvedStyle, width, fontSize, scale, editing]);
 
   const handleBlur = () => {
+    // Delay blur to allow suggestion click
     setTimeout(() => {
         setEditing(false);
+        setSuggestions([]);
         if (editValue !== data.raw) onChange(id, editValue);
-    }, 150);
+    }, 200);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (suggestions.length > 0) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedIndex(i => (i + 1) % suggestions.length);
+            return;
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedIndex(i => (i - 1 + suggestions.length) % suggestions.length);
+            return;
+        }
+        if (e.key === 'Tab' || e.key === 'Enter') {
+            e.preventDefault();
+            applySuggestion(suggestions[selectedIndex]);
+            return;
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            setSuggestions([]);
+            return;
+        }
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
       handleBlur();
@@ -307,21 +408,29 @@ const Cell = memo(({
       onDoubleClick={() => { setEditing(true); onDoubleClick(id); }}
     >
       {editing ? (
-        <input
-          ref={inputRef}
-          type="text"
-          className="absolute inset-0 w-full h-full px-[2px] outline-none z-50 bg-white text-slate-900 shadow-elevation"
-          style={{ 
-            fontSize: `${fontSize}px`, 
-            fontFamily: resolvedStyle.fontFamily || 'inherit',
-            textAlign: cssTextAlign,
-            fontWeight
-          }}
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-        />
+        <>
+            <input
+            ref={inputRef}
+            type="text"
+            className="absolute inset-0 w-full h-full px-[2px] outline-none z-50 bg-white text-slate-900 shadow-elevation"
+            style={{ 
+                fontSize: `${fontSize}px`, 
+                fontFamily: resolvedStyle.fontFamily || 'inherit',
+                textAlign: cssTextAlign,
+                fontWeight
+            }}
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            />
+            <AutocompleteList 
+                suggestions={suggestions}
+                selectedIndex={selectedIndex}
+                onSelect={applySuggestion}
+                position={acPosition}
+            />
+        </>
       ) : (
         !isMicroView && (
             data.isCheckbox ? (

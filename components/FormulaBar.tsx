@@ -1,10 +1,12 @@
 
 import React, { useRef, memo, useState, useEffect, useMemo } from 'react';
-import { FunctionSquare, X, Check, ChevronDown, ListFilter, ChevronRight, Search, Calculator, Type, Calendar, Binary, Database, Clock } from 'lucide-react';
+import { FunctionSquare, X, Check, ChevronDown, ChevronRight, Search, Calculator, Type, Calendar, Binary, Database, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { useSmartPosition, cn } from '../utils';
 import { Tooltip } from './shared';
+import AutocompleteList from './AutocompleteList';
+import { COMMON_FUNCTIONS } from '../app/constants/functions';
 
 interface FormulaBarProps {
   value: string;
@@ -43,6 +45,12 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
   const functionButtonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Autocomplete State
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [triggerToken, setTriggerToken] = useState<{ start: number, end: number, text: string } | null>(null);
+  const [acPosition, setAcPosition] = useState<{ top: number, left: number } | null>(null);
+
   // Function Menu State
   const [activeCategory, setActiveCategory] = useState<keyof typeof FUNCTION_CATEGORIES>('Recent');
   const [searchTerm, setSearchTerm] = useState('');
@@ -57,6 +65,75 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
     }
   }, [selectedCell]);
 
+  // Autocomplete Logic
+  useEffect(() => {
+      const input = inputRef.current;
+      if (!input || !value) {
+          setSuggestions([]);
+          return;
+      }
+
+      // Check active element to ensure we only show when focused
+      if (document.activeElement !== input) {
+          setSuggestions([]);
+          return;
+      }
+
+      const cursor = input.selectionStart || 0;
+      // Find token backwards from cursor
+      let start = cursor;
+      while (start > 0) {
+          const char = value[start - 1];
+          // Stop at separators
+          if (/[\s=(),]/.test(char)) break;
+          start--;
+      }
+
+      const token = value.slice(start, cursor);
+      if (token.length < 1) {
+          setSuggestions([]);
+          setTriggerToken(null);
+          return;
+      }
+
+      const matches = COMMON_FUNCTIONS.filter(fn => fn.startsWith(token.toUpperCase()));
+      if (matches.length > 0) {
+          setSuggestions(matches);
+          setTriggerToken({ start, end: cursor, text: token });
+          setSelectedIndex(0);
+          
+          // Calculate position
+          const rect = input.getBoundingClientRect();
+          // Approximate char width 8px (monospace font in input)
+          const leftOffset = Math.min(rect.width - 20, start * 9); 
+          setAcPosition({ 
+              top: rect.bottom + 4, 
+              left: rect.left + leftOffset + 10 // Padding
+          });
+      } else {
+          setSuggestions([]);
+      }
+
+  }, [value]);
+
+  const applySuggestion = (suggestion: string) => {
+      if (!triggerToken || !inputRef.current) return;
+      const before = value.slice(0, triggerToken.start);
+      const after = value.slice(triggerToken.end);
+      const newValue = before + suggestion + after;
+      onChange(newValue);
+      setSuggestions([]);
+      
+      // Restore focus and cursor
+      setTimeout(() => {
+          if (inputRef.current) {
+              inputRef.current.focus();
+              const newCursorPos = triggerToken.start + suggestion.length;
+              inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+          }
+      }, 0);
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
       const handleClickOutside = (e: MouseEvent) => {
@@ -64,6 +141,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
               dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
               setShowFunctionMenu(false);
           }
+          // Also close autocomplete on click outside (handled implicitly by blur, but safer here)
       };
       if(showFunctionMenu) window.addEventListener('click', handleClickOutside);
       return () => window.removeEventListener('click', handleClickOutside);
@@ -78,6 +156,29 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
   }, [showFunctionMenu]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (suggestions.length > 0) {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedIndex(i => (i + 1) % suggestions.length);
+            return;
+        }
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedIndex(i => (i - 1 + suggestions.length) % suggestions.length);
+            return;
+        }
+        if (e.key === 'Tab' || e.key === 'Enter') {
+            e.preventDefault();
+            applySuggestion(suggestions[selectedIndex]);
+            return;
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            setSuggestions([]);
+            return;
+        }
+    }
+
     if (e.key === 'Enter') {
       inputRef.current?.blur(); 
       onSubmit();
@@ -304,12 +405,24 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
+            onBlur={() => {
+                // Short delay to allow click on suggestion to fire first
+                setTimeout(() => setSuggestions([]), 200);
+            }}
             placeholder={selectedCell ? "Enter value or formula..." : ""}
             disabled={!selectedCell}
             spellCheck={false}
+            autoComplete="off"
           />
           {/* Bottom active indicator */}
           <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-transparent group-focus-within:bg-primary-500 transition-colors" />
+          
+          <AutocompleteList 
+                suggestions={suggestions} 
+                selectedIndex={selectedIndex} 
+                onSelect={applySuggestion} 
+                position={acPosition}
+          />
       </div>
       
       {/* Expand button */}

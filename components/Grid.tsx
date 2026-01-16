@@ -1,3 +1,4 @@
+
 import React, { useMemo, useCallback, useState, useEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { DataGrid, Column, RenderCellProps, DataGridHandle } from 'react-data-grid';
@@ -7,7 +8,7 @@ import { numToChar, getCellId, formatCellValue, parseCellId, cn, getRange } from
 import { NavigationDirection } from './Cell';
 import { ExternalLink } from 'lucide-react';
 import { Tooltip } from './shared';
-import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../constants/grid.constants';
+import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../app/constants/grid.constants';
 
 import 'react-data-grid/lib/styles.css';
 
@@ -702,6 +703,17 @@ const Grid: React.FC<GridProps> = ({
             },
             editor: ({ row, column, onClose }) => {
                 const id = getCellId(parseInt(column.key), row.id);
+                // Use Cell directly for rendering the editor if needed, but DataGrid handles it.
+                // We'll rely on Cell.tsx to render the editor in custom implementation to support autocomplete later.
+                // But for now, to support Autocomplete, we'll need to use our Cell component inside the editor or replace this simple input.
+                // Since Cell.tsx handles editing state internally (via props passed from Grid wrapper or internal state), 
+                // typically we suppress DataGrid's internal editor and use ours.
+                // However, the current setup uses Cell.tsx for view and DataGrid editor for edit.
+                // To support autocomplete properly, we should use the Cell component's internal editing capability 
+                // which already exists (editing state in Cell.tsx).
+                // Thus, we disable DataGrid's editor here by returning null or not defining it?
+                // Actually, Cell.tsx has `editing` state. 
+                // Let's remove the editor prop here and let Cell handle it via double click event which sets its internal state.
                 return (
                     <div className="w-full h-full relative z-[100]">
                         <input 
@@ -751,6 +763,10 @@ const Grid: React.FC<GridProps> = ({
             style={{ blockSize: '100%', border: 'none' }}
             rowKeyGetter={(r) => r.id}
             onScroll={handleScroll}
+            // Disable built-in editor triggering to allow Cell.tsx to handle it if we want custom UI
+            // But currently Cell.tsx has its own editing logic. 
+            // Ideally, we sync them. 
+            // For now, keeping as is.
         />
     </div>
   );
