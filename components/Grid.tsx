@@ -452,21 +452,115 @@ const Grid: React.FC<GridProps> = ({
       return () => window.removeEventListener('resize', checkTouch);
   }, []);
 
+  const selectionSet = useMemo(() => new Set(selectionRange || []), [selectionRange]);
+  const fillSet = useMemo(() => new Set(fillTargetRange || []), [fillTargetRange]);
+  const activeCoords = useMemo(() => parseCellId(activeCell || ''), [activeCell]);
+
+  const handleMouseEnter = useCallback((id: string) => {
+      // Used for tracking hover states if needed
+  }, []);
+
+  const handleDragStart = useCallback((e: React.MouseEvent, id: string) => {
+      // Logic for moving cells would go here using a separate useDrag
+  }, []);
+
+  const columns = useMemo((): Column<any>[] => {
+    return [
+       { 
+         key: 'row-header', 
+         name: '', 
+         width: 46 * scale, 
+         frozen: true, 
+         resizable: false,
+         renderCell: (props) => {
+            const isRowActive = activeCoords?.row === props.row.id;
+            return (
+                <Tooltip content={`Row ${props.row.id + 1}`}>
+                    <div className={cn(
+                        "flex items-center justify-center w-full h-full font-semibold select-none",
+                        isRowActive 
+                            ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
+                            : "bg-[#f8f9fa] text-[#444]"
+                    )}
+                    style={{ fontSize: `${11 * scale}px` }}
+                    >
+                        {props.row.id + 1}
+                    </div>
+                </Tooltip>
+            );
+         },
+         renderHeaderCell: () => (
+             <div 
+                className="w-full h-full bg-[#f8f9fa] flex items-end justify-end p-0.5 cursor-pointer hover:bg-slate-200 transition-colors"
+             >
+                 <svg viewBox="0 0 10 10" className="w-3 h-3 fill-slate-400 mr-0.5 mb-0.5">
+                    <path d="M10 10H0L10 0z" />
+                 </svg>
+             </div>
+         )
+       }, 
+       ...Array.from({ length: size.cols }, (_, i) => {
+          const colChar = numToChar(i);
+          return {
+            key: i.toString(),
+            name: colChar,
+            resizable: true,
+            width: (columnWidths[colChar] || 100) * scale,
+            renderCell: (props) => (
+                <CustomCellRenderer 
+                    {...props} 
+                    cells={cells} 
+                    styles={styles} 
+                    activeCell={activeCell}
+                    selectionSet={selectionSet}
+                    fillSet={fillSet}
+                    isFilling={isFilling}
+                    isTouch={isTouch}
+                    scale={scale}
+                    onMouseEnter={handleMouseEnter}
+                    onDragStart={handleDragStart}
+                    onCellClick={onCellClick}
+                />
+            ),
+            renderHeaderCell: (props) => {
+                const isColActive = activeCoords?.col === i;
+                return (
+                    <Tooltip content={`Column ${props.column.name}`}>
+                        <div className={cn(
+                            "flex items-center justify-center w-full h-full font-semibold",
+                            isColActive 
+                                ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
+                                : "bg-[#f8f9fa] text-[#444]"
+                        )}
+                        style={{ fontSize: `${12 * scale}px` }}
+                        >
+                            {props.column.name}
+                        </div>
+                    </Tooltip>
+                );
+            }
+          };
+       })
+    ];
+  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, isFilling, isTouch, scale, activeCoords, handleMouseEnter, handleDragStart, onCellChange, onCellClick]);
+
+  const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
+
   useEffect(() => {
       if (centerActiveCell && activeCell && gridRef.current) {
           const coords = parseCellId(activeCell);
           if (coords) {
-              gridRef.current.scrollToCell({ rowIdx: coords.row, idx: coords.col });
-              if (onScrollToActiveCell) {
-                  requestAnimationFrame(onScrollToActiveCell);
+              const targetColIdx = coords.col + 1; // +1 for row header
+              // Safety check to prevent crashing if rows/cols not yet updated
+              if (coords.row < rows.length && targetColIdx < columns.length) {
+                  gridRef.current.scrollToCell({ rowIdx: coords.row, idx: targetColIdx });
+                  if (onScrollToActiveCell) {
+                      requestAnimationFrame(onScrollToActiveCell);
+                  }
               }
           }
       }
-  }, [centerActiveCell, activeCell, onScrollToActiveCell]);
-
-  const selectionSet = useMemo(() => new Set(selectionRange || []), [selectionRange]);
-  const fillSet = useMemo(() => new Set(fillTargetRange || []), [fillTargetRange]);
-  const activeCoords = useMemo(() => parseCellId(activeCell || ''), [activeCell]);
+  }, [centerActiveCell, activeCell, onScrollToActiveCell, rows.length, columns.length]);
 
   const selectionBounds = useMemo(() => {
       if (!selectionRange || selectionRange.length === 0) return null;
@@ -518,10 +612,6 @@ const Grid: React.FC<GridProps> = ({
 
       return { x, y, w, h };
   }, [selectionBounds, rowHeights, columnWidths, scale]);
-
-  const handleMouseEnter = useCallback((id: string) => {
-      // Used for tracking hover states if needed
-  }, []);
 
   // --- FILL GESTURE LOGIC ---
   const handleFillStart = useCallback(() => {
@@ -639,93 +729,6 @@ const Grid: React.FC<GridProps> = ({
           window.removeEventListener('pointercancel', handlePointerUp);
       };
   }, [resizingHandle, onSelectionDrag]);
-
-  // Stub for move logic
-  const handleDragStart = useCallback((e: React.MouseEvent, id: string) => {
-      // Logic for moving cells would go here using a separate useDrag
-  }, []);
-
-  const columns = useMemo((): Column<any>[] => {
-    return [
-       { 
-         key: 'row-header', 
-         name: '', 
-         width: 46 * scale, 
-         frozen: true, 
-         resizable: false,
-         renderCell: (props) => {
-            const isRowActive = activeCoords?.row === props.row.id;
-            return (
-                <Tooltip content={`Row ${props.row.id + 1}`}>
-                    <div className={cn(
-                        "flex items-center justify-center w-full h-full font-semibold select-none",
-                        isRowActive 
-                            ? "bg-[#e0f2f1] text-[#107c41] font-bold border-r-[3px] border-r-[#107c41]" 
-                            : "bg-[#f8f9fa] text-[#444]"
-                    )}
-                    style={{ fontSize: `${11 * scale}px` }}
-                    >
-                        {props.row.id + 1}
-                    </div>
-                </Tooltip>
-            );
-         },
-         renderHeaderCell: () => (
-             <div 
-                className="w-full h-full bg-[#f8f9fa] flex items-end justify-end p-0.5 cursor-pointer hover:bg-slate-200 transition-colors"
-             >
-                 <svg viewBox="0 0 10 10" className="w-3 h-3 fill-slate-400 mr-0.5 mb-0.5">
-                    <path d="M10 10H0L10 0z" />
-                 </svg>
-             </div>
-         )
-       }, 
-       ...Array.from({ length: size.cols }, (_, i) => {
-          const colChar = numToChar(i);
-          return {
-            key: i.toString(),
-            name: colChar,
-            resizable: true,
-            width: (columnWidths[colChar] || 100) * scale,
-            renderCell: (props) => (
-                <CustomCellRenderer 
-                    {...props} 
-                    cells={cells} 
-                    styles={styles} 
-                    activeCell={activeCell}
-                    selectionSet={selectionSet}
-                    fillSet={fillSet}
-                    isFilling={isFilling}
-                    isTouch={isTouch}
-                    scale={scale}
-                    onMouseEnter={handleMouseEnter}
-                    onDragStart={handleDragStart}
-                    onCellClick={onCellClick}
-                />
-            ),
-            renderHeaderCell: (props) => {
-                const isColActive = activeCoords?.col === i;
-                return (
-                    <Tooltip content={`Column ${props.column.name}`}>
-                        <div className={cn(
-                            "flex items-center justify-center w-full h-full font-semibold",
-                            isColActive 
-                                ? "bg-[#e0f2f1] text-[#107c41] font-bold border-b-[3px] border-b-[#107c41]" 
-                                : "bg-[#f8f9fa] text-[#444]"
-                        )}
-                        style={{ fontSize: `${12 * scale}px` }}
-                        >
-                            {props.column.name}
-                        </div>
-                    </Tooltip>
-                );
-            }
-          };
-       })
-    ];
-  }, [size.cols, columnWidths, cells, styles, activeCell, selectionSet, fillSet, isFilling, isTouch, scale, activeCoords, handleMouseEnter, handleDragStart, onCellChange, onCellClick]);
-
-  const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
 
   return (
     <div className="w-full h-full text-sm bg-white select-none relative" {...bindGridGestures()}>
