@@ -1,4 +1,3 @@
-
 import React, { useMemo, useCallback, useState, useEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { DataGrid, Column, RenderCellProps, DataGridHandle } from 'react-data-grid';
@@ -130,8 +129,8 @@ const SelectionOverlay = memo(({
     // Adjust position relative to the grid container
     // Shift -1px to align the border centered on grid lines
     const top = rect.y + headerHeight - scroll.top - 1;
-    // Adjusted left position
-    const left = rect.x + rowHeaderWidth - scroll.left;
+    // Adjusted left position - shifted -1.25px to align perfectly with grid lines
+    const left = rect.x + rowHeaderWidth - scroll.left - 1.25;
     
     // Add +2px to encompass the border width properly around cells
     const width = rect.w + 2;
@@ -757,4 +756,3 @@ const Grid: React.FC<GridProps> = ({
 };
 
 export default Grid;
-    
