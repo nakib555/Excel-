@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 interface ModernSelectProps {
     value: string | number;
-    options: { value: string | number; label: React.ReactNode; searchTerms?: string }[];
+    options: { value: string | number; label: React.ReactNode; searchTerms?: string; [key: string]: any }[];
     onChange: (val: any) => void;
     placeholder?: string;
     searchable?: boolean;

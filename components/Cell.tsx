@@ -50,7 +50,7 @@ const Cell = memo(({
   onMouseDown, 
   onMouseEnter, 
   onDoubleClick, 
-  onChange,
+  onChange, 
   onNavigate,
   isFilterActive,
   onToggleFilter
@@ -66,6 +66,7 @@ const Cell = memo(({
   const commentRef = useRef<HTMLDivElement>(null);
   const filterBtnRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<any>(null);
+  const blurTimeoutRef = useRef<any>(null);
   
   // Autocomplete State
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -100,10 +101,26 @@ const Cell = memo(({
     if (isActive && editing) inputRef.current?.focus();
   }, [isActive, editing]);
 
+  // Ensure edits are committed when cell loses active state (e.g. clicking another cell)
+  useEffect(() => {
+    if (!isActive && editing) {
+      if (blurTimeoutRef.current) {
+          clearTimeout(blurTimeoutRef.current);
+          blurTimeoutRef.current = null;
+      }
+      setEditing(false);
+      setSuggestions([]);
+      if (editValue !== data.raw) {
+          onChange(id, editValue);
+      }
+    }
+  }, [isActive, editing, editValue, data.raw, id, onChange]);
+
   useEffect(() => {
       // Cleanup timeout on unmount
       return () => {
           if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+          if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
       };
   }, []);
 
@@ -235,10 +252,12 @@ const Cell = memo(({
 
   const handleBlur = () => {
     // Delay blur to allow suggestion click
-    setTimeout(() => {
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    blurTimeoutRef.current = setTimeout(() => {
         setEditing(false);
         setSuggestions([]);
         if (editValue !== data.raw) onChange(id, editValue);
+        blurTimeoutRef.current = null;
     }, 200);
   };
 

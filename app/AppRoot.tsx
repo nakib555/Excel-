@@ -50,7 +50,8 @@ export const AppRoot: React.FC = () => {
   } = useSheetStore();
   
   // Zundo Undo/Redo - Reactive
-  const temporal = useStore(useSheetStore.temporal);
+  // Cast useSheetStore to any to access temporal middleware store which is not typed on the hook
+  const temporal = useStore((useSheetStore as any).temporal);
   const { undo, redo, pastStates, futureStates } = temporal;
   
   const canUndo = pastStates.length > 0;

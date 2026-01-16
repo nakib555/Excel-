@@ -75,6 +75,10 @@ export interface TabProps {
   // Table Design
   activeTable?: Table | null;
   onTableOptionChange?: (tableId: string, key: keyof Table, value: any) => void;
+
+  // Undo/Redo
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {
