@@ -130,8 +130,8 @@ const SelectionOverlay = memo(({
     // Adjust position relative to the grid container
     // Shift -1px to align the border centered on grid lines
     const top = rect.y + headerHeight - scroll.top - 1;
-    // Adjusted by +3px (moved right +2px previously, adding another +2px makes it +3 from original -1 base? No, previous was +1. 1+2=3)
-    const left = rect.x + rowHeaderWidth - scroll.left + 3;
+    // Adjusted by +1.5px (moved right +1.5px, was +3px)
+    const left = rect.x + rowHeaderWidth - scroll.left + 1.5;
     
     // Add +2px to encompass the border width properly around cells
     const width = rect.w + 2;
