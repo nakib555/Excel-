@@ -573,35 +573,36 @@ const Grid: React.FC<GridProps> = ({
   const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
 
   useEffect(() => {
-      // Use requestAnimationFrame to ensure we are scrolling after the grid has likely updated its rows
+      // Improved Scroll Logic: Use setTimeout to allow grid data/layout to stabilize
       if (centerActiveCell && activeCell && gridRef.current) {
           const coords = parseCellId(activeCell);
           if (coords) {
               const targetColIdx = coords.col + 1; // +1 for row header
-              // Ensure we are within bounds of the CURRENT rows/cols
+              
+              // Only attempt scroll if within bounds of current rows
               if (coords.row < rows.length && targetColIdx < columns.length) {
-                  // Use double requestAnimationFrame to wait for paint/layout
-                  requestAnimationFrame(() => {
-                      requestAnimationFrame(() => {
-                          if (gridRef.current) {
-                              try {
-                                  gridRef.current.scrollToCell({ rowIdx: coords.row, idx: targetColIdx });
-                              } catch (e) {
-                                  // Ignore potential error if grid state is still catching up
-                                  console.warn("Scroll to cell failed", e);
-                              }
+                  // Using setTimeout (50ms) ensures the virtualizer has likely updated with new rows
+                  const timer = setTimeout(() => {
+                      if (gridRef.current) {
+                          try {
+                              gridRef.current.scrollToCell({ rowIdx: coords.row, idx: targetColIdx });
+                          } catch (e) {
+                              // Ignore if grid is not ready
+                              console.warn("Scroll to cell failed:", e);
                           }
-                          
-                          if (onScrollToActiveCell) {
-                              // Reset the centering trigger
-                              onScrollToActiveCell();
-                          }
-                      });
-                  });
+                      }
+                      
+                      // Safely reset the trigger
+                      if (onScrollToActiveCell) {
+                          onScrollToActiveCell();
+                      }
+                  }, 50);
+
+                  return () => clearTimeout(timer);
               }
           }
       }
-  }, [centerActiveCell, activeCell, onScrollToActiveCell, rows.length, columns.length]);
+  }, [centerActiveCell, activeCell, rows.length, columns.length, onScrollToActiveCell]);
 
   const selectionBounds = useMemo(() => {
       if (!selectionRange || selectionRange.length === 0) return null;

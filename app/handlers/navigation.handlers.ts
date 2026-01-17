@@ -67,20 +67,32 @@ export const useNavigationHandlers = ({
     }, [activeCell, selectionAnchor, selectionRange, gridSize, handleCellClick]);
 
     const handleNameBoxSubmit = useCallback((input: string) => {
-        const coords = parseCellId(input);
+        let coords = parseCellId(input);
+        if (!coords) {
+            // Attempt uppercase just in case input was raw
+            const upper = input.toUpperCase();
+            coords = parseCellId(upper);
+        }
+        
         if (!coords) return;
+        
         const { row, col } = coords;
         if (row >= MAX_ROWS || col >= MAX_COLS) {
             alert(`Cell reference out of bounds.`);
             return;
         }
-        setGridSize(prev => ({
-            rows: Math.max(prev.rows, row + 50), 
-            cols: Math.max(prev.cols, col + 20)
-        }));
+        
+        // Expand grid if necessary
+        if (row >= gridSize.rows || col >= gridSize.cols) {
+            setGridSize(prev => ({
+                rows: Math.max(prev.rows, row + 100), 
+                cols: Math.max(prev.cols, col + 50)
+            }));
+        }
+        
         const id = getCellId(col, row);
         handleCellClick(id, false);
-    }, [handleCellClick, setGridSize]);
+    }, [handleCellClick, setGridSize, gridSize]);
 
     return { handleNavigate, handleNameBoxSubmit };
 };
