@@ -553,24 +553,31 @@ const Grid: React.FC<GridProps> = ({
   const rows = useMemo(() => Array.from({ length: size.rows }, (_, r) => ({ id: r })), [size.rows]);
 
   useEffect(() => {
+      // Use requestAnimationFrame to ensure we are scrolling after the grid has likely updated its rows
       if (centerActiveCell && activeCell && gridRef.current) {
           const coords = parseCellId(activeCell);
           if (coords) {
               const targetColIdx = coords.col + 1; // +1 for row header
-              // Safety check to prevent crashing if rows/cols not yet updated
+              // Ensure we are within bounds of the CURRENT rows/cols
               if (coords.row < rows.length && targetColIdx < columns.length) {
-                  // Add delay to ensure grid has layout before scrolling to new bounds
-                  setTimeout(() => {
-                      if (gridRef.current) {
-                          gridRef.current.scrollToCell({ rowIdx: coords.row, idx: targetColIdx });
-                      }
-                  }, 50);
-                  
-                  if (onScrollToActiveCell) {
-                      setTimeout(() => {
-                          onScrollToActiveCell();
-                      }, 100);
-                  }
+                  // Use double requestAnimationFrame to wait for paint/layout
+                  requestAnimationFrame(() => {
+                      requestAnimationFrame(() => {
+                          if (gridRef.current) {
+                              try {
+                                  gridRef.current.scrollToCell({ rowIdx: coords.row, idx: targetColIdx });
+                              } catch (e) {
+                                  // Ignore potential error if grid state is still catching up
+                                  console.warn("Scroll to cell failed", e);
+                              }
+                          }
+                          
+                          if (onScrollToActiveCell) {
+                              // Reset the centering trigger
+                              onScrollToActiveCell();
+                          }
+                      });
+                  });
               }
           }
       }
