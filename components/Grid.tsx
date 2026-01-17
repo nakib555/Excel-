@@ -49,7 +49,10 @@ const CommentTooltip = ({ text, rect }: { text: string, rect: DOMRect }) => {
                 left: rect.right + 5,
             }}
         >
-            <div className="font-bold mb-1 text-slate-500 text-[10px] uppercase tracking-wider">Comment</div>
+            <div className="font-bold mb-1 text-slate-500 text-[10px] uppercase tracking-wider flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                Comment
+            </div>
             {text}
         </div>,
         document.body
@@ -207,7 +210,9 @@ const CustomCellRenderer = memo(({
   const cellId = getCellId(parseInt(column.key), row.id);
   const cellData = cells[cellId];
   const [isHovered, setIsHovered] = useState(false);
+  const [isCommentClicked, setIsCommentClicked] = useState(false);
   const cellRef = useRef<HTMLDivElement>(null);
+  const hoverTimeoutRef = useRef<any>(null);
   
   const isActive = activeCell === cellId;
   const isInSelection = selectionSet.has(cellId);
@@ -279,12 +284,23 @@ const CustomCellRenderer = memo(({
       if (style.borders.right) baseStyle.borderRight = `${getBWidth(style.borders.right.style)} solid ${style.borders.right.color}`;
   }
 
+  const handleMouseEnter = () => {
+      onMouseEnter(cellId);
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = setTimeout(() => setIsHovered(true), 500);
+  };
+
+  const handleMouseLeave = () => {
+      if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      setIsHovered(false);
+  };
+
   return (
     <div 
         ref={cellRef}
         style={baseStyle}
-        onMouseEnter={() => { onMouseEnter(cellId); setIsHovered(true); }}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         onClick={() => {
             if (isTouch) {
                 onCellClick(cellId, false);
@@ -320,13 +336,17 @@ const CustomCellRenderer = memo(({
       {cellData?.comment && (
           <>
             <div 
-                className="absolute top-0 right-0 w-0 h-0 border-l-transparent border-t-red-600 z-[20]" 
+                className="absolute top-0 right-0 w-0 h-0 border-l-transparent border-t-red-600 z-[20] cursor-help hover:scale-125 transition-transform" 
                 style={{
                     borderLeftWidth: `${6 * scale}px`,
                     borderTopWidth: `${6 * scale}px`
                 }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCommentClicked(!isCommentClicked);
+                }}
             />
-            {isHovered && cellRef.current && (
+            {(isHovered || isCommentClicked) && cellRef.current && (
                 <CommentTooltip text={cellData.comment} rect={cellRef.current.getBoundingClientRect()} />
             )}
           </>

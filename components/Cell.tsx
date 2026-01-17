@@ -75,6 +75,7 @@ const Cell = memo(({
   const [acPosition, setAcPosition] = useState<{ top: number, left: number } | null>(null);
 
   const [isHovered, setIsHovered] = useState(false);
+  const [isCommentClicked, setIsCommentClicked] = useState(false);
   
   // Touch detection for mobile adjustment
   const isTouch = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
@@ -82,9 +83,9 @@ const Cell = memo(({
   // Logic for showing comment: 
   // 1. Must have comment data
   // 2. Must NOT be editing
-  // 3. Desktop: Must be hovered
-  // 4. Mobile/Touch: Can be active (selected) to allow viewing without hover
-  const showComment = !!data.comment && !editing && (isHovered || (isActive && isTouch));
+  // 3. Desktop: Hover OR Clicked
+  // 4. Mobile/Touch: Active (selected) OR Clicked
+  const showComment = !!data.comment && !editing && (isHovered || isCommentClicked || (isActive && isTouch));
   
   // Use smart positioning for the comment tooltip
   // Note: useSmartPosition handles mobile axis adjustment automatically (forces vertical on mobile)
@@ -315,6 +316,8 @@ const Cell = memo(({
   const handleMouseDown = (e: React.MouseEvent) => {
       if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
       setIsHovered(false); // Hide comment immediately on click
+      // Also close comment if it was clicked open (unless this is the same cell)
+      if (isCommentClicked) setIsCommentClicked(false);
       onMouseDown(id, e.shiftKey);
   };
 
@@ -495,15 +498,19 @@ const Cell = memo(({
       {data.comment && (
           <>
             <div 
-                className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-600 z-10" 
+                className="absolute top-0 right-0 w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-red-600 z-10 cursor-help hover:scale-125 transition-transform" 
                 style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCommentClicked(!isCommentClicked);
+                }}
             />
             {showComment && commentPosition && (
                 createPortal(
                     <div 
                         ref={commentRef}
                         className={cn(
-                            "fixed z-[1] bg-[#ffffe1] border border-slate-300 shadow-xl rounded-[2px] p-2 text-xs text-slate-800 max-w-[200px] break-words pointer-events-none flex flex-col gap-1",
+                            "fixed z-[9999] bg-[#ffffe1] border border-slate-300 shadow-xl rounded-[2px] p-2 text-xs text-slate-800 max-w-[200px] break-words pointer-events-none flex flex-col gap-1",
                             commentPosition.ready && "animate-in fade-in zoom-in-95 duration-150"
                         )}
                         style={{
