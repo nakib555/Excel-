@@ -24,6 +24,7 @@ interface GridProps {
   rowHeights: Record<number, number>;
   scale?: number;
   centerActiveCell?: boolean;
+  onSelectAll?: () => void;
   onCellClick: (id: CellId, isShift: boolean) => void;
   onCellChange: (id: CellId, val: string) => void;
   onNavigate: (direction: NavigationDirection, isShift: boolean) => void;
@@ -425,6 +426,7 @@ const Grid: React.FC<GridProps> = ({
   rowHeights,
   centerActiveCell,
   scale = 1,
+  onSelectAll,
   onCellClick,
   onCellChange,
   onColumnResize,
@@ -553,7 +555,7 @@ const Grid: React.FC<GridProps> = ({
          renderHeaderCell: () => (
              <div 
                 className="w-full h-full bg-[#f8f9fa] flex items-end justify-end p-0.5 cursor-pointer hover:bg-slate-200 transition-colors"
-                onClick={() => onCellClick('A1', false)}
+                onClick={() => onSelectAll ? onSelectAll() : onCellClick('A1', false)}
              >
                  <svg viewBox="0 0 10 10" className="w-3 h-3 fill-slate-400 mr-0.5 mb-0.5">
                     <path d="M10 10H0L10 0z" />

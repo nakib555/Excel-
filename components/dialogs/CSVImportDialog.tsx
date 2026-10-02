@@ -8,6 +8,7 @@ interface CSVImportDialogProps {
     onClose: () => void;
     activeCell: string | null;
     onImport: (rows: string[][], startCellId: string, overwriteSheet: boolean) => void;
+    onImportWorkbook: (sheetsMap: Record<string, string[][]>) => void;
 }
 
 export const parseCSVData = (text: string, delimiter: ',' | '\t' | ';' | 'auto'): { rows: string[][], detectedDelimiter: string } => {
@@ -86,7 +87,8 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
     isOpen,
     onClose,
     activeCell,
-    onImport
+    onImport,
+    onImportWorkbook
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     
@@ -198,10 +200,15 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
     }, [isXlsx, fileText, delimiter, xlsxWorkbook, selectedXlsxSheet]);
 
     const handleImportSubmit = () => {
-        if (!parsedData.rows.length) return;
-        const targetAnchor = insertPosition === 'active' ? (activeCell || 'A1') : 'A1';
-        const overwrite = insertPosition === 'A1';
-        onImport(parsedData.rows, targetAnchor, overwrite);
+        if (isXlsx) {
+            if (!xlsxWorkbook) return;
+            onImportWorkbook(xlsxWorkbook);
+        } else {
+            if (!parsedData.rows.length) return;
+            const targetAnchor = insertPosition === 'active' ? (activeCell || 'A1') : 'A1';
+            const overwrite = insertPosition === 'A1';
+            onImport(parsedData.rows, targetAnchor, overwrite);
+        }
         onClose();
     };
 
@@ -313,116 +320,131 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                             {/* Delimiter / Sheet selection & Insertion configuration */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {isXlsx ? (
-                                    /* Excel Worksheet Selector */
-                                    <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-2">
-                                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                                            <Layers size={12} />
-                                            Select Worksheet
-                                        </label>
-                                        <div className="relative">
-                                            <select
-                                                value={selectedXlsxSheet}
-                                                onChange={(e) => setSelectedXlsxSheet(e.target.value)}
-                                                className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs outline-none cursor-pointer"
-                                            >
-                                                {xlsxWorkbook && Object.keys(xlsxWorkbook).map(name => (
-                                                    <option key={name} value={name}>{name}</option>
-                                                ))}
-                                            </select>
+                                    <>
+                                        {/* Excel Worksheet Selector */}
+                                        <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-2">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                                <Layers size={12} />
+                                                Select Sheet for Preview
+                                            </label>
+                                            <div className="relative">
+                                                <select
+                                                    value={selectedXlsxSheet}
+                                                    onChange={(e) => setSelectedXlsxSheet(e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs outline-none cursor-pointer"
+                                                >
+                                                    {xlsxWorkbook && Object.keys(xlsxWorkbook).map(name => (
+                                                        <option key={name} value={name}>{name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <p className="text-[9px] text-slate-400">
+                                                Select a sheet to review its data layout below
+                                            </p>
                                         </div>
-                                        <p className="text-[9px] text-slate-400">
-                                            This file has {xlsxWorkbook ? Object.keys(xlsxWorkbook).length : 0} sheet(s)
-                                        </p>
-                                    </div>
-                                ) : (
-                                    /* Delimiter Picker */
-                                    <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-2">
-                                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                                            <Sliders size={12} />
-                                            Delimiter Character
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-1.5">
-                                            <button
-                                                onClick={() => setDelimiter('auto')}
-                                                className={cn(
-                                                    "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
-                                                    delimiter === 'auto'
-                                                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                                )}
-                                            >
-                                                Auto-Detect ({parsedData.detectedDelimiter})
-                                            </button>
-                                            <button
-                                                onClick={() => setDelimiter(',')}
-                                                className={cn(
-                                                    "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
-                                                    delimiter === ','
-                                                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                                )}
-                                            >
-                                                Comma (,)
-                                            </button>
-                                            <button
-                                                onClick={() => setDelimiter('\t')}
-                                                className={cn(
-                                                    "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
-                                                    delimiter === '\t'
-                                                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                                )}
-                                            >
-                                                Tab (\t)
-                                            </button>
-                                            <button
-                                                onClick={() => setDelimiter(';')}
-                                                className={cn(
-                                                    "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
-                                                    delimiter === ';'
-                                                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                                )}
-                                            >
-                                                Semicolon (;)
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
 
-                                {/* Destination Selector */}
-                                <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-2">
-                                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                                        <Check size={12} />
-                                        Destination Target
-                                    </label>
-                                    <div className="flex flex-col gap-1.5">
-                                        <button
-                                            onClick={() => setInsertPosition('active')}
-                                            className={cn(
-                                                "px-3 py-2 rounded-lg text-xs font-medium text-left border flex items-center justify-between transition-all cursor-pointer",
-                                                insertPosition === 'active'
-                                                    ? "bg-blue-50 text-blue-900 border-blue-300 font-semibold shadow-2xs"
-                                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                            )}
-                                        >
-                                            <span>Insert at Active Cell ({activeCell || 'A1'})</span>
-                                            {insertPosition === 'active' && <Check size={14} className="text-blue-600" />}
-                                        </button>
-                                        <button
-                                            onClick={() => setInsertPosition('A1')}
-                                            className={cn(
-                                                "px-3 py-2 rounded-lg text-xs font-medium text-left border flex items-center justify-between transition-all cursor-pointer",
-                                                insertPosition === 'A1'
-                                                    ? "bg-blue-50 text-blue-900 border-blue-300 font-semibold shadow-2xs"
-                                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                            )}
-                                        >
-                                            <span>Overwrite Sheet (Start at A1)</span>
-                                            {insertPosition === 'A1' && <Check size={14} className="text-blue-600" />}
-                                        </button>
-                                    </div>
-                                </div>
+                                        {/* Excel Full-Import Banner Info */}
+                                        <div className="bg-emerald-50/40 p-4 border border-emerald-100 rounded-xl space-y-2 flex flex-col justify-center">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                                                <Check size={14} className="text-emerald-600" />
+                                                Import Status: Ready
+                                            </label>
+                                            <p className="text-xs text-slate-600 leading-relaxed">
+                                                All <span className="font-bold text-slate-800">{xlsxWorkbook ? Object.keys(xlsxWorkbook).length : 0} sheets</span> in this workbook will be imported automatically, fully preserving your tabs!
+                                            </p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        {/* Delimiter Picker */}
+                                        <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-2">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                                <Sliders size={12} />
+                                                Delimiter Character
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-1.5">
+                                                <button
+                                                    onClick={() => setDelimiter('auto')}
+                                                    className={cn(
+                                                        "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
+                                                        delimiter === 'auto'
+                                                            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                                    )}
+                                                >
+                                                    Auto-Detect ({parsedData.detectedDelimiter})
+                                                </button>
+                                                <button
+                                                    onClick={() => setDelimiter(',')}
+                                                    className={cn(
+                                                        "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
+                                                        delimiter === ','
+                                                            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                                    )}
+                                                >
+                                                    Comma (,)
+                                                </button>
+                                                <button
+                                                    onClick={() => setDelimiter('\t')}
+                                                    className={cn(
+                                                        "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
+                                                        delimiter === '\t'
+                                                            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                                    )}
+                                                >
+                                                    Tab (\t)
+                                                </button>
+                                                <button
+                                                    onClick={() => setDelimiter(';')}
+                                                    className={cn(
+                                                        "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
+                                                        delimiter === ';'
+                                                            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                                    )}
+                                                >
+                                                    Semicolon (;)
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Destination Selector */}
+                                        <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-2">
+                                            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                                <Check size={12} />
+                                                Destination Target
+                                            </label>
+                                            <div className="flex flex-col gap-1.5">
+                                                <button
+                                                    onClick={() => setInsertPosition('active')}
+                                                    className={cn(
+                                                        "px-3 py-2 rounded-lg text-xs font-medium text-left border flex items-center justify-between transition-all cursor-pointer",
+                                                        insertPosition === 'active'
+                                                            ? "bg-blue-50 text-blue-900 border-blue-300 font-semibold shadow-2xs"
+                                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                                    )}
+                                                >
+                                                    <span>Insert at Active Cell ({activeCell || 'A1'})</span>
+                                                    {insertPosition === 'active' && <Check size={14} className="text-blue-600" />}
+                                                </button>
+                                                <button
+                                                    onClick={() => setInsertPosition('A1')}
+                                                    className={cn(
+                                                        "px-3 py-2 rounded-lg text-xs font-medium text-left border flex items-center justify-between transition-all cursor-pointer",
+                                                        insertPosition === 'A1'
+                                                            ? "bg-blue-50 text-blue-900 border-blue-300 font-semibold shadow-2xs"
+                                                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                                    )}
+                                                >
+                                                    <span>Overwrite Sheet (Start at A1)</span>
+                                                    {insertPosition === 'A1' && <Check size={14} className="text-blue-600" />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Data Preview Table (First 5 Rows) */}

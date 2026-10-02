@@ -21,6 +21,7 @@ interface SheetState {
   // Cell Operations
   updateCell: (id: string, value: string) => void;
   importCSV: (rows: string[][], startCellId: string, overwriteSheet: boolean) => void;
+  importWorkbook: (sheetsMap: Record<string, string[][]>) => void;
   selectCell: (id: string, isShift?: boolean) => void;
   selectRange: (startId: string, endId: string) => void;
   
@@ -143,6 +144,71 @@ export const useSheetStore = create<SheetState>()(
             return { ...sheet, cells: nextCells };
           })
         }));
+      },
+
+      importWorkbook: (sheetsMap) => {
+        const state = get();
+        const newSheets: Sheet[] = [];
+
+        Object.entries(sheetsMap).forEach(([sheetName, rows]) => {
+          const sheetId = sheetName.toLowerCase().replace(/[^a-z0-9]/g, '_') || `sheet_${Date.now()}`;
+          const nextCells: Record<string, CellData> = {};
+
+          rows.forEach((row, rIdx) => {
+            if (rIdx >= state.gridSize.rows) return;
+            row.forEach((value, cIdx) => {
+              if (cIdx >= state.gridSize.cols) return;
+              const cellId = getCellId(cIdx, rIdx);
+
+              // Update HyperFormula for this sheet context
+              updateCellInHF(cellId, value, sheetName);
+
+              // Calculate Value
+              let calculatedValue = value;
+              if (value.startsWith('=')) {
+                  calculatedValue = getCellValueFromHF(cellId, sheetName);
+              }
+
+              nextCells[cellId] = {
+                id: cellId,
+                raw: value,
+                value: calculatedValue
+              };
+            });
+          });
+
+          // Re-evaluate dependencies for this sheet
+          Object.keys(nextCells).forEach(cid => {
+              if (nextCells[cid].raw.startsWith('=')) {
+                  nextCells[cid].value = getCellValueFromHF(cid, sheetName);
+              }
+          });
+
+          const newSheet: Sheet = {
+            id: sheetId,
+            name: sheetName,
+            cells: nextCells,
+            styles: {},
+            merges: [],
+            validations: {},
+            dependentsMap: {},
+            tables: {},
+            activeCell: 'A1',
+            selectionAnchor: 'A1',
+            selectionRange: ['A1'],
+            columnWidths: {},
+            rowHeights: {}
+          };
+
+          newSheets.push(newSheet);
+        });
+
+        if (newSheets.length > 0) {
+          set({
+            sheets: newSheets,
+            activeSheetId: newSheets[0].id
+          });
+        }
       },
 
       selectCell: (id, isShift = false) => {

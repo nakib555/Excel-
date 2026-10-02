@@ -50,7 +50,7 @@ export const AppRoot: React.FC = () => {
   // 1. Core State from Zustand
   const { 
     sheets, setSheets, activeSheetId, setActiveSheetId, 
-    gridSize, setGridSize, zoom, setZoom, updateCell, importCSV
+    gridSize, setGridSize, zoom, setZoom, updateCell, importCSV, importWorkbook
   } = useSheetStore();
 
   const [gridContextMenu, setGridContextMenu] = useState<{ x: number, y: number, cellId: string } | null>(null);
@@ -88,7 +88,8 @@ export const AppRoot: React.FC = () => {
       activeCell, 
       selectionRange, 
       cells, 
-      setActiveSheetId 
+      setActiveSheetId,
+      gridSize
   });
   const styleHandlers = useStyleHandlers({ setSheets, activeSheetId });
   const tableHandlers = useTableHandlers({ setSheets, activeSheetId, setCreateTableState: dialogs.setCreateTableState, selectionRange, createTableState: dialogs.createTableState });
@@ -347,6 +348,7 @@ export const AppRoot: React.FC = () => {
               scale={zoom}
               centerActiveCell={forceCenter}
               onCellClick={cellHandlers.handleCellClick}
+              onSelectAll={cellHandlers.handleSelectAll}
               onSelectionDrag={cellHandlers.handleSelectionDrag}
               onCellDoubleClick={cellHandlers.handleCellDoubleClick}
               onCellChange={updateCell} // Use Store Update directly
@@ -485,6 +487,7 @@ export const AppRoot: React.FC = () => {
               onClose={() => setShowImportCSV(false)} 
               activeCell={activeCell}
               onImport={importCSV}
+              onImportWorkbook={importWorkbook}
           />
       </Suspense>
     </div>

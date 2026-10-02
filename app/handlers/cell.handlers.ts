@@ -16,10 +16,11 @@ interface UseCellHandlersProps {
     selectionRange: CellId[] | null;
     cells: Record<CellId, CellData>;
     setActiveSheetId: (id: string) => void;
+    gridSize: { rows: number, cols: number };
 }
 
 export const useCellHandlers = ({ 
-    setSheets, activeSheetId, activeSheetName, validations, activeCell, selectionRange, cells, setActiveSheetId 
+    setSheets, activeSheetId, activeSheetName, validations, activeCell, selectionRange, cells, setActiveSheetId, gridSize
 }: UseCellHandlersProps) => {
 
     const handleCellChange = useCallback((id: CellId, rawValue: string) => {
@@ -498,9 +499,25 @@ export const useCellHandlers = ({
         }));
     }, [activeSheetId, activeSheetName, setSheets]);
 
+    const handleSelectAll = useCallback(() => {
+        setSheets(prevSheets => prevSheets.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const startId = 'A1';
+            const endId = getCellId(gridSize.cols - 1, gridSize.rows - 1);
+            const allCells = getRange(startId, endId);
+            return {
+                ...sheet,
+                activeCell: 'A1',
+                selectionAnchor: 'A1',
+                selectionRange: allCells
+            };
+        }));
+    }, [activeSheetId, gridSize, setSheets]);
+
     return {
         handleCellChange,
         handleCellClick,
+        handleSelectAll,
         handleSelectionDrag,
         handleBatchSelection,
         handleCellDoubleClick,
