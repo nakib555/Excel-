@@ -11,17 +11,50 @@ interface SheetTabsProps {
   activeSheetId: string;
   onSwitch: (id: string) => void;
   onAdd: () => void;
+  onRename?: (id: string, newName: string) => void;
+  onDelete?: (id: string) => void;
+  onDuplicate?: (id: string) => void;
 }
 
 const SheetTabs: React.FC<SheetTabsProps> = ({ 
   sheets, 
   activeSheetId, 
   onSwitch, 
-  onAdd 
+  onAdd,
+  onRename,
+  onDelete,
+  onDuplicate
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
+  const [openMenuSheetId, setOpenMenuSheetId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ x: number, y: number } | null>(null);
+
+  const handleOpenMenu = useCallback((id: string, pos: { x: number, y: number }) => {
+    setOpenMenuSheetId(id);
+    setMenuPos(pos);
+  }, []);
+
+  const handleCloseMenu = useCallback(() => {
+    setOpenMenuSheetId(null);
+    setMenuPos(null);
+  }, []);
+
+  // Global listener to close active menu on click outside
+  useEffect(() => {
+    if (!openMenuSheetId) return;
+    const handleDismiss = () => {
+      setOpenMenuSheetId(null);
+      setMenuPos(null);
+    };
+    window.addEventListener('click', handleDismiss);
+    window.addEventListener('contextmenu', handleDismiss);
+    return () => {
+      window.removeEventListener('click', handleDismiss);
+      window.removeEventListener('contextmenu', handleDismiss);
+    };
+  }, [openMenuSheetId]);
 
   // --- Scroll Logic ---
   const checkScroll = useCallback(() => {
@@ -141,7 +174,15 @@ const SheetTabs: React.FC<SheetTabsProps> = ({
                         id={sheet.id}
                         name={sheet.name}
                         isActive={isActive}
+                        canDelete={sheets.length > 1}
+                        isMenuOpen={openMenuSheetId === sheet.id}
+                        menuPos={openMenuSheetId === sheet.id ? menuPos : null}
+                        onOpenMenu={(pos) => handleOpenMenu(sheet.id, pos)}
+                        onCloseMenu={handleCloseMenu}
                         onClick={onSwitch}
+                        onRename={onRename}
+                        onDelete={onDelete}
+                        onDuplicate={onDuplicate}
                     />
                 </div>
               );

@@ -12,7 +12,7 @@ import Borders from './Borders';
 import FillColor from './FillColor';
 import FontColor from './FontColor';
 
-const FontGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onOpenFormatDialog }) => {
+const FontGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onOpenFormatDialog, onApplyBorder }) => {
   return (
     <RibbonGroup label="Font" className="px-3" showLauncher onLaunch={() => onOpenFormatDialog?.('Font')}>
         <div className="flex flex-col gap-1 justify-center h-full py-0.5">
@@ -30,7 +30,7 @@ const FontGroup: React.FC<TabProps> = memo(({ currentStyle, onToggleStyle, onOpe
                 <Italic currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 <Underline currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 <Separator />
-                <Borders />
+                <Borders onApplyBorder={onApplyBorder} />
                 <FillColor currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
                 <FontColor currentStyle={currentStyle} onToggleStyle={onToggleStyle} />
             </div>

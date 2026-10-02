@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { RibbonGroup, RibbonButton, TabProps } from '../shared';
 
-const FileTab: React.FC<TabProps> = ({ onExport, onToggleHistory, onSave, onToggleAutoSave, isAutoSave }) => {
+const FileTab: React.FC<TabProps> = ({ onExport, onImportCSV, onToggleHistory, onSave, onToggleAutoSave, isAutoSave }) => {
   return (
     <motion.div 
         initial={{ opacity: 0 }}
@@ -28,7 +28,7 @@ const FileTab: React.FC<TabProps> = ({ onExport, onToggleHistory, onSave, onTogg
                         }
                     }} 
                 />
-                <RibbonButton variant="large" icon={<FolderOpen size={20} className="text-blue-600" />} label="Open" onClick={() => {}} />
+                <RibbonButton variant="large" icon={<FolderOpen size={20} className="text-blue-600" />} label="Open" onClick={onImportCSV} />
                 <RibbonButton 
                     variant="large" 
                     icon={isAutoSave ? <RefreshCw size={20} className="text-emerald-500 animate-spin-slow" /> : <Save size={20} className="text-slate-600" />} 
@@ -42,11 +42,11 @@ const FileTab: React.FC<TabProps> = ({ onExport, onToggleHistory, onSave, onTogg
             </div>
         </RibbonGroup>
 
-        <RibbonGroup label="Export">
+        <RibbonGroup label="Data Transfer">
              <div className="flex items-center gap-1 h-full">
+                 <RibbonButton variant="large" icon={<FolderOpen size={20} className="text-blue-600" />} label="Import" subLabel="CSV" onClick={onImportCSV} />
                  <RibbonButton variant="large" icon={<FileDown size={20} className="text-emerald-600" />} label="Export" subLabel="CSV" onClick={onExport} />
                  <RibbonButton variant="large" icon={<Printer size={20} className="text-slate-600" />} label="Print" onClick={() => window.print()} />
-                 <RibbonButton variant="large" icon={<Share2 size={20} className="text-purple-600" />} label="Share" onClick={() => {}} />
              </div>
         </RibbonGroup>
 

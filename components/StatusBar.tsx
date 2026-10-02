@@ -9,7 +9,8 @@ import {
   Plus,
   Scaling,
   Undo2,
-  Redo2
+  Redo2,
+  Keyboard
 } from 'lucide-react';
 import { Tooltip } from './shared';
 
@@ -23,6 +24,7 @@ interface StatusBarProps {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  onOpenShortcuts?: () => void;
 }
 
 const StatusBarIconBtn = ({ onClick, disabled, children, title, className }: any) => (
@@ -46,7 +48,8 @@ const StatusBar: React.FC<StatusBarProps> = ({
   onUndo,
   onRedo,
   canUndo,
-  canRedo
+  canRedo,
+  onOpenShortcuts
 }) => {
   const displayZoom = Math.round(zoom * 100);
 
@@ -89,6 +92,16 @@ const StatusBar: React.FC<StatusBarProps> = ({
               <CheckCircle2 size={14} className="text-emerald-500/80 group-hover/status:text-emerald-400 transition-colors" />
               <span className="font-medium tracking-tight">Ready</span>
             </div>
+        </Tooltip>
+
+        <Tooltip content="Keyboard Shortcuts (Ctrl+/)">
+            <button
+                onClick={onOpenShortcuts}
+                className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer"
+            >
+                <Keyboard size={14} />
+                <span className="font-medium text-[10px]">Shortcuts</span>
+            </button>
         </Tooltip>
       </div>
 

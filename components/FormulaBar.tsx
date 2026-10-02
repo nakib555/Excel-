@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom';
 import { useSmartPosition, cn } from '../utils';
 import { Tooltip } from './shared';
 import AutocompleteList from './AutocompleteList';
-import { COMMON_FUNCTIONS } from '../app/constants/functions';
+import { FUNCTION_NAMES, FUNCTION_DEFINITIONS, FunctionDefinition } from '../app/constants/functionDefinitions';
 
 interface FormulaBarProps {
   value: string;
@@ -16,13 +16,60 @@ interface FormulaBarProps {
   onNameBoxSubmit: (cellId: string) => void;
 }
 
+interface ActiveFunctionHelp {
+  name: string;
+  definition: FunctionDefinition;
+  activeParamIndex: number;
+}
+
+const getActiveFunctionHelp = (text: string, cursor: number): ActiveFunctionHelp | null => {
+  if (!text || !text.startsWith('=')) return null;
+  const upToCursor = text.slice(0, cursor);
+
+  let parenDepth = 0;
+  let commaCount = 0;
+  let openParenIdx = -1;
+
+  for (let i = upToCursor.length - 1; i >= 0; i--) {
+      const char = upToCursor[i];
+      if (char === ')') {
+          parenDepth++;
+      } else if (char === '(') {
+          if (parenDepth > 0) {
+              parenDepth--;
+          } else {
+              openParenIdx = i;
+              break;
+          }
+      } else if (char === ',' && parenDepth === 0) {
+          commaCount++;
+      }
+  }
+
+  if (openParenIdx === -1) return null;
+
+  let fnStart = openParenIdx - 1;
+  while (fnStart >= 0 && /[a-zA-Z0-9_]/.test(upToCursor[fnStart])) {
+      fnStart--;
+  }
+  const fnName = upToCursor.slice(fnStart + 1, openParenIdx).toUpperCase();
+  const definition = FUNCTION_DEFINITIONS[fnName];
+  if (!definition) return null;
+
+  return {
+      name: fnName,
+      definition,
+      activeParamIndex: commaCount
+  };
+};
+
 const FUNCTION_CATEGORIES = {
-  "Recent": { icon: Clock, fns: ['SUM', 'AVERAGE', 'COUNT', 'MAX', 'MIN', 'IF', 'VLOOKUP', 'CONCATENATE', 'TODAY', 'PMT'] },
+  "Recent": { icon: Clock, fns: ['SUM', 'AVERAGE', 'COUNT', 'MAX', 'MIN', 'IF', 'VLOOKUP', 'CONCATENATE', 'TODAY', 'ROUND'] },
   "Math": { icon: Calculator, fns: ['SUM', 'AVERAGE', 'MIN', 'MAX', 'COUNT', 'ROUND', 'ABS', 'POWER', 'SQRT', 'SUMIF', 'RAND'] },
-  "Text": { icon: Type, fns: ['CONCATENATE', 'LEFT', 'RIGHT', 'MID', 'LEN', 'UPPER', 'LOWER', 'TRIM', 'TEXT', 'SUBSTITUTE'] },
-  "Logical": { icon: Binary, fns: ['IF', 'AND', 'OR', 'NOT', 'TRUE', 'FALSE', 'IFERROR'] },
-  "Date": { icon: Calendar, fns: ['TODAY', 'NOW', 'DATE', 'YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND'] },
-  "Lookup": { icon: Database, fns: ['VLOOKUP', 'HLOOKUP', 'MATCH', 'INDEX', 'ROW', 'COLUMN'] }
+  "Text": { icon: Type, fns: ['CONCATENATE', 'LEFT', 'RIGHT', 'MID', 'LEN', 'UPPER', 'LOWER', 'TRIM', 'TEXT', 'PROPER'] },
+  "Logical": { icon: Binary, fns: ['IF', 'IFS', 'AND', 'OR', 'NOT', 'TRUE', 'FALSE', 'IFERROR'] },
+  "Date": { icon: Calendar, fns: ['TODAY', 'NOW', 'DATE', 'YEAR', 'MONTH', 'DAY'] },
+  "Lookup": { icon: Database, fns: ['VLOOKUP', 'HLOOKUP', 'XLOOKUP', 'MATCH', 'INDEX', 'UNIQUE', 'SORT', 'FILTER'] }
 };
 
 const TooltipBtn = ({ onClick, children, title, className, ...props }: any) => (
@@ -50,6 +97,7 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [triggerToken, setTriggerToken] = useState<{ start: number, end: number, text: string } | null>(null);
   const [acPosition, setAcPosition] = useState<{ top: number, left: number } | null>(null);
+  const [activeFunctionHelp, setActiveFunctionHelp] = useState<ActiveFunctionHelp | null>(null);
 
   // Function Menu State
   const [activeCategory, setActiveCategory] = useState<keyof typeof FUNCTION_CATEGORIES>('Recent');
@@ -65,38 +113,44 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
     }
   }, [selectedCell]);
 
-  // Autocomplete Logic
+  // Autocomplete & Parameter Assistant Logic
   useEffect(() => {
       const input = inputRef.current;
       if (!input || !value) {
           setSuggestions([]);
-          return;
-      }
-
-      // Check active element to ensure we only show when focused
-      if (document.activeElement !== input) {
-          setSuggestions([]);
+          setActiveFunctionHelp(null);
           return;
       }
 
       const cursor = input.selectionStart || 0;
+
+      // Check parameter help if inside function
+      const paramHelp = getActiveFunctionHelp(value, cursor);
+      setActiveFunctionHelp(paramHelp);
+
+      // Check active element to ensure we only show when focused
+      if (document.activeElement !== input || !value.startsWith('=')) {
+          setSuggestions([]);
+          return;
+      }
+
       // Find token backwards from cursor
       let start = cursor;
       while (start > 0) {
           const char = value[start - 1];
-          // Stop at separators
-          if (/[\s=(),]/.test(char)) break;
+          // Stop at separators: =, +, -, *, /, (, ,, whitespace
+          if (/[\s=+\-*/(),]/.test(char)) break;
           start--;
       }
 
       const token = value.slice(start, cursor);
-      if (token.length < 1) {
+      if (token.length < 1 || !/^[a-zA-Z]+$/.test(token)) {
           setSuggestions([]);
           setTriggerToken(null);
           return;
       }
 
-      const matches = COMMON_FUNCTIONS.filter(fn => fn.startsWith(token.toUpperCase()));
+      const matches = FUNCTION_NAMES.filter(fn => fn.startsWith(token.toUpperCase()));
       if (matches.length > 0) {
           setSuggestions(matches);
           setTriggerToken({ start, end: cursor, text: token });
@@ -104,11 +158,11 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
           
           // Calculate position
           const rect = input.getBoundingClientRect();
-          // Approximate char width 8px (monospace font in input)
-          const leftOffset = Math.min(rect.width - 20, start * 9); 
+          // Approximate char width 8.5px
+          const leftOffset = Math.min(rect.width - 40, Math.max(0, start * 8.5)); 
           setAcPosition({ 
               top: rect.bottom + 4, 
-              left: rect.left + leftOffset + 10 // Padding
+              left: rect.left + leftOffset + 8
           });
       } else {
           setSuggestions([]);
@@ -118,18 +172,20 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
 
   const applySuggestion = (suggestion: string) => {
       if (!triggerToken || !inputRef.current) return;
+      const inserted = `${suggestion}(`;
       const before = value.slice(0, triggerToken.start);
       const after = value.slice(triggerToken.end);
-      const newValue = before + suggestion + after;
+      const newValue = before + inserted + after;
       onChange(newValue);
       setSuggestions([]);
       
-      // Restore focus and cursor
+      // Restore focus and cursor inside the parenthesis
       setTimeout(() => {
           if (inputRef.current) {
               inputRef.current.focus();
-              const newCursorPos = triggerToken.start + suggestion.length;
+              const newCursorPos = triggerToken.start + inserted.length;
               inputRef.current.setSelectionRange(newCursorPos, newCursorPos);
+              setActiveFunctionHelp(getActiveFunctionHelp(newValue, newCursorPos));
           }
       }, 0);
   };
@@ -423,6 +479,34 @@ const FormulaBar: React.FC<FormulaBarProps> = ({ value, onChange, onSubmit, sele
                 onSelect={applySuggestion} 
                 position={acPosition}
           />
+
+          {/* Floating Parameter Signature Assistant */}
+          {activeFunctionHelp && suggestions.length === 0 && createPortal(
+              <div 
+                  className="fixed z-[9998] bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/70 shadow-2xl rounded-lg px-3 py-1.5 text-xs font-mono flex items-center gap-1.5 pointer-events-none animate-in fade-in zoom-in-95 duration-100"
+                  style={{
+                      top: (inputRef.current?.getBoundingClientRect().bottom ?? 0) + 4,
+                      left: Math.max(8, Math.min(window.innerWidth - 300, (inputRef.current?.getBoundingClientRect().left ?? 0) + 8))
+                  }}
+              >
+                  <span className="w-4 h-4 rounded bg-emerald-600/90 text-white font-serif italic text-[10px] flex items-center justify-center font-bold">fx</span>
+                  <span className="font-bold text-slate-100">{activeFunctionHelp.name}(</span>
+                  {activeFunctionHelp.definition.params.length > 0 ? (
+                      activeFunctionHelp.definition.params.map((param, idx) => {
+                          const isActive = idx === Math.min(activeFunctionHelp.activeParamIndex, activeFunctionHelp.definition.params.length - 1);
+                          return (
+                              <span key={idx} className={isActive ? "text-emerald-400 font-bold underline px-0.5" : "text-slate-400 font-normal px-0.5"}>
+                                  {param}{idx < activeFunctionHelp.definition.params.length - 1 ? ', ' : ''}
+                              </span>
+                          );
+                      })
+                  ) : (
+                      <span className="text-slate-400 font-normal">no arguments</span>
+                  )}
+                  <span className="font-bold text-slate-100">)</span>
+              </div>,
+              document.body
+          )}
       </div>
       
       {/* Expand button */}

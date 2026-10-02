@@ -57,6 +57,9 @@ export interface TabProps {
   onProtectSheet?: () => void;
   onLockCell?: () => void;
   onResetSize?: () => void;
+  onApplyBorder?: (placement: any, lineStyle: any, lineColor: any) => void;
+  onOpenShortcuts?: () => void;
+  onImportCSV?: () => void;
 
   // Insert Tab Features
   onInsertTable?: () => void;

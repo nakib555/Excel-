@@ -128,5 +128,99 @@ export const useStyleHandlers = ({ setSheets, activeSheetId }: UseStyleHandlersP
         }));
     }, [activeSheetId, setSheets]);
 
-    return { handleStyleChange, handleApplyFullStyle };
+    const handleApplyBorder = useCallback((
+        placement: 'bottom' | 'top' | 'left' | 'right' | 'all' | 'outside' | 'thick-outside' | 'none' | 'bottom-double' | 'thick-bottom' | 'top-bottom' | 'top-double-bottom',
+        lineStyle: 'thin' | 'medium' | 'thick' | 'double' | 'dashed' = 'thin',
+        lineColor: string = '#000000'
+    ) => {
+        setSheets(prevSheets => prevSheets.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+
+            const targetRange = sheet.selectionRange && sheet.selectionRange.length > 0 
+                ? sheet.selectionRange 
+                : (sheet.activeCell ? [sheet.activeCell] : []);
+
+            if (targetRange.length === 0) return sheet;
+
+            const nextCells: Record<string, CellData> = { ...sheet.cells };
+            let nextStyles: Record<string, CellStyle> = { ...sheet.styles };
+
+            // Determine bounding box
+            let minCol = Infinity, maxCol = -Infinity, minRow = Infinity, maxRow = -Infinity;
+            targetRange.forEach(id => {
+                const parsed = parseCellId(id);
+                if (parsed) {
+                    minCol = Math.min(minCol, parsed.col);
+                    maxCol = Math.max(maxCol, parsed.col);
+                    minRow = Math.min(minRow, parsed.row);
+                    maxRow = Math.max(maxRow, parsed.row);
+                }
+            });
+
+            const borderDef = { style: lineStyle, color: lineColor };
+            const thickDef = { style: 'thick' as const, color: lineColor };
+            const doubleDef = { style: 'double' as const, color: lineColor };
+
+            targetRange.forEach(id => {
+                const parsed = parseCellId(id);
+                if (!parsed) return;
+                const { col, row } = parsed;
+
+                const existing = nextCells[id];
+                const cell: CellData = existing ? { ...existing } : { id, raw: '', value: '' };
+                const styleId = cell.styleId;
+                const currentStyle: CellStyle = styleId && nextStyles[styleId] ? nextStyles[styleId] : {};
+                const curBorders = { ...(currentStyle.borders || {}) };
+
+                if (placement === 'none') {
+                    delete curBorders.top;
+                    delete curBorders.bottom;
+                    delete curBorders.left;
+                    delete curBorders.right;
+                } else if (placement === 'all') {
+                    curBorders.top = borderDef;
+                    curBorders.bottom = borderDef;
+                    curBorders.left = borderDef;
+                    curBorders.right = borderDef;
+                } else if (placement === 'outside') {
+                    if (row === minRow) curBorders.top = borderDef;
+                    if (row === maxRow) curBorders.bottom = borderDef;
+                    if (col === minCol) curBorders.left = borderDef;
+                    if (col === maxCol) curBorders.right = borderDef;
+                } else if (placement === 'thick-outside') {
+                    if (row === minRow) curBorders.top = thickDef;
+                    if (row === maxRow) curBorders.bottom = thickDef;
+                    if (col === minCol) curBorders.left = thickDef;
+                    if (col === maxCol) curBorders.right = thickDef;
+                } else if (placement === 'bottom') {
+                    if (row === maxRow) curBorders.bottom = borderDef;
+                } else if (placement === 'thick-bottom') {
+                    if (row === maxRow) curBorders.bottom = thickDef;
+                } else if (placement === 'bottom-double') {
+                    if (row === maxRow) curBorders.bottom = doubleDef;
+                } else if (placement === 'top') {
+                    if (row === minRow) curBorders.top = borderDef;
+                } else if (placement === 'left') {
+                    if (col === minCol) curBorders.left = borderDef;
+                } else if (placement === 'right') {
+                    if (col === maxCol) curBorders.right = borderDef;
+                } else if (placement === 'top-bottom') {
+                    if (row === minRow) curBorders.top = borderDef;
+                    if (row === maxRow) curBorders.bottom = borderDef;
+                } else if (placement === 'top-double-bottom') {
+                    if (row === minRow) curBorders.top = borderDef;
+                    if (row === maxRow) curBorders.bottom = doubleDef;
+                }
+
+                const newStyle: CellStyle = { ...currentStyle, borders: curBorders };
+                const res = getStyleId(nextStyles, newStyle);
+                nextStyles = res.registry;
+                nextCells[id] = { ...cell, styleId: res.id };
+            });
+
+            return { ...sheet, cells: nextCells, styles: nextStyles };
+        }));
+    }, [activeSheetId, setSheets]);
+
+    return { handleStyleChange, handleApplyFullStyle, handleApplyBorder };
 };

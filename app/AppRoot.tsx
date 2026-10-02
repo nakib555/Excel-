@@ -3,7 +3,7 @@ import React, { lazy, Suspense, useCallback, useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { MAX_ROWS, MAX_COLS } from './constants/grid.constants';
 import { getApiKey } from './utils/apiKey';
-import { parseCellId, generateCsv, downloadCsv } from '../utils';
+import { parseCellId, generateCsv, downloadCsv, updateCellInHF } from '../utils';
 import { CellData } from '../types';
 import { Eye } from 'lucide-react';
 
@@ -27,27 +27,35 @@ import {
   ToolbarSkeleton, FormulaBarSkeleton, GridSkeleton, SheetTabsSkeleton, StatusBarSkeleton 
 } from '../components/Skeletons';
 
-const AIAssistant = lazy(() => import('../components/AIAssistant'));
-const Toolbar = lazy(() => import('../components/Toolbar'));
-const FormulaBar = lazy(() => import('../components/FormulaBar'));
-const Grid = lazy(() => import('../components/Grid'));
-const SheetTabs = lazy(() => import('../components/SheetTabs'));
-const StatusBar = lazy(() => import('../components/StatusBar'));
-const MobileResizeTool = lazy(() => import('../components/MobileResizeTool'));
-const FormatCellsDialog = lazy(() => import('../components/dialogs/FormatCellsDialog'));
-const FindReplaceDialog = lazy(() => import('../components/dialogs/FindReplaceDialog'));
-const MergeStylesDialog = lazy(() => import('../components/dialogs/MergeStylesDialog'));
-const CreateTableDialog = lazy(() => import('../components/dialogs/CreateTableDialog'));
-const DataValidationDialog = lazy(() => import('../components/dialogs/DataValidationDialog'));
-const CommentDialog = lazy(() => import('../components/dialogs/CommentDialog'));
-const HistorySidebar = lazy(() => import('../components/HistorySidebar'));
+import Toolbar from '../components/Toolbar';
+import FormulaBar from '../components/FormulaBar';
+import Grid from '../components/Grid';
+import SheetTabs from '../components/SheetTabs';
+import StatusBar from '../components/StatusBar';
+
+import AIAssistant from '../components/AIAssistant';
+import MobileResizeTool from '../components/MobileResizeTool';
+import FormatCellsDialog from '../components/dialogs/FormatCellsDialog';
+import FindReplaceDialog from '../components/dialogs/FindReplaceDialog';
+import MergeStylesDialog from '../components/dialogs/MergeStylesDialog';
+import CreateTableDialog from '../components/dialogs/CreateTableDialog';
+import DataValidationDialog from '../components/dialogs/DataValidationDialog';
+import CommentDialog from '../components/dialogs/CommentDialog';
+import HistorySidebar from '../components/HistorySidebar';
+import GridContextMenu from '../components/menus/GridContextMenu';
+import KeyboardShortcutsDialog from '../components/dialogs/KeyboardShortcutsDialog';
+import CSVImportDialog from '../components/dialogs/CSVImportDialog';
 
 export const AppRoot: React.FC = () => {
   // 1. Core State from Zustand
   const { 
     sheets, setSheets, activeSheetId, setActiveSheetId, 
-    gridSize, setGridSize, zoom, setZoom, updateCell
+    gridSize, setGridSize, zoom, setZoom, updateCell, importCSV
   } = useSheetStore();
+
+  const [gridContextMenu, setGridContextMenu] = useState<{ x: number, y: number, cellId: string } | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showImportCSV, setShowImportCSV] = useState(false);
   
   // Zundo Undo/Redo - Reactive
   // Cast useSheetStore to any to access temporal middleware store which is not typed on the hook
@@ -111,8 +119,30 @@ export const AppRoot: React.FC = () => {
       onRedo: redo,
       onCopy: clipboardHandlers.handleCopy,
       onCut: clipboardHandlers.handleCut,
-      onPaste: clipboardHandlers.handlePaste
+      onPaste: clipboardHandlers.handlePaste,
+      onOpenShortcuts: () => setShowShortcuts(true)
   });
+
+  // Synchronize HyperFormula whenever sheets change (covers undo, redo, import, etc.)
+  useEffect(() => {
+    let lastSheetsString = JSON.stringify(sheets);
+
+    const unsubscribe = useSheetStore.subscribe((state) => {
+      const currentSheetsString = JSON.stringify(state.sheets);
+      if (currentSheetsString === lastSheetsString) return;
+      lastSheetsString = currentSheetsString;
+
+      // Sync all sheets with HyperFormula!
+      state.sheets.forEach(sheet => {
+        Object.keys(sheet.cells).forEach(cellId => {
+          const cell = sheet.cells[cellId];
+          updateCellInHF(cellId, cell?.raw || '', sheet.name);
+        });
+      });
+    });
+
+    return () => unsubscribe();
+  }, [sheets]);
 
   // 7. Aux Handlers
   const handleExpandGrid = useCallback((d: 'row' | 'col') => setGridSize({ ...gridSize, rows: d==='row'?Math.min(gridSize.rows+300,MAX_ROWS):gridSize.rows, cols: d==='col'?Math.min(gridSize.cols+100,MAX_COLS):gridSize.cols }), [setGridSize, gridSize]);
@@ -244,7 +274,7 @@ export const AppRoot: React.FC = () => {
             onInsertCells={noOp}
             onDeleteRow={noOp}
             onDeleteColumn={noOp}
-            onDeleteSheet={noOp}
+            onDeleteSheet={() => cellHandlers.handleDeleteSheet(activeSheetId)}
             onDeleteCells={noOp}
             onFormatRowHeight={noOp}
             onFormatColWidth={noOp}
@@ -254,8 +284,11 @@ export const AppRoot: React.FC = () => {
             onHideCol={noOp}
             onUnhideRow={noOp}
             onUnhideCol={noOp}
-            onRenameSheet={noOp}
-            onMoveCopySheet={noOp}
+            onRenameSheet={() => {
+                const newName = window.prompt('Enter new sheet name:', activeSheet.name);
+                if (newName) cellHandlers.handleRenameSheet(activeSheetId, newName);
+            }}
+            onMoveCopySheet={() => cellHandlers.handleDuplicateSheet(activeSheetId)}
             onProtectSheet={noOp}
             onLockCell={noOp}
             onResetSize={resizeHandlers.handleResetActiveResize}
@@ -281,6 +314,9 @@ export const AppRoot: React.FC = () => {
             isAutoSave={false}
             onUndo={undo}
             onRedo={redo}
+            onApplyBorder={styleHandlers.handleApplyBorder}
+            onOpenShortcuts={() => setShowShortcuts(true)}
+            onImportCSV={() => setShowImportCSV(true)}
           />
         </Suspense>
       </div>
@@ -325,6 +361,7 @@ export const AppRoot: React.FC = () => {
               onAutoFitRow={resizeHandlers.handleAutoFitRow}
               onScrollToActiveCell={() => setForceCenter(false)}
               onMoveCells={cellHandlers.handleMoveCells}
+              onContextMenu={(e, cellId) => setGridContextMenu({ x: e.clientX, y: e.clientY, cellId })}
             />
         </Suspense>
       </main>
@@ -336,6 +373,9 @@ export const AppRoot: React.FC = () => {
             activeSheetId={activeSheetId}
             onSwitch={setActiveSheetId}
             onAdd={cellHandlers.handleAddSheet}
+            onRename={cellHandlers.handleRenameSheet}
+            onDelete={cellHandlers.handleDeleteSheet}
+            onDuplicate={cellHandlers.handleDuplicateSheet}
           />
         </Suspense>
       </div>
@@ -352,6 +392,7 @@ export const AppRoot: React.FC = () => {
             onRedo={redo}
             canUndo={canUndo}
             canRedo={canRedo}
+            onOpenShortcuts={() => setShowShortcuts(true)}
           />
         </Suspense>
       </div>
@@ -407,6 +448,44 @@ export const AppRoot: React.FC = () => {
                   cellHandlers.handleDeleteComment();
                   dialogs.setCommentDialogState(p => ({ ...p, isOpen: false }));
               }}
+          />
+      </Suspense>
+
+      {/* Grid Context Menu */}
+      {gridContextMenu && (
+          <Suspense fallback={null}>
+              <GridContextMenu 
+                  x={gridContextMenu.x}
+                  y={gridContextMenu.y}
+                  cellId={gridContextMenu.cellId}
+                  onClose={() => setGridContextMenu(null)}
+                  onFormatNumber={(format) => styleHandlers.handleStyleChange('format', format)}
+                  onFormatAlignment={(key, val) => styleHandlers.handleStyleChange(key, val)}
+                  onCut={clipboardHandlers.handleCut}
+                  onCopy={clipboardHandlers.handleCopy}
+                  onPaste={clipboardHandlers.handlePaste}
+                  onClear={cellHandlers.handleClear}
+                  onOpenFormatCells={dialogs.handleOpenFormatDialog}
+                  onInsertComment={handleOpenCommentDialog}
+              />
+          </Suspense>
+      )}
+
+      {/* Keyboard Shortcuts Dialog */}
+      <Suspense fallback={null}>
+          <KeyboardShortcutsDialog 
+              isOpen={showShortcuts} 
+              onClose={() => setShowShortcuts(false)} 
+          />
+      </Suspense>
+
+      {/* CSV Import Dialog */}
+      <Suspense fallback={null}>
+          <CSVImportDialog 
+              isOpen={showImportCSV} 
+              onClose={() => setShowImportCSV(false)} 
+              activeCell={activeCell}
+              onImport={importCSV}
           />
       </Suspense>
     </div>

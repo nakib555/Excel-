@@ -86,6 +86,9 @@ export interface Table {
   headerRow: boolean;
   totalRow: boolean;
   bandedRows: boolean;
+  firstColumn: boolean;
+  lastColumn: boolean;
+  bandedColumns: boolean;
   filterButton: boolean;
   style: TableStylePreset;
 }

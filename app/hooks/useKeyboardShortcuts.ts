@@ -13,11 +13,12 @@ interface UseKeyboardShortcutsProps {
     onCopy?: () => void;
     onCut?: () => void;
     onPaste?: () => void;
+    onOpenShortcuts?: () => void;
 }
 
 export const useKeyboardShortcuts = ({ 
     selectionRange, activeCell, cells, onCellChange, onNavigate, onUndo, onRedo,
-    onCopy, onCut, onPaste
+    onCopy, onCut, onPaste, onOpenShortcuts
 }: UseKeyboardShortcutsProps) => {
     
     // Delete / Backspace
@@ -85,4 +86,12 @@ export const useKeyboardShortcuts = ({
              }
         }
     }, { enableOnFormTags: false }, [activeCell, cells, onCellChange]);
+
+    // Keyboard Shortcuts Dialog (Ctrl+/ or ?)
+    useHotkeys(['ctrl+/, meta+/, ?'], (e) => {
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+        e.preventDefault();
+        onOpenShortcuts?.();
+    }, { enableOnFormTags: false }, [onOpenShortcuts]);
 };

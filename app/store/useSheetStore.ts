@@ -4,7 +4,7 @@ import { temporal } from 'zundo';
 import { Sheet, GridSize, CellData, CellStyle } from '../../types';
 import { getInitialSheets } from '../state/sheet.initial';
 import { INITIAL_ROWS, INITIAL_COLS } from '../constants/grid.constants';
-import { updateCellInHF, getCellValueFromHF } from '../../utils';
+import { updateCellInHF, getCellValueFromHF, parseCellId, getCellId } from '../../utils';
 
 interface SheetState {
   sheets: Sheet[];
@@ -20,6 +20,7 @@ interface SheetState {
   
   // Cell Operations
   updateCell: (id: string, value: string) => void;
+  importCSV: (rows: string[][], startCellId: string, overwriteSheet: boolean) => void;
   selectCell: (id: string, isShift?: boolean) => void;
   selectRange: (startId: string, endId: string) => void;
   
@@ -87,6 +88,58 @@ export const useSheetStore = create<SheetState>()(
                 }
             });
 
+            return { ...sheet, cells: nextCells };
+          })
+        }));
+      },
+
+      importCSV: (rows, startCellId, overwriteSheet) => {
+        const state = get();
+        const activeSheet = state.sheets.find(s => s.id === state.activeSheetId);
+        if (!activeSheet) return;
+
+        const startPos = parseCellId(startCellId) || { row: 0, col: 0 };
+        const nextCells = overwriteSheet ? {} : { ...activeSheet.cells };
+
+        // 1. Batch update HyperFormula and prepare cell state
+        rows.forEach((row, rIdx) => {
+          const targetRow = startPos.row + rIdx;
+          if (targetRow >= state.gridSize.rows) return;
+
+          row.forEach((value, cIdx) => {
+            const targetCol = startPos.col + cIdx;
+            if (targetCol >= state.gridSize.cols) return;
+
+            const cellId = getCellId(targetCol, targetRow);
+            
+            // Update HyperFormula
+            updateCellInHF(cellId, value, activeSheet.name);
+
+            // Calculate Value
+            let calculatedValue = value;
+            if (value.startsWith('=')) {
+                calculatedValue = getCellValueFromHF(cellId, activeSheet.name);
+            }
+
+            nextCells[cellId] = {
+              ...(nextCells[cellId] || { id: cellId }),
+              raw: value,
+              value: calculatedValue
+            };
+          });
+        });
+
+        // 2. Re-evaluate simple dependencies
+        Object.keys(nextCells).forEach(cid => {
+            if (nextCells[cid].raw.startsWith('=')) {
+                nextCells[cid].value = getCellValueFromHF(cid, activeSheet.name);
+            }
+        });
+
+        // 3. Update Store
+        set((prev) => ({
+          sheets: prev.sheets.map((sheet) => {
+            if (sheet.id !== prev.activeSheetId) return sheet;
             return { ...sheet, cells: nextCells };
           })
         }));

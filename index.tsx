@@ -2,9 +2,7 @@ import React, { Component, ErrorInfo, ReactNode, Suspense, lazy } from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import { AppSkeleton } from './components/Skeletons';
-
-// Lazy load the main App component
-const App = lazy(() => import('./App'));
+import App from './App';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;

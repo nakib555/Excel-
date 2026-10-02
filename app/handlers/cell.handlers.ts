@@ -280,11 +280,102 @@ export const useCellHandlers = ({
     }, [activeSheetId, activeSheetName, setSheets]);
 
     const handleAddSheet = useCallback(() => { 
-        const id=`sheet${Date.now()}`; 
-        const name = `Sheet ${Math.floor(Math.random() * 1000)}`;
-        setSheets(p => [...p, { id, name, cells:{}, styles:{}, merges:[], tables:{}, validations:{}, dependentsMap:{}, activeCell:'A1', selectionAnchor:'A1', selectionRange:['A1'], columnWidths:{}, rowHeights:{} }]); 
-        setActiveSheetId(id); 
+        setSheets(prev => {
+            const id = `sheet${Date.now()}`; 
+            let sheetNum = prev.length + 1;
+            while (prev.some(s => s.name.toLowerCase() === `sheet ${sheetNum}`.toLowerCase())) {
+                sheetNum++;
+            }
+            const name = `Sheet ${sheetNum}`;
+            const newSheet: Sheet = { 
+                id, 
+                name, 
+                cells: {}, 
+                styles: {}, 
+                merges: [], 
+                tables: {}, 
+                validations: {}, 
+                dependentsMap: {}, 
+                activeCell: 'A1', 
+                selectionAnchor: 'A1', 
+                selectionRange: ['A1'], 
+                columnWidths: {}, 
+                rowHeights: {} 
+            };
+            setActiveSheetId(id);
+            return [...prev, newSheet];
+        });
     }, [setSheets, setActiveSheetId]);
+
+    const handleRenameSheet = useCallback((sheetId: string, newName: string) => {
+        const trimmed = newName.trim();
+        if (!trimmed) return false;
+        
+        let success = true;
+        setSheets(prev => {
+            const exists = prev.some(s => s.id !== sheetId && s.name.toLowerCase() === trimmed.toLowerCase());
+            if (exists) {
+                alert(`A sheet named "${trimmed}" already exists.`);
+                success = false;
+                return prev;
+            }
+            return prev.map(sheet => {
+                if (sheet.id !== sheetId) return sheet;
+                return { ...sheet, name: trimmed };
+            });
+        });
+        return success;
+    }, [setSheets]);
+
+    const handleDeleteSheet = useCallback((sheetId?: string) => {
+        const targetId = sheetId || activeSheetId;
+        setSheets(prev => {
+            if (prev.length <= 1) {
+                alert('A workbook must contain at least one visible worksheet.');
+                return prev;
+            }
+            const targetSheet = prev.find(s => s.id === targetId);
+            const targetName = targetSheet?.name || 'this sheet';
+            const confirmed = window.confirm ? window.confirm(`Are you sure you want to delete "${targetName}"? Data will be permanently deleted.`) : true;
+            if (!confirmed) return prev;
+
+            const targetIdx = prev.findIndex(s => s.id === targetId);
+            const remaining = prev.filter(s => s.id !== targetId);
+            
+            if (targetId === activeSheetId) {
+                const newIdx = Math.min(targetIdx, remaining.length - 1);
+                setActiveSheetId(remaining[newIdx].id);
+            }
+            return remaining;
+        });
+    }, [activeSheetId, setActiveSheetId, setSheets]);
+
+    const handleDuplicateSheet = useCallback((sheetId?: string) => {
+        const targetId = sheetId || activeSheetId;
+        setSheets(prev => {
+            const source = prev.find(s => s.id === targetId);
+            if (!source) return prev;
+            
+            const newId = `sheet${Date.now()}`;
+            let baseName = `${source.name} (Copy)`;
+            let count = 1;
+            while (prev.some(s => s.name === baseName)) {
+                count++;
+                baseName = `${source.name} (Copy ${count})`;
+            }
+
+            const copy: Sheet = {
+                ...JSON.parse(JSON.stringify(source)),
+                id: newId,
+                name: baseName
+            };
+            const targetIdx = prev.findIndex(s => s.id === targetId);
+            const next = [...prev];
+            next.splice(targetIdx + 1, 0, copy);
+            setActiveSheetId(newId);
+            return next;
+        });
+    }, [activeSheetId, setActiveSheetId, setSheets]);
 
     const handleDataValidationSave = useCallback((rule: ValidationRule | null) => {
         setSheets(prev => prev.map(sheet => {
@@ -418,6 +509,9 @@ export const useCellHandlers = ({
         handleFill,
         handleClear,
         handleAddSheet,
+        handleRenameSheet,
+        handleDeleteSheet,
+        handleDuplicateSheet,
         handleDataValidationSave,
         handleSaveComment,
         handleDeleteComment,

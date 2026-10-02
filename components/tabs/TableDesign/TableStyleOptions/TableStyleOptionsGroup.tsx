@@ -52,9 +52,9 @@ const TableStyleOptionsGroup: React.FC<TableStyleOptionsGroupProps> = ({ table, 
                     <label className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer select-none">
                         <input 
                             type="checkbox" 
-                            checked={false} 
-                            disabled
-                            className="accent-emerald-600 rounded-[2px] opacity-50"
+                            checked={!!table.firstColumn} 
+                            onChange={(e) => onChange('firstColumn', e.target.checked)}
+                            className="accent-emerald-600 rounded-[2px]"
                         />
                         First Column
                     </label>
@@ -63,9 +63,9 @@ const TableStyleOptionsGroup: React.FC<TableStyleOptionsGroupProps> = ({ table, 
                     <label className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer select-none">
                         <input 
                             type="checkbox" 
-                            checked={false} 
-                            disabled
-                            className="accent-emerald-600 rounded-[2px] opacity-50"
+                            checked={!!table.lastColumn} 
+                            onChange={(e) => onChange('lastColumn', e.target.checked)}
+                            className="accent-emerald-600 rounded-[2px]"
                         />
                         Last Column
                     </label>
@@ -74,9 +74,9 @@ const TableStyleOptionsGroup: React.FC<TableStyleOptionsGroupProps> = ({ table, 
                     <label className="flex items-center gap-2 text-[11px] text-slate-700 cursor-pointer select-none">
                         <input 
                             type="checkbox" 
-                            checked={false} 
-                            disabled
-                            className="accent-emerald-600 rounded-[2px] opacity-50"
+                            checked={!!table.bandedColumns} 
+                            onChange={(e) => onChange('bandedColumns', e.target.checked)}
+                            className="accent-emerald-600 rounded-[2px]"
                         />
                         Banded Columns
                     </label>

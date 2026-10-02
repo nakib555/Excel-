@@ -1,5 +1,5 @@
 
-import React, { useMemo, useCallback, useState, useEffect, useRef, memo } from 'react';
+import React, { useMemo, useCallback, useState, useEffect, useLayoutEffect, useRef, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { DataGrid, Column, RenderCellProps, DataGridHandle } from 'react-data-grid';
 import { useDrag } from '@use-gesture/react';
@@ -38,22 +38,26 @@ interface GridProps {
   onAutoFitRow?: (rowIdx: number) => void;
   onScrollToActiveCell?: () => void;
   onMoveCells?: (source: CellId[], targetStartId: CellId) => void;
+  onContextMenu?: (e: React.MouseEvent, cellId: string) => void;
 }
 
 const CommentTooltip = ({ text, rect }: { text: string, rect: DOMRect }) => {
+    // Keep within viewport bounds
+    const top = Math.max(10, Math.min(window.innerHeight - 150, rect.top));
+    const left = Math.min(window.innerWidth - 240, rect.right + 6);
+
     return createPortal(
         <div 
-            className="fixed z-[9999] bg-[#ffffe1] border border-slate-400 shadow-[2px_2px_5px_rgba(0,0,0,0.2)] p-2 text-xs text-slate-900 pointer-events-none max-w-[200px] break-words animate-in fade-in zoom-in-95 duration-100"
-            style={{
-                top: rect.top,
-                left: rect.right + 5,
-            }}
+            className="fixed z-[9999] bg-white/95 backdrop-blur-xl border border-slate-200/90 shadow-2xl rounded-xl p-3 text-xs text-slate-800 pointer-events-none max-w-[230px] break-words ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100"
+            style={{ top, left }}
         >
-            <div className="font-bold mb-1 text-slate-500 text-[10px] uppercase tracking-wider flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                Comment
+            <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-slate-100">
+                <span className="w-2 h-2 rounded-full bg-rose-500 shadow-xs ring-2 ring-rose-100"></span>
+                <span className="font-semibold text-[10px] uppercase tracking-wider text-slate-500">Cell Note</span>
             </div>
-            {text}
+            <div className="text-slate-700 leading-relaxed text-[12px] font-normal">
+                {text}
+            </div>
         </div>,
         document.body
     );
@@ -69,11 +73,18 @@ const FillHandle = ({ onFillStart, onFillMove, onFillEnd, size }: { onFillStart:
         if (last) onFillEnd();
     }, { pointer: { keys: false } });
 
+    const offset = Math.floor(size / 2) - 1;
+
     return (
         <div 
             {...bind()} 
-            className="absolute -bottom-[4px] -right-[4px] bg-[#107c41] border border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform touch-none fill-handle rounded-[1px]"
-            style={{ width: size, height: size }}
+            className="absolute bg-[#107c41] border border-white z-[70] pointer-events-auto cursor-crosshair shadow-sm hover:scale-125 transition-transform touch-none fill-handle rounded-[1px]"
+            style={{ 
+                width: size, 
+                height: size,
+                bottom: -offset,
+                right: -offset
+            }}
         />
     );
 };
@@ -102,47 +113,57 @@ const SelectionHandle = ({ type, size, onResizeInit }: any) => {
 
 // --- SELECTION OVERLAY COMPONENT ---
 interface SelectionRect { x: number, y: number, w: number, h: number }
+interface DomSelectionRect { top: number, left: number, width: number, height: number }
+
+interface SelectionOverlayProps {
+    rect: SelectionRect | null;
+    domRect: DomSelectionRect | null;
+    scroll: { left: number, top: number };
+    scale: number;
+    isScrolling: boolean;
+    isTouch: boolean;
+    onFillStart: () => void;
+    onFillMove: (x: number, y: number) => void;
+    onFillEnd: () => void;
+    onResizeInit: (e: React.PointerEvent, type: 'tl' | 'br') => void;
+}
 
 const SelectionOverlay = memo(({ 
     rect, 
+    domRect,
     scroll, 
     scale,
-    isScrolling,
     isTouch,
     onFillStart,
     onFillMove,
     onFillEnd,
     onResizeInit
-}: { 
-    rect: SelectionRect | null, 
-    scroll: { left: number, top: number },
-    scale: number,
-    isScrolling: boolean,
-    isTouch: boolean,
-    onFillStart: () => void,
-    onFillMove: (x: number, y: number) => void,
-    onFillEnd: () => void,
-    onResizeInit: (e: React.PointerEvent, type: 'tl' | 'br') => void
-}) => {
-    if (!rect) return null;
+}: SelectionOverlayProps) => {
+    if (!rect && !domRect) return null;
 
-    // Fixed Header Dimensions (matches DataGrid config)
-    const headerHeight = 32 * scale;
-    const rowHeaderWidth = 46 * scale;
+    let top: number;
+    let left: number;
+    let width: number;
+    let height: number;
 
-    // Adjust position relative to the grid container
-    // Shift -1px to align the border centered on grid lines
-    const top = rect.y + headerHeight - scroll.top - 1;
-    // Shift -1px to align left border (removing previous 1.25 offset)
-    const left = rect.x + rowHeaderWidth - scroll.left - 1;
+    if (domRect) {
+        top = domRect.top;
+        left = domRect.left;
+        width = domRect.width;
+        height = domRect.height;
+    } else if (rect) {
+        const headerHeight = 32 * scale;
+        const rowHeaderWidth = 46 * scale;
+        top = rect.y + headerHeight - scroll.top - 1;
+        left = rect.x + rowHeaderWidth - scroll.left - 1;
+        width = rect.w + 2;
+        height = rect.h + 2;
+    } else {
+        return null;
+    }
     
-    // Add +2px to encompass the border width properly around cells
-    // (Assuming box-sizing: border-box and 2px border)
-    const width = rect.w + 2;
-    const height = rect.h + 2;
-    
-    const fillHandleSize = Math.max(8, 8 * scale);
-    const selectionHandleSize = Math.max(18, 18 * scale);
+    const fillHandleSize = Math.max(6, Math.min(10, Math.round(7 * Math.sqrt(scale))));
+    const selectionHandleSize = Math.max(14, Math.min(22, Math.round(16 * Math.sqrt(scale))));
 
     return (
         <div
@@ -152,10 +173,7 @@ const SelectionOverlay = memo(({
                 left: `${left}px`,
                 width: `${width}px`,
                 height: `${height}px`,
-                // Disable transition during scroll to prevent drifting/lag
-                transition: isScrolling 
-                    ? 'none' 
-                    : 'all 0.1s cubic-bezier(0.2, 0.8, 0.2, 1)' 
+                transition: 'none'
             }}
         >
             {/* Desktop Fill Handle */}
@@ -193,7 +211,8 @@ const CustomCellRenderer = memo(({
     scale,
     onMouseEnter,
     onDragStart,
-    onCellClick 
+    onCellClick,
+    onContextMenu 
 }: RenderCellProps<any> & { 
     cells: Record<string, CellData>, 
     styles: Record<string, CellStyle>,
@@ -205,7 +224,8 @@ const CustomCellRenderer = memo(({
     scale: number,
     onMouseEnter: (id: string) => void,
     onDragStart: (e: React.MouseEvent, id: string) => void,
-    onCellClick: (id: string, isShift: boolean) => void
+    onCellClick: (id: string, isShift: boolean) => void,
+    onContextMenu?: (e: React.MouseEvent, cellId: string) => void
 }) => {
   const cellId = getCellId(parseInt(column.key), row.id);
   const cellData = cells[cellId];
@@ -275,17 +295,22 @@ const CustomCellRenderer = memo(({
 
   const borderThickness = Math.max(1, 1 * scale);
   const thickBorderThickness = Math.max(2, 2 * scale);
+  const doubleBorderThickness = Math.max(3, 3 * scale);
 
   if (style.borders) {
-      const getBWidth = (s?: string) => s === 'thick' ? `${thickBorderThickness}px` : `${borderThickness}px`;
-      if (style.borders.bottom) baseStyle.borderBottom = `${getBWidth(style.borders.bottom.style)} solid ${style.borders.bottom.color}`;
-      if (style.borders.top) baseStyle.borderTop = `${getBWidth(style.borders.top.style)} solid ${style.borders.top.color}`;
-      if (style.borders.left) baseStyle.borderLeft = `${getBWidth(style.borders.left.style)} solid ${style.borders.left.color}`;
-      if (style.borders.right) baseStyle.borderRight = `${getBWidth(style.borders.right.style)} solid ${style.borders.right.color}`;
+      const getBWidth = (s?: string) => s === 'thick' ? `${thickBorderThickness}px` : s === 'double' ? `${doubleBorderThickness}px` : `${borderThickness}px`;
+      const getBStyle = (s?: string) => s === 'double' ? 'double' : s === 'dashed' ? 'dashed' : 'solid';
+      if (style.borders.bottom) baseStyle.borderBottom = `${getBWidth(style.borders.bottom.style)} ${getBStyle(style.borders.bottom.style)} ${style.borders.bottom.color || '#000'}`;
+      if (style.borders.top) baseStyle.borderTop = `${getBWidth(style.borders.top.style)} ${getBStyle(style.borders.top.style)} ${style.borders.top.color || '#000'}`;
+      if (style.borders.left) baseStyle.borderLeft = `${getBWidth(style.borders.left.style)} ${getBStyle(style.borders.left.style)} ${style.borders.left.color || '#000'}`;
+      if (style.borders.right) baseStyle.borderRight = `${getBWidth(style.borders.right.style)} ${getBStyle(style.borders.right.style)} ${style.borders.right.color || '#000'}`;
   }
+
+  const [commentRect, setCommentRect] = useState<DOMRect | null>(null);
 
   const handleMouseEnter = () => {
       onMouseEnter(cellId);
+      if (cellRef.current) setCommentRect(cellRef.current.getBoundingClientRect());
       if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
       hoverTimeoutRef.current = setTimeout(() => setIsHovered(true), 500);
   };
@@ -304,6 +329,15 @@ const CustomCellRenderer = memo(({
         onClick={() => {
             if (isTouch) {
                 onCellClick(cellId, false);
+            }
+        }}
+        onContextMenu={(e) => {
+            e.preventDefault();
+            if (!isInSelection) {
+                onCellClick(cellId, false);
+            }
+            if (onContextMenu) {
+                onContextMenu(e, cellId);
             }
         }}
         className="relative group select-none"
@@ -343,11 +377,12 @@ const CustomCellRenderer = memo(({
                 }}
                 onClick={(e) => {
                     e.stopPropagation();
+                    if (cellRef.current) setCommentRect(cellRef.current.getBoundingClientRect());
                     setIsCommentClicked(!isCommentClicked);
                 }}
             />
-            {(isHovered || isCommentClicked) && cellRef.current && (
-                <CommentTooltip text={cellData.comment} rect={cellRef.current.getBoundingClientRect()} />
+            {(isHovered || isCommentClicked) && commentRect && (
+                <CommentTooltip text={cellData.comment} rect={commentRect} />
             )}
           </>
       )}
@@ -397,10 +432,13 @@ const Grid: React.FC<GridProps> = ({
   onExpandGrid,
   onFill,
   onScrollToActiveCell,
-  onMoveCells
+  onMoveCells,
+  onContextMenu
 }) => {
   const [isTouch, setIsTouch] = useState(false);
   const gridRef = useRef<DataGridHandle>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [domSelectionRect, setDomSelectionRect] = useState<DomSelectionRect | null>(null);
   
   const [isFilling, setIsFilling] = useState(false);
   const [fillStartRange, setFillStartRange] = useState<string[] | null>(null);
@@ -544,6 +582,7 @@ const Grid: React.FC<GridProps> = ({
                     onMouseEnter={handleMouseEnter}
                     onDragStart={handleDragStart}
                     onCellClick={onCellClick}
+                    onContextMenu={onContextMenu}
                 />
             ),
             renderHeaderCell: (props) => {
@@ -654,6 +693,47 @@ const Grid: React.FC<GridProps> = ({
 
       return { x, y, w, h };
   }, [selectionBounds, rowHeights, columnWidths, scale]);
+
+  // Synchronize selection box with actual rendered DOM cell coordinates for zoom precision
+  useLayoutEffect(() => {
+      let animId: number;
+      const updateRect = () => {
+          if (!selectionBounds || !containerRef.current) {
+              setDomSelectionRect(null);
+              return;
+          }
+          const containerEl = containerRef.current;
+          const startCellId = getCellId(selectionBounds.minCol, selectionBounds.minRow);
+          const endCellId = getCellId(selectionBounds.maxCol, selectionBounds.maxRow);
+
+          const startDiv = containerEl.querySelector(`[data-cell-id="${startCellId}"]`);
+          const endDiv = containerEl.querySelector(`[data-cell-id="${endCellId}"]`);
+          const startCell = startDiv?.closest('.rdg-cell') || startDiv;
+          const endCell = endDiv?.closest('.rdg-cell') || endDiv;
+
+          if (startCell) {
+              const cRect = containerEl.getBoundingClientRect();
+              const sRect = startCell.getBoundingClientRect();
+              const eRect = endCell ? endCell.getBoundingClientRect() : null;
+
+              const top = sRect.top - cRect.top - 1;
+              const left = sRect.left - cRect.left - 1;
+              const width = eRect 
+                  ? Math.max(1, eRect.right - sRect.left + 2) 
+                  : (selectionRect ? selectionRect.w + 2 : sRect.width + 2);
+              const height = eRect 
+                  ? Math.max(1, eRect.bottom - sRect.top + 2) 
+                  : (selectionRect ? selectionRect.h + 2 : sRect.height + 2);
+
+              setDomSelectionRect({ top, left, width, height });
+          } else {
+              setDomSelectionRect(null);
+          }
+      };
+
+      animId = requestAnimationFrame(updateRect);
+      return () => cancelAnimationFrame(animId);
+  }, [selectionBounds, activeCell, scale, scrollPos, columnWidths, rowHeights, selectionRect]);
 
   // --- FILL GESTURE LOGIC ---
   const handleFillStart = useCallback(() => {
@@ -773,10 +853,11 @@ const Grid: React.FC<GridProps> = ({
   }, [resizingHandle, onSelectionDrag]);
 
   return (
-    <div className="w-full h-full text-sm bg-white select-none relative" {...bindGridGestures()}>
+    <div ref={containerRef} className="w-full h-full text-sm bg-white select-none relative" {...bindGridGestures()}>
         {/* Selection Overlay */}
         <SelectionOverlay 
             rect={selectionRect}
+            domRect={domSelectionRect}
             scroll={scrollPos}
             scale={scale}
             isScrolling={isScrolling}
