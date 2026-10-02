@@ -132,7 +132,7 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
         setIsParsing(true);
         const name = selectedFile.name.toLowerCase();
         
-        if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+        if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.xlsm')) {
             setIsXlsx(true);
             try {
                 const sheetsMap = await importXlsx(selectedFile);
@@ -264,7 +264,7 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                             <input 
                                 ref={fileInputRef}
                                 type="file" 
-                                accept=".csv,.txt,.tsv,.xlsx,.xls" 
+                                accept=".csv,.txt,.tsv,.xlsx,.xls,.xlsm" 
                                 className="hidden" 
                                 onChange={handleFileChange}
                             />
@@ -276,7 +276,7 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                                     Drag and drop your file here, or <span className="text-blue-600 hover:underline">browse</span>
                                 </p>
                                 <p className="text-[10px] text-slate-400 mt-1">
-                                    Supports Excel (.xlsx, .xls) and text-delimited files (.csv, .txt, .tsv)
+                                    Supports Excel (.xlsx, .xls, .xlsm) and text-delimited files (.csv, .txt, .tsv)
                                 </p>
                             </div>
                         </div>
@@ -288,7 +288,7 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                                     "w-11 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-extrabold text-[11px] uppercase tracking-wider shadow-2xs text-white",
                                     isXlsx ? "bg-emerald-600" : "bg-blue-600"
                                 )}>
-                                    {isXlsx ? 'xlsx' : 'csv'}
+                                    {isXlsx ? (file.name.split('.').pop() || 'xlsx') : 'csv'}
                                 </div>
                                 <div className="min-w-0">
                                     <p className="text-xs font-bold text-slate-800 truncate">
