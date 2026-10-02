@@ -3,7 +3,7 @@ import React, { lazy, Suspense, useCallback, useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { MAX_ROWS, MAX_COLS } from './constants/grid.constants';
 import { getApiKey } from './utils/apiKey';
-import { parseCellId, generateCsv, downloadCsv, updateCellInHF } from '../utils';
+import { parseCellId, generateCsv, downloadCsv, updateCellInHF, exportToXlsx } from '../utils';
 import { CellData } from '../types';
 import { Eye } from 'lucide-react';
 
@@ -244,9 +244,8 @@ export const AppRoot: React.FC = () => {
   }, []);
 
   const handleExport = useCallback(() => {
-      const csv = generateCsv(cells);
-      downloadCsv(csv, `${activeSheet.name}.csv`);
-  }, [cells, activeSheet.name]);
+      exportToXlsx(sheets, 'workbook.xlsx');
+  }, [sheets]);
 
   const handleSave = useCallback(() => {
       // Implement persistence logic

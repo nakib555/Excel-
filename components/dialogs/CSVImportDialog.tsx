@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { FileUp, Search, X, Check, Eye, HelpCircle, Sliders } from 'lucide-react';
-import { cn } from '../../utils';
+import { FileUp, Search, X, Check, Eye, HelpCircle, Sliders, Layers } from 'lucide-react';
+import { cn, importXlsx } from '../../utils';
 
 interface CSVImportDialogProps {
     isOpen: boolean;
@@ -89,8 +89,14 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
     onImport
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    
     const [file, setFile] = useState<File | null>(null);
     const [fileText, setFileText] = useState<string>('');
+    const [isXlsx, setIsXlsx] = useState<boolean>(false);
+    const [xlsxWorkbook, setXlsxWorkbook] = useState<Record<string, string[][]> | null>(null);
+    const [selectedXlsxSheet, setSelectedXlsxSheet] = useState<string>('');
+    const [isParsing, setIsParsing] = useState<boolean>(false);
+    
     const [delimiter, setDelimiter] = useState<',' | '\t' | ';' | 'auto'>('auto');
     const [insertPosition, setInsertPosition] = useState<'active' | 'A1'>('active');
     const [isDragging, setIsDragging] = useState(false);
@@ -100,8 +106,12 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
         if (!isOpen) {
             setFile(null);
             setFileText('');
+            setIsXlsx(false);
+            setXlsxWorkbook(null);
+            setSelectedXlsxSheet('');
             setDelimiter('auto');
             setInsertPosition('active');
+            setIsParsing(false);
         }
     }, [isOpen]);
 
@@ -115,15 +125,43 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose]);
 
-    const handleFileLoad = (selectedFile: File) => {
+    const handleFileLoad = async (selectedFile: File) => {
         setFile(selectedFile);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            if (e.target?.result) {
-                setFileText(e.target.result as string);
+        setIsParsing(true);
+        const name = selectedFile.name.toLowerCase();
+        
+        if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+            setIsXlsx(true);
+            try {
+                const sheetsMap = await importXlsx(selectedFile);
+                setXlsxWorkbook(sheetsMap);
+                const sheetNames = Object.keys(sheetsMap);
+                if (sheetNames.length > 0) {
+                    setSelectedXlsxSheet(sheetNames[0]);
+                }
+            } catch (err) {
+                console.error("XLSX parsing failed:", err);
+                alert("Failed to parse Excel workbook. It might be corrupted or in an unsupported format.");
+                setFile(null);
+            } finally {
+                setIsParsing(false);
             }
-        };
-        reader.readAsText(selectedFile);
+        } else {
+            setIsXlsx(false);
+            setXlsxWorkbook(null);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                if (e.target?.result) {
+                    setFileText(e.target.result as string);
+                }
+                setIsParsing(false);
+            };
+            reader.onerror = () => {
+                setIsParsing(false);
+                alert("Failed to read text file.");
+            };
+            reader.readAsText(selectedFile);
+        }
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,9 +188,14 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
     };
 
     const parsedData = useMemo(() => {
-        if (!fileText) return { rows: [], detectedDelimiter: '' };
-        return parseCSVData(fileText, delimiter);
-    }, [fileText, delimiter]);
+        if (isXlsx) {
+            if (!xlsxWorkbook || !selectedXlsxSheet) return { rows: [], detectedDelimiter: 'Excel' };
+            return { rows: xlsxWorkbook[selectedXlsxSheet] || [], detectedDelimiter: 'Excel' };
+        } else {
+            if (!fileText) return { rows: [], detectedDelimiter: '' };
+            return parseCSVData(fileText, delimiter);
+        }
+    }, [isXlsx, fileText, delimiter, xlsxWorkbook, selectedXlsxSheet]);
 
     const handleImportSubmit = () => {
         if (!parsedData.rows.length) return;
@@ -178,10 +221,10 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                         </div>
                         <div>
                             <h2 className="text-base font-bold text-slate-800">
-                                Import CSV / Text File
+                                Import Spreadsheet File
                             </h2>
                             <p className="text-xs text-slate-500">
-                                Import delimited data cleanly into your active sheet
+                                Import CSV, Delimited Text, or Microsoft Excel files cleanly
                             </p>
                         </div>
                     </div>
@@ -214,7 +257,7 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                             <input 
                                 ref={fileInputRef}
                                 type="file" 
-                                accept=".csv,.txt,.tsv" 
+                                accept=".csv,.txt,.tsv,.xlsx,.xls" 
                                 className="hidden" 
                                 onChange={handleFileChange}
                             />
@@ -226,7 +269,7 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                                     Drag and drop your file here, or <span className="text-blue-600 hover:underline">browse</span>
                                 </p>
                                 <p className="text-[10px] text-slate-400 mt-1">
-                                    Supports .csv, .txt, .tsv (Comma, Tab, or Semicolon separated)
+                                    Supports Excel (.xlsx, .xls) and text-delimited files (.csv, .txt, .tsv)
                                 </p>
                             </div>
                         </div>
@@ -234,20 +277,23 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                         /* File Loaded Header Badge */
                         <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
                             <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 font-bold text-[10px] uppercase shadow-2xs">
-                                    csv
+                                <div className={cn(
+                                    "w-11 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-extrabold text-[11px] uppercase tracking-wider shadow-2xs text-white",
+                                    isXlsx ? "bg-emerald-600" : "bg-blue-600"
+                                )}>
+                                    {isXlsx ? 'xlsx' : 'csv'}
                                 </div>
                                 <div className="min-w-0">
                                     <p className="text-xs font-bold text-slate-800 truncate">
                                         {file.name}
                                     </p>
                                     <p className="text-[10px] text-slate-500">
-                                        {(file.size / 1024).toFixed(1)} KB &bull; {parsedData.rows.length} rows loaded
+                                        {(file.size / 1024).toFixed(1)} KB &bull; {parsedData.rows.length} rows detected
                                     </p>
                                 </div>
                             </div>
                             <button
-                                onClick={() => { setFile(null); setFileText(''); }}
+                                onClick={() => { setFile(null); setFileText(''); setXlsxWorkbook(null); }}
                                 className="text-xs text-rose-600 font-semibold hover:underline bg-transparent hover:bg-rose-50 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors"
                             >
                                 Change File
@@ -255,63 +301,94 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                         </div>
                     )}
 
-                    {file && (
+                    {isParsing && (
+                        <div className="flex flex-col items-center justify-center py-8 gap-2 text-slate-500">
+                            <div className="w-6 h-6 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
+                            <p className="text-xs font-medium">Parsing workbook data...</p>
+                        </div>
+                    )}
+
+                    {file && !isParsing && (
                         <>
-                            {/* Delimiter & Placement Selection Section */}
+                            {/* Delimiter / Sheet selection & Insertion configuration */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Delimiter Picker */}
-                                <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-2">
-                                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                                        <Sliders size={12} />
-                                        Delimiter Character
-                                    </label>
-                                    <div className="grid grid-cols-2 gap-1.5">
-                                        <button
-                                            onClick={() => setDelimiter('auto')}
-                                            className={cn(
-                                                "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
-                                                delimiter === 'auto'
-                                                    ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                            )}
-                                        >
-                                            Auto-Detect ({parsedData.detectedDelimiter})
-                                        </button>
-                                        <button
-                                            onClick={() => setDelimiter(',')}
-                                            className={cn(
-                                                "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
-                                                delimiter === ','
-                                                    ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                            )}
-                                        >
-                                            Comma (,)
-                                        </button>
-                                        <button
-                                            onClick={() => setDelimiter('\t')}
-                                            className={cn(
-                                                "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
-                                                delimiter === '\t'
-                                                    ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                            )}
-                                        >
-                                            Tab (\t)
-                                        </button>
-                                        <button
-                                            onClick={() => setDelimiter(';')}
-                                            className={cn(
-                                                "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
-                                                delimiter === ';'
-                                                    ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                                                    : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
-                                            )}
-                                        >
-                                            Semicolon (;)
-                                        </button>
+                                {isXlsx ? (
+                                    /* Excel Worksheet Selector */
+                                    <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-2">
+                                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                            <Layers size={12} />
+                                            Select Worksheet
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={selectedXlsxSheet}
+                                                onChange={(e) => setSelectedXlsxSheet(e.target.value)}
+                                                className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs outline-none cursor-pointer"
+                                            >
+                                                {xlsxWorkbook && Object.keys(xlsxWorkbook).map(name => (
+                                                    <option key={name} value={name}>{name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <p className="text-[9px] text-slate-400">
+                                            This file has {xlsxWorkbook ? Object.keys(xlsxWorkbook).length : 0} sheet(s)
+                                        </p>
                                     </div>
-                                </div>
+                                ) : (
+                                    /* Delimiter Picker */
+                                    <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-2">
+                                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                            <Sliders size={12} />
+                                            Delimiter Character
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-1.5">
+                                            <button
+                                                onClick={() => setDelimiter('auto')}
+                                                className={cn(
+                                                    "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
+                                                    delimiter === 'auto'
+                                                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                                )}
+                                            >
+                                                Auto-Detect ({parsedData.detectedDelimiter})
+                                            </button>
+                                            <button
+                                                onClick={() => setDelimiter(',')}
+                                                className={cn(
+                                                    "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
+                                                    delimiter === ','
+                                                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                                )}
+                                            >
+                                                Comma (,)
+                                            </button>
+                                            <button
+                                                onClick={() => setDelimiter('\t')}
+                                                className={cn(
+                                                    "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
+                                                    delimiter === '\t'
+                                                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                                )}
+                                            >
+                                                Tab (\t)
+                                            </button>
+                                            <button
+                                                onClick={() => setDelimiter(';')}
+                                                className={cn(
+                                                    "px-2.5 py-2 rounded-lg text-xs font-medium text-center border transition-all cursor-pointer",
+                                                    delimiter === ';'
+                                                        ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                                                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                                                )}
+                                            >
+                                                Semicolon (;)
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Destination Selector */}
                                 <div className="bg-slate-50/50 p-4 border border-slate-200/60 rounded-xl space-y-2">
@@ -401,7 +478,7 @@ const CSVImportDialog: React.FC<CSVImportDialogProps> = ({
                         </button>
                         <button
                             onClick={handleImportSubmit}
-                            disabled={!file || !parsedData.rows.length}
+                            disabled={!file || !parsedData.rows.length || isParsing}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl font-bold transition-all text-xs cursor-pointer shadow-xs"
                         >
                             Import Data
