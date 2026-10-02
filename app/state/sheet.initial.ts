@@ -75,8 +75,7 @@ export const generateSparseData = (sheetName: string): { cells: Record<CellId, C
             const deps = extractDependencies(cell.raw);
             deps.forEach(dep => {
                 if (!dependentsMap[dep]) dependentsMap[dep] = [];
-                if (!dependentsMap[dep].includes(key)) dependentsMap[dep] = [key];
-                else if (!dependentsMap[dep].includes(key)) dependentsMap[dep].push(key);
+                if (!dependentsMap[dep].includes(key)) dependentsMap[dep].push(key);
             });
         }
     });

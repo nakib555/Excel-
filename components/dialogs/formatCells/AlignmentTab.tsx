@@ -168,7 +168,7 @@ const AlignmentTab: React.FC<AlignmentTabProps> = ({ style, onChange, isMobile }
                             <label key={item.key} className="flex items-center gap-4 cursor-pointer group">
                                 <div className={cn(
                                     "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all duration-300",
-                                    !!(style as any)[item.key] ? `${item.color} shadow-md` : "bg-white border-slate-200"
+                                    (style as any)[item.key] ? `${item.color} shadow-md` : "bg-white border-slate-200"
                                 )}>
                                     {!!(style as any)[item.key] && <Check size={14} className="text-white stroke-[3]" />}
                                     <input 
