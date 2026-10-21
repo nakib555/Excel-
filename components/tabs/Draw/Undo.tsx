@@ -8,7 +8,7 @@ interface UndoProps {
 }
 
 const Undo: React.FC<UndoProps> = ({ onUndo }) => (
-    <RibbonButton variant="icon-only" icon={<UndoIcon size={14} className="text-blue-600" />} onClick={onUndo || (() => {})} title="Undo" />
+    <RibbonButton variant="icon-only" icon={<UndoIcon size={14} className="text-blue-600" />} onClick={() => onUndo?.()} title="Undo" />
 );
 
 export default Undo;

@@ -65,5 +65,80 @@ export const useClipboardHandlers = ({ setSheets, activeSheetId, activeCell, sel
         }
     }, [activeCell, activeSheetId, setSheets]);
 
-    return { handleCopy, handleCut, handlePaste };
+    const [isFormatPainterActive, setIsFormatPainterActive] = React.useState(false);
+    const formatPainterStyleIdRef = useRef<string | undefined>(undefined);
+
+    const handleStartFormatPainter = useCallback(() => {
+        if (activeCell && cells[activeCell]) {
+            formatPainterStyleIdRef.current = cells[activeCell].styleId;
+            setIsFormatPainterActive(true);
+        }
+    }, [activeCell, cells]);
+
+    const handleApplyFormatPainter = useCallback((targetRange?: CellId[]) => {
+        if (!isFormatPainterActive) return;
+        const targets = targetRange || (selectionRange && selectionRange.length > 0 ? selectionRange : (activeCell ? [activeCell] : []));
+        const styleId = formatPainterStyleIdRef.current;
+        setSheets(p => p.map(s => {
+            if (s.id !== activeSheetId) return s;
+            const nextCells = { ...s.cells };
+            targets.forEach(id => {
+                nextCells[id] = {
+                    ...(nextCells[id] || { id, raw: '', value: '' }),
+                    styleId
+                };
+            });
+            return { ...s, cells: nextCells };
+        }));
+        setIsFormatPainterActive(false);
+    }, [isFormatPainterActive, selectionRange, activeCell, activeSheetId, setSheets]);
+
+    const handlePasteSpecial = useCallback((mode: 'all' | 'formulas' | 'values' | 'formats' | 'transpose') => {
+        if (!clipboardRef.current || !activeCell) return;
+        const { cells: cc, baseRow, baseCol } = clipboardRef.current;
+        const t = parseCellId(activeCell)!;
+
+        setSheets(p => p.map(s => {
+            if (s.id !== activeSheetId) return s;
+            const newCells = { ...s.cells };
+            
+            Object.values(cc).forEach((c: CellData) => {
+                const o = parseCellId(c.id);
+                if (!o) return;
+                
+                let nid: CellId;
+                if (mode === 'transpose') {
+                    const dCol = o.col - baseCol;
+                    const dRow = o.row - baseRow;
+                    nid = getCellId(t.col + dRow, t.row + dCol);
+                } else {
+                    nid = getCellId(t.col + (o.col - baseCol), t.row + (o.row - baseRow));
+                }
+
+                const existing = newCells[nid] || { id: nid, raw: '', value: '' };
+
+                if (mode === 'values') {
+                    newCells[nid] = { ...existing, raw: c.value || c.raw, value: c.value || c.raw };
+                } else if (mode === 'formats') {
+                    newCells[nid] = { ...existing, styleId: c.styleId };
+                } else if (mode === 'formulas') {
+                    newCells[nid] = { ...existing, raw: c.raw, value: c.value };
+                } else {
+                    newCells[nid] = { ...c, id: nid };
+                }
+            });
+
+            return { ...s, cells: newCells };
+        }));
+    }, [activeCell, activeSheetId, setSheets]);
+
+    return { 
+        handleCopy, 
+        handleCut, 
+        handlePaste, 
+        handlePasteSpecial,
+        handleStartFormatPainter, 
+        handleApplyFormatPainter, 
+        isFormatPainterActive 
+    };
 };

@@ -3,8 +3,17 @@ import React, { useState } from 'react';
 import { ArrowDown, ArrowRight, ArrowUp, ArrowLeft, Layers, AlignJustify, Zap, ChevronDown } from 'lucide-react';
 import { RibbonButton, SmartDropdown, Tooltip } from '../../shared';
 
-const Fill = () => {
+interface FillProps {
+    onFillDirection?: (dir: 'down' | 'right' | 'up' | 'left') => void;
+}
+
+const Fill: React.FC<FillProps> = ({ onFillDirection }) => {
     const [open, setOpen] = useState(false);
+
+    const handleFillAction = (dir: 'down' | 'right' | 'up' | 'left') => {
+        if (onFillDirection) onFillDirection(dir);
+        setOpen(false);
+    };
 
     return (
         <SmartDropdown
@@ -25,27 +34,39 @@ const Fill = () => {
         >
             <div className="flex flex-col py-1">
                 <Tooltip content="Fill down" side="right">
-                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <button 
+                        onClick={() => handleFillAction('down')}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group w-full"
+                    >
                         <ArrowDown size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
                         <span className="flex-1">Down</span>
                         <span className="text-[9px] text-slate-400 font-mono">Ctrl+D</span>
                     </button>
                 </Tooltip>
                 <Tooltip content="Fill right" side="right">
-                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <button 
+                        onClick={() => handleFillAction('right')}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group w-full"
+                    >
                         <ArrowRight size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
                         <span className="flex-1">Right</span>
                         <span className="text-[9px] text-slate-400 font-mono">Ctrl+R</span>
                     </button>
                 </Tooltip>
                 <Tooltip content="Fill up" side="right">
-                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <button 
+                        onClick={() => handleFillAction('up')}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group w-full"
+                    >
                         <ArrowUp size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
                         <span>Up</span>
                     </button>
                 </Tooltip>
                 <Tooltip content="Fill left" side="right">
-                    <button className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group">
+                    <button 
+                        onClick={() => handleFillAction('left')}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group w-full"
+                    >
                         <ArrowLeft size={16} className="text-blue-500 group-hover:scale-110 transition-transform" />
                         <span>Left</span>
                     </button>

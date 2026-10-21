@@ -2,7 +2,7 @@
 import React, { useCallback } from 'react';
 import { Sheet, CellData, CellStyle, ValidationRule, CellId } from '../../types';
 import { 
-    validateCellValue, parseCellId, getCellId, adjustFormulaReferences, getRange, checkIntersect, getStyleId, calculateRotatedDimensions, numToChar,
+    validateCellValue, parseCellId, getCellId, adjustFormulaReferences, getRange, checkIntersect, getStyleId, calculateRotatedDimensions, numToChar, charToNum,
     updateCellInHF, getCellValueFromHF, extractDependencies
 } from '../../utils';
 import { DEFAULT_ROW_HEIGHT, DEFAULT_COL_WIDTH } from '../constants/grid.constants';
@@ -514,6 +514,455 @@ export const useCellHandlers = ({
         }));
     }, [activeSheetId, gridSize, setSheets]);
 
+    const handleInsertRow = useCallback(() => {
+        const targetRow = activeCell ? (parseCellId(activeCell)?.row ?? 0) : 0;
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells: Record<CellId, CellData> = {};
+            Object.values(sheet.cells).forEach(cell => {
+                const pos = parseCellId(cell.id);
+                if (!pos) return;
+                if (pos.row >= targetRow) {
+                    const newId = getCellId(pos.col, pos.row + 1);
+                    let newRaw = cell.raw;
+                    if (newRaw.startsWith('=')) {
+                        newRaw = adjustFormulaReferences(newRaw, 1, 0);
+                    }
+                    nextCells[newId] = { ...cell, id: newId, raw: newRaw };
+                    updateCellInHF(newId, newRaw, sheet.name);
+                } else {
+                    nextCells[cell.id] = cell;
+                }
+            });
+
+            const nextRowHeights: Record<number, number> = {};
+            Object.entries(sheet.rowHeights || {}).forEach(([rStr, h]) => {
+                const r = parseInt(rStr, 10);
+                if (r >= targetRow) {
+                    nextRowHeights[r + 1] = h;
+                } else {
+                    nextRowHeights[r] = h;
+                }
+            });
+
+            return {
+                ...sheet,
+                cells: nextCells,
+                rowHeights: nextRowHeights
+            };
+        }));
+    }, [activeCell, activeSheetId, setSheets]);
+
+    const handleInsertColumn = useCallback(() => {
+        const targetCol = activeCell ? (parseCellId(activeCell)?.col ?? 0) : 0;
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells: Record<CellId, CellData> = {};
+            Object.values(sheet.cells).forEach(cell => {
+                const pos = parseCellId(cell.id);
+                if (!pos) return;
+                if (pos.col >= targetCol) {
+                    const newId = getCellId(pos.col + 1, pos.row);
+                    let newRaw = cell.raw;
+                    if (newRaw.startsWith('=')) {
+                        newRaw = adjustFormulaReferences(newRaw, 0, 1);
+                    }
+                    nextCells[newId] = { ...cell, id: newId, raw: newRaw };
+                    updateCellInHF(newId, newRaw, sheet.name);
+                } else {
+                    nextCells[cell.id] = cell;
+                }
+            });
+
+            const nextColWidths: Record<string, number> = {};
+            Object.entries(sheet.columnWidths || {}).forEach(([colChar, w]) => {
+                const c = charToNum(colChar);
+                if (c >= targetCol) {
+                    nextColWidths[numToChar(c + 1)] = w;
+                } else {
+                    nextColWidths[colChar] = w;
+                }
+            });
+
+            return {
+                ...sheet,
+                cells: nextCells,
+                columnWidths: nextColWidths
+            };
+        }));
+    }, [activeCell, activeSheetId, setSheets]);
+
+    const handleDeleteRow = useCallback(() => {
+        const targetRow = activeCell ? (parseCellId(activeCell)?.row ?? 0) : 0;
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells: Record<CellId, CellData> = {};
+            Object.values(sheet.cells).forEach(cell => {
+                const pos = parseCellId(cell.id);
+                if (!pos) return;
+                if (pos.row === targetRow) {
+                    updateCellInHF(cell.id, '', sheet.name);
+                    return; // deleted
+                }
+                if (pos.row > targetRow) {
+                    const newId = getCellId(pos.col, pos.row - 1);
+                    let newRaw = cell.raw;
+                    if (newRaw.startsWith('=')) {
+                        newRaw = adjustFormulaReferences(newRaw, -1, 0);
+                    }
+                    nextCells[newId] = { ...cell, id: newId, raw: newRaw };
+                    updateCellInHF(newId, newRaw, sheet.name);
+                } else {
+                    nextCells[cell.id] = cell;
+                }
+            });
+
+            const nextRowHeights: Record<number, number> = {};
+            Object.entries(sheet.rowHeights || {}).forEach(([rStr, h]) => {
+                const r = parseInt(rStr, 10);
+                if (r < targetRow) {
+                    nextRowHeights[r] = h;
+                } else if (r > targetRow) {
+                    nextRowHeights[r - 1] = h;
+                }
+            });
+
+            return {
+                ...sheet,
+                cells: nextCells,
+                rowHeights: nextRowHeights
+            };
+        }));
+    }, [activeCell, activeSheetId, setSheets]);
+
+    const handleDeleteColumn = useCallback(() => {
+        const targetCol = activeCell ? (parseCellId(activeCell)?.col ?? 0) : 0;
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells: Record<CellId, CellData> = {};
+            Object.values(sheet.cells).forEach(cell => {
+                const pos = parseCellId(cell.id);
+                if (!pos) return;
+                if (pos.col === targetCol) {
+                    updateCellInHF(cell.id, '', sheet.name);
+                    return; // deleted
+                }
+                if (pos.col > targetCol) {
+                    const newId = getCellId(pos.col - 1, pos.row);
+                    let newRaw = cell.raw;
+                    if (newRaw.startsWith('=')) {
+                        newRaw = adjustFormulaReferences(newRaw, 0, -1);
+                    }
+                    nextCells[newId] = { ...cell, id: newId, raw: newRaw };
+                    updateCellInHF(newId, newRaw, sheet.name);
+                } else {
+                    nextCells[cell.id] = cell;
+                }
+            });
+
+            const nextColWidths: Record<string, number> = {};
+            Object.entries(sheet.columnWidths || {}).forEach(([colChar, w]) => {
+                const c = charToNum(colChar);
+                if (c < targetCol) {
+                    nextColWidths[colChar] = w;
+                } else if (c > targetCol) {
+                    nextColWidths[numToChar(c - 1)] = w;
+                }
+            });
+
+            return {
+                ...sheet,
+                cells: nextCells,
+                columnWidths: nextColWidths
+            };
+        }));
+    }, [activeCell, activeSheetId, setSheets]);
+
+    const handleInsertCells = useCallback(() => {
+        if (!selectionRange || selectionRange.length === 0) {
+            handleInsertRow();
+            return;
+        }
+        const coords = selectionRange.map(id => parseCellId(id)).filter(Boolean) as { col: number; row: number }[];
+        const minRow = Math.min(...coords.map(c => c.row));
+        const maxRow = Math.max(...coords.map(c => c.row));
+        const numRows = maxRow - minRow + 1;
+        const minCol = Math.min(...coords.map(c => c.col));
+        const maxCol = Math.max(...coords.map(c => c.col));
+
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells: Record<CellId, CellData> = { ...sheet.cells };
+            
+            for (let c = minCol; c <= maxCol; c++) {
+                for (let r = gridSize.rows - 1; r >= minRow; r--) {
+                    const currId = getCellId(c, r);
+                    const newId = getCellId(c, r + numRows);
+                    if (nextCells[currId]) {
+                        nextCells[newId] = { ...nextCells[currId], id: newId };
+                        delete nextCells[currId];
+                    }
+                }
+            }
+            return { ...sheet, cells: nextCells };
+        }));
+    }, [selectionRange, handleInsertRow, activeSheetId, gridSize.rows, setSheets]);
+
+    const handleDeleteCells = useCallback(() => {
+        if (!selectionRange || selectionRange.length === 0) {
+            handleDeleteRow();
+            return;
+        }
+        const coords = selectionRange.map(id => parseCellId(id)).filter(Boolean) as { col: number; row: number }[];
+        const minRow = Math.min(...coords.map(c => c.row));
+        const maxRow = Math.max(...coords.map(c => c.row));
+        const numRows = maxRow - minRow + 1;
+        const minCol = Math.min(...coords.map(c => c.col));
+        const maxCol = Math.max(...coords.map(c => c.col));
+
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells: Record<CellId, CellData> = { ...sheet.cells };
+            
+            for (let c = minCol; c <= maxCol; c++) {
+                for (let r = minRow; r < gridSize.rows; r++) {
+                    const currId = getCellId(c, r);
+                    const shiftedId = getCellId(c, r + numRows);
+                    if (nextCells[shiftedId]) {
+                        nextCells[currId] = { ...nextCells[shiftedId], id: currId };
+                    } else {
+                        delete nextCells[currId];
+                    }
+                }
+            }
+            return { ...sheet, cells: nextCells };
+        }));
+    }, [selectionRange, handleDeleteRow, activeSheetId, gridSize.rows, setSheets]);
+
+    const handleDirectionalFill = useCallback((direction: 'down' | 'right' | 'up' | 'left') => {
+        if (!activeCell) return;
+        const range = selectionRange && selectionRange.length > 1 ? selectionRange : [activeCell];
+        const coords = range.map(id => parseCellId(id)).filter(Boolean) as { col: number; row: number }[];
+        const minCol = Math.min(...coords.map(c => c.col));
+        const maxCol = Math.max(...coords.map(c => c.col));
+        const minRow = Math.min(...coords.map(c => c.row));
+        const maxRow = Math.max(...coords.map(c => c.row));
+
+        if (range.length === 1) {
+            let sourceId: CellId | null = null;
+            if (direction === 'down' && minRow > 0) sourceId = getCellId(minCol, minRow - 1);
+            else if (direction === 'right' && minCol > 0) sourceId = getCellId(minCol - 1, minRow);
+            else if (direction === 'up' && minRow < gridSize.rows - 1) sourceId = getCellId(minCol, minRow + 1);
+            else if (direction === 'left' && minCol < gridSize.cols - 1) sourceId = getCellId(minCol + 1, minRow);
+
+            if (sourceId) {
+                handleFill([sourceId], [activeCell]);
+            }
+            return;
+        }
+
+        const sourceRange: CellId[] = [];
+        const targetRange: CellId[] = [];
+
+        if (direction === 'down') {
+            for (let c = minCol; c <= maxCol; c++) {
+                sourceRange.push(getCellId(c, minRow));
+                for (let r = minRow + 1; r <= maxRow; r++) {
+                    targetRange.push(getCellId(c, r));
+                }
+            }
+        } else if (direction === 'right') {
+            for (let r = minRow; r <= maxRow; r++) {
+                sourceRange.push(getCellId(minCol, r));
+                for (let c = minCol + 1; c <= maxCol; c++) {
+                    targetRange.push(getCellId(c, r));
+                }
+            }
+        } else if (direction === 'up') {
+            for (let c = minCol; c <= maxCol; c++) {
+                sourceRange.push(getCellId(c, maxRow));
+                for (let r = minRow; r < maxRow; r++) {
+                    targetRange.push(getCellId(c, r));
+                }
+            }
+        } else if (direction === 'left') {
+            for (let r = minRow; r <= maxRow; r++) {
+                sourceRange.push(getCellId(maxCol, r));
+                for (let c = minCol; c < maxCol; c++) {
+                    targetRange.push(getCellId(c, r));
+                }
+            }
+        }
+
+        if (sourceRange.length && targetRange.length) {
+            handleFill(sourceRange, targetRange);
+        }
+    }, [activeCell, selectionRange, gridSize, handleFill]);
+
+    const handleSort = useCallback((order: 'asc' | 'desc') => {
+        if (!activeCell) return;
+        const activePos = parseCellId(activeCell);
+        if (!activePos) return;
+
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+
+            let minCol = activePos.col;
+            let maxCol = activePos.col;
+            let minRow = activePos.row;
+            let maxRow = activePos.row;
+
+            if (selectionRange && selectionRange.length > 1) {
+                const coords = selectionRange.map(id => parseCellId(id)).filter(Boolean) as { col: number; row: number }[];
+                minCol = Math.min(...coords.map(c => c.col));
+                maxCol = Math.max(...coords.map(c => c.col));
+                minRow = Math.min(...coords.map(c => c.row));
+                maxRow = Math.max(...coords.map(c => c.row));
+            } else {
+                const populated = Object.keys(sheet.cells).map(id => parseCellId(id)).filter(Boolean) as { col: number; row: number }[];
+                const connected = populated.filter(p => Math.abs(p.col - activePos.col) <= 3 && Math.abs(p.row - activePos.row) <= 15);
+                if (connected.length > 0) {
+                    minCol = Math.min(...connected.map(c => c.col));
+                    maxCol = Math.max(...connected.map(c => c.col));
+                    minRow = Math.min(...connected.map(c => c.row));
+                    maxRow = Math.max(...connected.map(c => c.row));
+                }
+            }
+
+            if (maxRow <= minRow) return sheet;
+
+            const sortCol = activePos.col >= minCol && activePos.col <= maxCol ? activePos.col : minCol;
+
+            const rowData: { rowIndex: number; sortVal: string; cells: Record<number, CellData> }[] = [];
+            for (let r = minRow; r <= maxRow; r++) {
+                const sortCellId = getCellId(sortCol, r);
+                const sortVal = sheet.cells[sortCellId]?.value || sheet.cells[sortCellId]?.raw || '';
+                const cellsInRow: Record<number, CellData> = {};
+                for (let c = minCol; c <= maxCol; c++) {
+                    const cid = getCellId(c, r);
+                    if (sheet.cells[cid]) {
+                        cellsInRow[c] = sheet.cells[cid];
+                    }
+                }
+                rowData.push({ rowIndex: r, sortVal, cells: cellsInRow });
+            }
+
+            rowData.sort((a, b) => {
+                const numA = parseFloat(a.sortVal.replace(/[^0-9.-]+/g, ''));
+                const numB = parseFloat(b.sortVal.replace(/[^0-9.-]+/g, ''));
+                const bothNumeric = !isNaN(numA) && !isNaN(numB) && a.sortVal.trim() !== '' && b.sortVal.trim() !== '';
+
+                let cmp = 0;
+                if (bothNumeric) {
+                    cmp = numA - numB;
+                } else {
+                    cmp = a.sortVal.localeCompare(b.sortVal);
+                }
+                return order === 'desc' ? -cmp : cmp;
+            });
+
+            const nextCells = { ...sheet.cells };
+            for (let i = 0; i < rowData.length; i++) {
+                const targetRow = minRow + i;
+                const source = rowData[i];
+                for (let c = minCol; c <= maxCol; c++) {
+                    const targetId = getCellId(c, targetRow);
+                    const sourceCell = source.cells[c];
+                    if (sourceCell) {
+                        nextCells[targetId] = { ...sourceCell, id: targetId };
+                        updateCellInHF(targetId, sourceCell.raw, sheet.name);
+                    } else {
+                        delete nextCells[targetId];
+                        updateCellInHF(targetId, '', sheet.name);
+                    }
+                }
+            }
+
+            return { ...sheet, cells: nextCells };
+        }));
+    }, [activeCell, selectionRange, activeSheetId, setSheets]);
+
+    const handleToggleFilter = useCallback(() => {
+        if (!activeCell) return;
+        const range = selectionRange && selectionRange.length > 1 ? selectionRange : [activeCell];
+        const coords = range.map(id => parseCellId(id)).filter(Boolean) as { col: number; row: number }[];
+        const minRow = Math.min(...coords.map(c => c.row));
+        const minCol = Math.min(...coords.map(c => c.col));
+        const maxCol = Math.max(...coords.map(c => c.col));
+
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells = { ...sheet.cells };
+            const firstCell = nextCells[getCellId(minCol, minRow)];
+            const enable = !firstCell?.filterButton;
+
+            for (let c = minCol; c <= maxCol; c++) {
+                const id = getCellId(c, minRow);
+                nextCells[id] = {
+                    ...(nextCells[id] || { id, raw: '', value: '' }),
+                    filterButton: enable
+                };
+            }
+            return { ...sheet, cells: nextCells };
+        }));
+    }, [activeCell, selectionRange, activeSheetId, setSheets]);
+
+    const handleClearRules = useCallback((scope: 'selection' | 'sheet') => {
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells = { ...sheet.cells };
+            const targets = scope === 'selection' 
+                ? (selectionRange || (activeCell ? [activeCell] : []))
+                : Object.keys(sheet.cells);
+
+            targets.forEach(id => {
+                if (nextCells[id]) {
+                    const { styleId, ...rest } = nextCells[id];
+                    nextCells[id] = rest as CellData;
+                }
+            });
+            return { ...sheet, cells: nextCells };
+        }));
+    }, [activeCell, selectionRange, activeSheetId, setSheets]);
+
+    const handleApplyCFRule = useCallback((ruleType: string, customVal?: any) => {
+        const targets = selectionRange || (activeCell ? [activeCell] : []);
+        if (!targets.length) return;
+
+        setSheets(prev => prev.map(sheet => {
+            if (sheet.id !== activeSheetId) return sheet;
+            const nextCells = { ...sheet.cells };
+            let registry = { ...sheet.styles };
+
+            let cfStyle: CellStyle = {};
+            if (ruleType === 'greaterThan' || ruleType === 'highlight-red') {
+                cfStyle = { bg: '#fee2e2', color: '#991b1b', bold: true };
+            } else if (ruleType === 'lessThan' || ruleType === 'highlight-green') {
+                cfStyle = { bg: '#dcfce7', color: '#166534', bold: true };
+            } else if (ruleType === 'between' || ruleType === 'highlight-yellow') {
+                cfStyle = { bg: '#fef9c3', color: '#854d0e' };
+            } else if (ruleType === 'equal' || ruleType === 'duplicate') {
+                cfStyle = { bg: '#e0e7ff', color: '#3730a3', bold: true };
+            } else if (ruleType === 'databar') {
+                cfStyle = { bg: '#e0f2fe', color: '#0369a1' };
+            } else if (ruleType === 'colorscale') {
+                cfStyle = { bg: '#ecfdf5', color: '#065f46' };
+            }
+
+            const { id: newStyleId, registry: updatedReg } = getStyleId(registry, cfStyle);
+            registry = updatedReg;
+
+            targets.forEach(id => {
+                nextCells[id] = {
+                    ...(nextCells[id] || { id, raw: '', value: '' }),
+                    styleId: newStyleId
+                };
+            });
+
+            return { ...sheet, cells: nextCells, styles: registry };
+        }));
+    }, [activeCell, selectionRange, activeSheetId, setSheets]);
+
     return {
         handleCellChange,
         handleCellClick,
@@ -524,6 +973,17 @@ export const useCellHandlers = ({
         handleAutoSum,
         handleMerge,
         handleFill,
+        handleDirectionalFill,
+        handleInsertRow,
+        handleInsertColumn,
+        handleInsertCells,
+        handleDeleteRow,
+        handleDeleteColumn,
+        handleDeleteCells,
+        handleSort,
+        handleToggleFilter,
+        handleClearRules,
+        handleApplyCFRule,
         handleClear,
         handleAddSheet,
         handleRenameSheet,

@@ -11,7 +11,12 @@ import {
 } from 'lucide-react';
 import { RibbonButton, SmartDropdown, Tooltip } from '../../shared';
 
-const SortFilter = () => {
+interface SortFilterProps {
+    onSort?: (direction: 'asc' | 'desc') => void;
+    onToggleFilter?: () => void;
+}
+
+const SortFilter: React.FC<SortFilterProps> = ({ onSort, onToggleFilter }) => {
     const [open, setOpen] = useState(false);
 
     return (
@@ -32,19 +37,25 @@ const SortFilter = () => {
             }
         >
             <div className="flex flex-col py-1">
-                <Tooltip content="Sort A to Z" side="right">
+                <Tooltip content="Sort A to Z (Ascending)" side="right">
                     <button 
-                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
-                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group w-full"
+                        onClick={() => {
+                            if (onSort) onSort('asc');
+                            setOpen(false);
+                        }}
                     >
                         <ArrowDownAZ size={16} className="text-slate-500 group-hover:text-blue-600" />
                         <span>Sort A to Z</span>
                     </button>
                 </Tooltip>
-                <Tooltip content="Sort Z to A" side="right">
+                <Tooltip content="Sort Z to A (Descending)" side="right">
                     <button 
-                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
-                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group w-full"
+                        onClick={() => {
+                            if (onSort) onSort('desc');
+                            setOpen(false);
+                        }}
                     >
                         <ArrowUpAZ size={16} className="text-slate-500 group-hover:text-blue-600" />
                         <span>Sort Z to A</span>
@@ -52,8 +63,11 @@ const SortFilter = () => {
                 </Tooltip>
                 <Tooltip content="Custom Sort" side="right">
                     <button 
-                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
-                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group w-full"
+                        onClick={() => {
+                            if (onSort) onSort('asc');
+                            setOpen(false);
+                        }}
                     >
                         <SlidersHorizontal size={16} className="text-slate-500 group-hover:text-blue-600" />
                         <span>Custom Sort...</span>
@@ -64,8 +78,11 @@ const SortFilter = () => {
                 
                 <Tooltip content="Turn on filtering for selected cells" side="right">
                     <button 
-                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group"
-                        onClick={() => setOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group w-full"
+                        onClick={() => {
+                            if (onToggleFilter) onToggleFilter();
+                            setOpen(false);
+                        }}
                     >
                         <Filter size={16} className="text-slate-500 group-hover:text-blue-600" />
                         <span>Filter</span>
@@ -73,19 +90,25 @@ const SortFilter = () => {
                 </Tooltip>
                 <Tooltip content="Clear filter" side="right">
                     <button 
-                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-400 hover:bg-slate-50 transition-colors text-left group cursor-default" 
-                        disabled
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group w-full" 
+                        onClick={() => {
+                            if (onToggleFilter) onToggleFilter();
+                            setOpen(false);
+                        }}
                     >
-                        <FilterX size={16} className="text-slate-300" />
+                        <FilterX size={16} className="text-slate-500" />
                         <span>Clear</span>
                     </button>
                 </Tooltip>
                 <Tooltip content="Reapply filter" side="right">
                     <button 
-                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-400 hover:bg-slate-50 transition-colors text-left group cursor-default" 
-                        disabled
+                        className="flex items-center gap-3 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100 transition-colors text-left group w-full" 
+                        onClick={() => {
+                            if (onSort) onSort('asc');
+                            setOpen(false);
+                        }}
                     >
-                        <RefreshCw size={16} className="text-slate-300" />
+                        <RefreshCw size={16} className="text-slate-500" />
                         <span>Reapply</span>
                     </button>
                 </Tooltip>

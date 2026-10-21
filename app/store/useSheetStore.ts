@@ -243,7 +243,25 @@ export const useSheetStore = create<SheetState>()(
     {
       limit: 50,
       partialize: (state) => ({ sheets: state.sheets }),
-      equality: (a, b) => a === b
+      equality: (a: any, b: any) => a?.sheets === b?.sheets,
+      wrapTemporal: (store: any) => (set: any, get: any, api: any) => {
+        const originalState = store(set, get, api);
+        return {
+          ...originalState,
+          undo: (steps = 1) => {
+            const numSteps = typeof steps === 'number' && !isNaN(steps) && steps > 0 ? Math.floor(steps) : 1;
+            if (get().pastStates && get().pastStates.length > 0) {
+              originalState.undo(numSteps);
+            }
+          },
+          redo: (steps = 1) => {
+            const numSteps = typeof steps === 'number' && !isNaN(steps) && steps > 0 ? Math.floor(steps) : 1;
+            if (get().futureStates && get().futureStates.length > 0) {
+              originalState.redo(numSteps);
+            }
+          }
+        };
+      }
     }
   )
 );

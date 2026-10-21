@@ -82,6 +82,15 @@ export interface TabProps {
   // Undo/Redo
   onUndo?: () => void;
   onRedo?: () => void;
+
+  // Home Tab Additions
+  onFillDirection?: (dir: 'down' | 'right' | 'up' | 'left') => void;
+  onToggleFilter?: () => void;
+  onClearRules?: (scope: 'selection' | 'sheet') => void;
+  onApplyCFRule?: (ruleType: string, customVal?: any) => void;
+  onFormatPainter?: () => void;
+  isFormatPainterActive?: boolean;
+  onPasteSpecial?: (mode: 'all' | 'formulas' | 'values' | 'formats' | 'transpose') => void;
 }
 
 export const DraggableScrollContainer = memo(({ children, className = "" }: { children?: React.ReactNode, className?: string }) => {

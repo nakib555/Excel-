@@ -8,7 +8,7 @@ interface RedoProps {
 }
 
 const Redo: React.FC<RedoProps> = ({ onRedo }) => (
-    <RibbonButton variant="icon-only" icon={<RotateCcw size={14} className="rotate-180 scale-x-[-1] text-blue-600" />} onClick={onRedo || (() => {})} title="Redo" />
+    <RibbonButton variant="icon-only" icon={<RotateCcw size={14} className="rotate-180 scale-x-[-1] text-blue-600" />} onClick={() => onRedo?.()} title="Redo" />
 );
 
 export default Redo;

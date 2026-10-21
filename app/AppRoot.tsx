@@ -60,10 +60,22 @@ export const AppRoot: React.FC = () => {
   // Zundo Undo/Redo - Reactive
   // Cast useSheetStore to any to access temporal middleware store which is not typed on the hook
   const temporal = useStore((useSheetStore as any).temporal) as any;
-  const { undo, redo, pastStates, futureStates } = temporal;
+  const { undo, redo, pastStates = [], futureStates = [] } = temporal || {};
   
-  const canUndo = pastStates.length > 0;
-  const canRedo = futureStates.length > 0;
+  const canUndo = (pastStates?.length || 0) > 0;
+  const canRedo = (futureStates?.length || 0) > 0;
+
+  const handleUndo = useCallback(() => {
+    if (canUndo && typeof undo === 'function') {
+      undo();
+    }
+  }, [canUndo, undo]);
+
+  const handleRedo = useCallback(() => {
+    if (canRedo && typeof redo === 'function') {
+      redo();
+    }
+  }, [canRedo, redo]);
 
   // Placeholder for advanced revision history (can be integrated with Zundo later or kept separate)
   const revisions: any[] = []; 
@@ -116,8 +128,8 @@ export const AppRoot: React.FC = () => {
       cells,
       onCellChange: updateCell, // Use store direct update
       onNavigate: navigationHandlers.handleNavigate,
-      onUndo: undo,
-      onRedo: redo,
+      onUndo: handleUndo,
+      onRedo: handleRedo,
       onCopy: clipboardHandlers.handleCopy,
       onCut: clipboardHandlers.handleCut,
       onPaste: clipboardHandlers.handlePaste,
@@ -129,6 +141,7 @@ export const AppRoot: React.FC = () => {
     let lastSheetsString = JSON.stringify(sheets);
 
     const unsubscribe = useSheetStore.subscribe((state) => {
+      if (!state || !state.sheets) return;
       const currentSheetsString = JSON.stringify(state.sheets);
       if (currentSheetsString === lastSheetsString) return;
       lastSheetsString = currentSheetsString;
@@ -312,8 +325,8 @@ export const AppRoot: React.FC = () => {
             onSave={handleSave}
             onToggleAutoSave={() => {}}
             isAutoSave={false}
-            onUndo={undo}
-            onRedo={redo}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
             onApplyBorder={styleHandlers.handleApplyBorder}
             onOpenShortcuts={() => setShowShortcuts(true)}
             onImportCSV={() => setShowImportCSV(true)}
@@ -389,8 +402,8 @@ export const AppRoot: React.FC = () => {
             zoom={zoom}
             onZoomChange={setZoom}
             onToggleMobileResize={() => dialogs.setShowMobileResize(!dialogs.showMobileResize)}
-            onUndo={undo}
-            onRedo={redo}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
             canUndo={canUndo}
             canRedo={canRedo}
             onOpenShortcuts={() => setShowShortcuts(true)}

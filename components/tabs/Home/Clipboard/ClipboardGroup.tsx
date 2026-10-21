@@ -6,14 +6,21 @@ import Cut from './Cut';
 import Copy from './Copy';
 import Format from './Format';
 
-const ClipboardGroup: React.FC<TabProps> = memo(({ onCopy, onCut, onPaste }) => {
+const ClipboardGroup: React.FC<TabProps> = memo(({ 
+    onCopy, 
+    onCut, 
+    onPaste, 
+    onPasteSpecial,
+    onFormatPainter, 
+    isFormatPainterActive 
+}) => {
   return (
     <RibbonGroup label="Clipboard" showLauncher>
-        <Paste onPaste={onPaste} />
+        <Paste onPaste={onPaste} onPasteSpecial={onPasteSpecial} />
         <div className="flex flex-col gap-0 justify-center">
             <Cut onCut={onCut} />
             <Copy onCopy={onCopy} />
-            <Format />
+            <Format onFormatPainter={onFormatPainter} isFormatPainterActive={isFormatPainterActive} />
         </div>
     </RibbonGroup>
   );

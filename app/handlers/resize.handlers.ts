@@ -128,6 +128,93 @@ export const useResizeHandlers = ({ setSheets, activeSheetId, activeSheet, activ
         rows.forEach(r => handleAutoFitRow(r));
     }, [activeSheet, activeCell, handleAutoFitRow]);
 
+    const handleFormatRowHeight = useCallback(() => {
+        const p = activeCell ? parseCellId(activeCell) : null;
+        const currentH = p && activeSheet.rowHeights[p.row] ? activeSheet.rowHeights[p.row] : DEFAULT_ROW_HEIGHT;
+        const val = window.prompt ? window.prompt('Row Height (in points/pixels):', String(currentH)) : null;
+        if (!val) return;
+        const parsed = parseInt(val, 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+            const targets = activeSheet.selectionRange || (activeCell ? [activeCell] : []);
+            const rows = new Set<number>();
+            targets.forEach(id => {
+                const cp = parseCellId(id);
+                if (cp) rows.add(cp.row);
+            });
+            setSheets(prev => prev.map(s => {
+                if (s.id !== activeSheetId) return s;
+                const nextRowHeights = { ...s.rowHeights };
+                rows.forEach(r => { nextRowHeights[r] = parsed; });
+                return { ...s, rowHeights: nextRowHeights };
+            }));
+        }
+    }, [activeCell, activeSheet, activeSheetId, setSheets]);
+
+    const handleFormatColWidth = useCallback(() => {
+        const p = activeCell ? parseCellId(activeCell) : null;
+        const colChar = p ? numToChar(p.col) : 'A';
+        const currentW = activeSheet.columnWidths[colChar] || DEFAULT_COL_WIDTH;
+        const val = window.prompt ? window.prompt('Column Width (in characters/pixels):', String(currentW)) : null;
+        if (!val) return;
+        const parsed = parseInt(val, 10);
+        if (!isNaN(parsed) && parsed >= 0) {
+            const targets = activeSheet.selectionRange || (activeCell ? [activeCell] : []);
+            const cols = new Set<string>();
+            targets.forEach(id => {
+                const cp = parseCellId(id);
+                if (cp) cols.add(numToChar(cp.col));
+            });
+            setSheets(prev => prev.map(s => {
+                if (s.id !== activeSheetId) return s;
+                const nextColWidths = { ...s.columnWidths };
+                cols.forEach(c => { nextColWidths[c] = parsed; });
+                return { ...s, columnWidths: nextColWidths };
+            }));
+        }
+    }, [activeCell, activeSheet, activeSheetId, setSheets]);
+
+    const handleHideRow = useCallback(() => {
+        const p = activeCell ? parseCellId(activeCell) : null;
+        if (!p) return;
+        setSheets(prev => prev.map(s => {
+            if (s.id !== activeSheetId) return s;
+            return { ...s, rowHeights: { ...s.rowHeights, [p.row]: 0 } };
+        }));
+    }, [activeCell, activeSheetId, setSheets]);
+
+    const handleUnhideRow = useCallback(() => {
+        const p = activeCell ? parseCellId(activeCell) : null;
+        if (!p) return;
+        setSheets(prev => prev.map(s => {
+            if (s.id !== activeSheetId) return s;
+            const nextHeights = { ...s.rowHeights };
+            delete nextHeights[p.row];
+            return { ...s, rowHeights: nextHeights };
+        }));
+    }, [activeCell, activeSheetId, setSheets]);
+
+    const handleHideCol = useCallback(() => {
+        const p = activeCell ? parseCellId(activeCell) : null;
+        if (!p) return;
+        const colChar = numToChar(p.col);
+        setSheets(prev => prev.map(s => {
+            if (s.id !== activeSheetId) return s;
+            return { ...s, columnWidths: { ...s.columnWidths, [colChar]: 0 } };
+        }));
+    }, [activeCell, activeSheetId, setSheets]);
+
+    const handleUnhideCol = useCallback(() => {
+        const p = activeCell ? parseCellId(activeCell) : null;
+        if (!p) return;
+        const colChar = numToChar(p.col);
+        setSheets(prev => prev.map(s => {
+            if (s.id !== activeSheetId) return s;
+            const nextWidths = { ...s.columnWidths };
+            delete nextWidths[colChar];
+            return { ...s, columnWidths: nextWidths };
+        }));
+    }, [activeCell, activeSheetId, setSheets]);
+
     return { 
         handleColumnResize, 
         handleRowResize, 
@@ -137,6 +224,12 @@ export const useResizeHandlers = ({ setSheets, activeSheetId, activeSheet, activ
         resizeActiveCol, 
         handleResetActiveResize,
         autoFitSelectionCols,
-        autoFitSelectionRows
+        autoFitSelectionRows,
+        handleFormatRowHeight,
+        handleFormatColWidth,
+        handleHideRow,
+        handleUnhideRow,
+        handleHideCol,
+        handleUnhideCol
     };
 };

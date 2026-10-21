@@ -69,7 +69,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
         {/* Undo/Redo Controls - Styled Pill */}
         <div className="flex items-center bg-slate-900/50 rounded-full p-0.5 border border-slate-700/50 shadow-sm group">
             <StatusBarIconBtn 
-                onClick={onUndo}
+                onClick={() => onUndo?.()}
                 disabled={!canUndo}
                 className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400 active:scale-95"
                 title="Undo (Ctrl+Z)"
@@ -78,7 +78,7 @@ const StatusBar: React.FC<StatusBarProps> = ({
             </StatusBarIconBtn>
             <div className="w-[1px] h-3 bg-slate-700/30 mx-0.5 group-hover:bg-slate-700/50 transition-colors"></div>
             <StatusBarIconBtn 
-                onClick={onRedo}
+                onClick={() => onRedo?.()}
                 disabled={!canRedo}
                 className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-full transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-400 active:scale-95"
                 title="Redo (Ctrl+Y)"
